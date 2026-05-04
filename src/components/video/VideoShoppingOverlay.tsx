@@ -17,6 +17,16 @@ interface VideoShoppingOverlayProps {
 
 function uid() { return Math.random().toString(36).slice(2, 9); }
 
+/** Only allow absolute https:// image URLs to prevent XSS via javascript: or data: URIs */
+function safeImageUrl(url: string): string | undefined {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" ? url : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export default function VideoShoppingOverlay({
   helperName, helperAvatar, seekerName, onClose,
 }: VideoShoppingOverlayProps) {
