@@ -22,6 +22,10 @@ export function useBounties(filter?: BountiesFilter) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  const category = filter?.category;
+  const query = filter?.query;
+  const status = filter?.status;
+
   const refetch = useCallback(() => {
     setIsLoading(true);
     setError(null);
@@ -29,14 +33,14 @@ export function useBounties(filter?: BountiesFilter) {
     setTimeout(() => {
       try {
         let results = [...mockBounties];
-        if (filter?.category && filter.category !== "ALL") {
-          results = results.filter((b) => b.category === filter.category);
+        if (category && category !== "ALL") {
+          results = results.filter((b) => b.category === category);
         }
-        if (filter?.status) {
-          results = results.filter((b) => b.status === filter.status);
+        if (status) {
+          results = results.filter((b) => b.status === status);
         }
-        if (filter?.query) {
-          const q = filter.query.toLowerCase();
+        if (query) {
+          const q = query.toLowerCase();
           results = results.filter(
             (b) =>
               b.title.toLowerCase().includes(q) ||
@@ -51,7 +55,7 @@ export function useBounties(filter?: BountiesFilter) {
         setIsLoading(false);
       }
     }, 600);
-  }, [filter?.category, filter?.query, filter?.status]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [category, query, status]);
 
   useEffect(() => { refetch(); }, [refetch]);
 
@@ -71,13 +75,17 @@ export function useHelpers(filter?: HelpersFilter) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  const query = filter?.query;
+  const minChefScore = filter?.minChefScore;
+  const country = filter?.country;
+
   useEffect(() => {
     setIsLoading(true);
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       try {
         let results = [...mockHelpers];
-        if (filter?.query) {
-          const q = filter.query.toLowerCase();
+        if (query) {
+          const q = query.toLowerCase();
           results = results.filter(
             (h) =>
               h.name.toLowerCase().includes(q) ||
@@ -85,12 +93,12 @@ export function useHelpers(filter?: HelpersFilter) {
               h.bio?.toLowerCase().includes(q)
           );
         }
-        if (filter?.minChefScore) {
-          results = results.filter((h) => (h.chefScore ?? 0) >= (filter.minChefScore ?? 0));
+        if (minChefScore) {
+          results = results.filter((h) => (h.chefScore ?? 0) >= minChefScore);
         }
-        if (filter?.country) {
+        if (country) {
           results = results.filter(
-            (h) => h.location.country.toLowerCase() === filter.country!.toLowerCase()
+            (h) => h.location.country.toLowerCase() === country.toLowerCase()
           );
         }
         setData(results);
@@ -100,7 +108,8 @@ export function useHelpers(filter?: HelpersFilter) {
         setIsLoading(false);
       }
     }, 500);
-  }, [filter?.query, filter?.minChefScore, filter?.country]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => clearTimeout(timer);
+  }, [query, minChefScore, country]);
 
   return { data, isLoading, error };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Search, Star, MapPin, Package, Flame } from "lucide-react";
 import type { Profile } from "@/types";
@@ -80,11 +80,11 @@ export default function HelpersPage() {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [country, setCountry] = useState("");
 
-  // Simple debounce via state
-  const handleSearch = (val: string) => {
-    setQuery(val);
-    setTimeout(() => setDebouncedQuery(val), 300);
-  };
+  // Proper debounce with cleanup to avoid stale timeout memory leaks
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), 300);
+    return () => clearTimeout(timer);
+  }, [query]);
 
   const { data: helpers, isLoading } = useHelpers({
     query: debouncedQuery || undefined,
@@ -105,7 +105,7 @@ export default function HelpersPage() {
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
           <input
             type="text" placeholder="Search by name, city, or specialty…"
-            value={query} onChange={(e) => handleSearch(e.target.value)}
+            value={query} onChange={(e) => setQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 shadow-sm"
           />
         </div>
