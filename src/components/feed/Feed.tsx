@@ -6,6 +6,7 @@ import { Search, SlidersHorizontal, Plus, Flame } from "lucide-react";
 import type { BountyCategory } from "@/types";
 import { mockBounties, categoryLabels } from "@/lib/mock-data";
 import BountyCard from "./BountyCard";
+import PostBountyModal from "./PostBountyModal";
 
 const categories: Array<BountyCategory | "ALL"> = [
   "ALL", "GROCERY", "COOKING", "CATERING", "INGREDIENT_SOURCING", "RECIPE_HELP",
@@ -16,6 +17,7 @@ const tabLabel: Record<string, string> = { ALL: "All", ...categoryLabels };
 export default function Feed() {
   const [activeCategory, setActiveCategory] = useState<BountyCategory | "ALL">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const [postModalOpen, setPostModalOpen] = useState(false);
 
   const filtered = mockBounties.filter((b) => {
     const matchesCat = activeCategory === "ALL" || b.category === activeCategory;
@@ -42,6 +44,7 @@ export default function Feed() {
           </div>
           <motion.button
             whileTap={{ scale: 0.92 }}
+            onClick={() => setPostModalOpen(true)}
             className="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-primary"
           >
             <Plus size={20} className="text-white" />
@@ -101,6 +104,8 @@ export default function Feed() {
           )}
         </AnimatePresence>
       </motion.div>
+
+      <PostBountyModal open={postModalOpen} onClose={() => setPostModalOpen(false)} />
     </div>
   );
 }

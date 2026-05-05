@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { Flame, Scroll, Map, User, Video } from "lucide-react";
+import { Flame, Scroll, Map, User, Video, Users } from "lucide-react";
 
 const navItems = [
   { href: "/", icon: Flame, label: "Home" },
   { href: "/bounties", icon: Scroll, label: "Bounties" },
+  { href: "/helpers", icon: Users, label: "Helpers" },
   { href: "/tracker", icon: Map, label: "Track" },
-  { href: "/video", icon: Video, label: "Live" },
   { href: "/profile", icon: User, label: "Profile" },
 ];
 

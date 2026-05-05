@@ -213,8 +213,10 @@ export default function VideoShoppingOverlay({
                         <span className="text-xs font-semibold text-charcoal">{msg.senderName}</span>
                         <span className="text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full">📸 Snapshot</span>
                       </div>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={msg.content} alt="snapshot" className="w-full max-w-xs rounded-2xl object-cover border border-gray-100" />
+                      {safeImageUrl(msg.content) && (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={safeImageUrl(msg.content)} alt="snapshot" className="w-full max-w-xs rounded-2xl object-cover border border-gray-100" />
+                      )}
                       <motion.button
                         whileTap={{ scale: 0.95 }} onClick={handleApprove}
                         className="flex items-center gap-1.5 bg-secondary-500 text-white text-xs font-semibold px-3 py-1.5 rounded-full"
