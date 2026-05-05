@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Flame, MapPin, Shield, Video, ArrowRight, Star, ChevronRight } from "lucide-react";
+import { Flame, MapPin, Shield, Video, ArrowRight, Star, ChevronRight, MessageCircle, Map } from "lucide-react";
 import { mockBounties, mockHelpers, formatCurrency, timeAgo } from "@/lib/mock-data";
 
 const features = [
@@ -10,7 +10,9 @@ const features = [
   { icon: Video, title: "FaceTime Assist", description: "Live video shopping – approve ingredients in real-time", href: "/video", color: "bg-blue-50 text-blue-600" },
   { icon: Shield, title: "Secure Escrow", description: "Funds held safely until you confirm your order", href: "/payment", color: "bg-secondary-50 text-secondary-500" },
   { icon: MapPin, title: "Live Tracking", description: "Follow your helper's real-time location", href: "/tracker", color: "bg-purple-50 text-purple-600" },
-];
+  { icon: MessageCircle, title: "Messages", description: "Chat with helpers and manage your orders", href: "/messages", color: "bg-indigo-50 text-indigo-600" },
+  { icon: Map, title: "Tracker", description: "Real-time delivery tracking with live map", href: "/tracker", color: "bg-teal-50 text-teal-600" },
+].slice(0, 4);
 
 export default function HomePage() {
   const recent = mockBounties.slice(0, 3);

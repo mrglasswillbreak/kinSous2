@@ -46,7 +46,7 @@ const SEED_NOTIFICATIONS: AppNotification[] = [
     id: "n-4", type: "NEW_MESSAGE", title: "Message from Amara",
     body: "\"I found the ugu leaves – they look very fresh today!\"",
     avatarUrl: "https://i.pravatar.cc/150?img=47",
-    href: "/video", read: true,
+    href: "/messages", read: true,
     createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
   },
   {

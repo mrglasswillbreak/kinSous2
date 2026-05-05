@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import {
   User, Bell, Globe, Shield, ChevronRight, Moon, Sun, Smartphone, LogOut, CreditCard,
 } from "lucide-react";
+import { useTheme } from "@/lib/theme-context";
 
 interface ToggleProps { enabled: boolean; onChange: (v: boolean) => void }
 
@@ -59,9 +60,31 @@ export default function Settings() {
     newBid: true, bidAccepted: true, deliveryUpdate: true,
     messages: true, promotions: false,
   });
-  const [darkMode, setDarkMode] = useState(false);
-  const [role, setRole] = useState<"SEEKER" | "HELPER">("SEEKER");
-  const [currency, setCurrency] = useState<"NGN" | "USD">("NGN");
+  const { darkMode, setDarkMode } = useTheme();
+
+  const [role, setRoleState] = useState<"SEEKER" | "HELPER">(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("kinsous-role") as "SEEKER" | "HELPER") ?? "SEEKER";
+    }
+    return "SEEKER";
+  });
+
+  const [currency, setCurrencyState] = useState<"NGN" | "USD">(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("kinsous-currency") as "NGN" | "USD") ?? "NGN";
+    }
+    return "NGN";
+  });
+
+  const setRole = (r: "SEEKER" | "HELPER") => {
+    setRoleState(r);
+    localStorage.setItem("kinsous-role", r);
+  };
+
+  const setCurrency = (c: "NGN" | "USD") => {
+    setCurrencyState(c);
+    localStorage.setItem("kinsous-currency", c);
+  };
 
   return (
     <div className="max-w-md mx-auto px-4 pb-24 pt-6 space-y-5">

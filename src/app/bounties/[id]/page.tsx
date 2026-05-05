@@ -1,12 +1,13 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Clock, Tag, Users, DollarSign, Video } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, Tag, Users, DollarSign, Video, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { mockBounties, formatCurrency, timeAgo, categoryLabels, categoryColors } from "@/lib/mock-data";
 import BidSection from "@/components/feed/BidSection";
+import LeaveReviewModal from "@/components/feed/LeaveReviewModal";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -20,10 +21,17 @@ const statusColors: Record<string, string> = {
   CANCELLED: "bg-red-50 text-red-700 border border-red-200",
 };
 
+const VIDEO_ASSIST_CATEGORIES = new Set(["COOKING", "RECIPE_HELP"]);
+
+function shouldShowVideoAssist(category: string): boolean {
+  return VIDEO_ASSIST_CATEGORIES.has(category);
+}
+
 export default function BountyDetailPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
   const bounty = mockBounties.find((b) => b.id === id);
+  const [reviewOpen, setReviewOpen] = useState(false);
 
   if (!bounty) {
     return (
@@ -159,7 +167,7 @@ export default function BountyDetailPage({ params }: Props) {
         </motion.div>
 
         {/* Video assist prompt */}
-        {bounty.category === "COOKING" || bounty.category === "RECIPE_HELP" ? (
+        {shouldShowVideoAssist(bounty.category) && (
           <motion.div
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
@@ -176,7 +184,27 @@ export default function BountyDetailPage({ params }: Props) {
               </div>
             </Link>
           </motion.div>
-        ) : null}
+        )}
+
+        {/* Track order prompt for active deliveries */}
+        {bounty.status === "IN_PROGRESS" && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Link href="/tracker">
+              <div className="bg-gradient-to-r from-secondary-50 to-green-50 rounded-2xl p-4 flex items-center gap-3 border border-secondary-100">
+                <div className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0">
+                  <MapPin size={18} className="text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-charcoal">Order in progress</p>
+                  <p className="text-xs text-muted">Track your helper's location live</p>
+                </div>
+              </div>
+            </Link>
+          </motion.div>
+        )}
 
         {/* Bids section */}
         <motion.div
@@ -186,6 +214,29 @@ export default function BountyDetailPage({ params }: Props) {
         >
           <BidSection bounty={bounty} />
         </motion.div>
+
+        {/* Leave Review button for COMPLETED bounties */}
+        {bounty.status === "COMPLETED" && bounty.bids && bounty.bids.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <motion.button
+              whileTap={{ scale: 0.96 }}
+              onClick={() => setReviewOpen(true)}
+              className="w-full flex items-center justify-center gap-2 bg-yellow-400 text-white py-3.5 rounded-2xl font-bold shadow-md"
+            >
+              <Star size={18} className="fill-white" />
+              Leave a Review
+            </motion.button>
+            <LeaveReviewModal
+              open={reviewOpen}
+              onClose={() => setReviewOpen(false)}
+              helperName={bounty.bids[0].helper.name}
+              helperAvatarUrl={bounty.bids[0].helper.avatarUrl}
+            />
+          </motion.div>
+        )}
       </div>
     </div>
   );

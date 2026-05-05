@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, X, CheckCheck, BellOff, Package, DollarSign, Truck, MessageCircle, ShieldCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
 import type { AppNotification, NotificationType } from "@/hooks/useNotifications";
 import { timeAgo } from "@/lib/mock-data";
 
@@ -36,10 +37,21 @@ interface NotificationItemProps {
   notification: AppNotification;
   onRead: (id: string) => void;
   onDismiss: (id: string) => void;
+  onClose: () => void;
 }
 
-function NotificationItem({ notification: n, onRead, onDismiss }: NotificationItemProps) {
+function NotificationItem({ notification: n, onRead, onDismiss, onClose }: NotificationItemProps) {
   const cfg = typeConfig[n.type];
+  const router = useRouter();
+
+  const handleClick = () => {
+    onRead(n.id);
+    if (n.href) {
+      onClose();
+      router.push(n.href);
+    }
+  };
+
   return (
     <motion.div
       layout
@@ -47,7 +59,7 @@ function NotificationItem({ notification: n, onRead, onDismiss }: NotificationIt
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20, height: 0 }}
       transition={{ duration: 0.25 }}
-      onClick={() => onRead(n.id)}
+      onClick={handleClick}
       className={`relative flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-gray-50 ${
         !n.read ? "bg-primary-50/40" : ""
       }`}
@@ -157,7 +169,7 @@ export default function NotificationDrawer({
                 <motion.ul layout className="divide-y divide-gray-50">
                   <AnimatePresence>
                     {notifications.map((n) => (
-                      <NotificationItem key={n.id} notification={n} onRead={onRead} onDismiss={onDismiss} />
+                      <NotificationItem key={n.id} notification={n} onRead={onRead} onDismiss={onDismiss} onClose={onClose} />
                     ))}
                   </AnimatePresence>
                 </motion.ul>

@@ -49,14 +49,20 @@ function MessageBubble({ msg, prevSenderId }: { msg: DirectMessage; prevSenderId
 
       <div className={`max-w-[75%] space-y-1 ${isMe ? "items-end" : "items-start"} flex flex-col`}>
         {msg.type === "IMAGE" ? (
-          <div className={`rounded-2xl overflow-hidden ${isMe ? "rounded-br-sm" : "rounded-bl-sm"}`}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={safeImageUrl(msg.content) ?? ""}
-              alt="Shared image"
-              className="max-w-[220px] w-full object-cover rounded-2xl"
-            />
-          </div>
+          safeImageUrl(msg.content) ? (
+            <div className={`rounded-2xl overflow-hidden ${isMe ? "rounded-br-sm" : "rounded-bl-sm"}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={safeImageUrl(msg.content)}
+                alt="Shared image"
+                className="max-w-[220px] w-full object-cover rounded-2xl"
+              />
+            </div>
+          ) : (
+            <div className="max-w-[220px] bg-gray-100 rounded-2xl flex items-center justify-center h-24 text-muted text-xs">
+              Image unavailable
+            </div>
+          )
         ) : (
           <div
             className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
