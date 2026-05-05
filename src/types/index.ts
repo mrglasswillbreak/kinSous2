@@ -162,3 +162,42 @@ export interface UsePaymentEscrowReturn {
   releaseEscrow: (bountyId: string) => Promise<void>;
   refundEscrow: (bountyId: string) => Promise<void>;
 }
+
+// ─── Messaging ────────────────────────────────────────────────────────────────
+
+export type DirectMessageType = "TEXT" | "IMAGE" | "SYSTEM";
+
+export interface DirectMessage {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderName: string;
+  senderAvatarUrl: string;
+  type: DirectMessageType;
+  content: string;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface Conversation {
+  id: string;
+  participants: [Profile, Profile];
+  bountyRef?: { id: string; title: string };
+  lastMessage: DirectMessage;
+  unreadCount: number;
+  updatedAt: string;
+}
+
+// ─── Reviews ──────────────────────────────────────────────────────────────────
+
+export interface Review {
+  id: string;
+  bountyId: string;
+  authorId: string;
+  authorName: string;
+  authorAvatarUrl: string;
+  targetId: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}

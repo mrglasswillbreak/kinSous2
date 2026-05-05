@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Clock, ChevronDown, DollarSign, Users, Tag } from "lucide-react";
+import { MapPin, Clock, ChevronDown, DollarSign, Users, Tag, ArrowRight } from "lucide-react";
+import Link from "next/link";
 import type { Bounty } from "@/types";
 import { timeAgo, formatCurrency, categoryLabels, categoryColors } from "@/lib/mock-data";
 import BidSection from "./BidSection";
@@ -123,6 +124,15 @@ export default function BountyCard({ bounty }: BountyCardProps) {
               </div>
 
               <BidSection bounty={bounty} />
+
+              <Link href={`/bounties/${bounty.id}`} onClick={(e) => e.stopPropagation()}>
+                <motion.div
+                  whileTap={{ scale: 0.97 }}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-primary border border-primary-200 bg-primary-50 hover:bg-primary-100 transition-colors"
+                >
+                  View full details <ArrowRight size={14} />
+                </motion.div>
+              </Link>
             </div>
           </motion.div>
         )}

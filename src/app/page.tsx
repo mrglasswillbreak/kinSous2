@@ -105,22 +105,24 @@ export default function HomePage() {
         </div>
         <div className="space-y-3">
           {recent.map((b, i) => (
-            <motion.div
-              key={b.id}
-              initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.15 + i * 0.05 }}
-              className="bg-white rounded-2xl shadow-card p-3 flex items-center gap-3"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={b.seeker.avatarUrl} alt={b.seeker.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-charcoal truncate">{b.title}</p>
-                <p className="text-xs text-muted">{b.location.city} · {timeAgo(b.createdAt)}</p>
-              </div>
-              <span className="text-sm font-bold text-secondary-700 flex-shrink-0">
-                {formatCurrency(b.budget, b.currency)}
-              </span>
-            </motion.div>
+            <Link key={b.id} href={`/bounties/${b.id}`}>
+              <motion.div
+                initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.15 + i * 0.05 }}
+                whileTap={{ scale: 0.98 }}
+                className="bg-white rounded-2xl shadow-card p-3 flex items-center gap-3"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={b.seeker.avatarUrl} alt={b.seeker.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-charcoal truncate">{b.title}</p>
+                  <p className="text-xs text-muted">{b.location.city} · {timeAgo(b.createdAt)}</p>
+                </div>
+                <span className="text-sm font-bold text-secondary-700 flex-shrink-0">
+                  {formatCurrency(b.budget, b.currency)}
+                </span>
+              </motion.div>
+            </Link>
           ))}
         </div>
       </div>
