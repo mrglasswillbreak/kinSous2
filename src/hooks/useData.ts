@@ -21,21 +21,21 @@ export function useBounties(filter?: BountiesFilter) {
   const [data, setData] = useState<Bounty[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const refetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const category = filter?.category;
   const query = filter?.query;
   const status = filter?.status;
 
   const refetch = useCallback(() => {
-    if (refetchTimerRef.current) {
-      clearTimeout(refetchTimerRef.current);
-      refetchTimerRef.current = null;
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
     }
     setIsLoading(true);
     setError(null);
     // Simulate network latency
-    refetchTimerRef.current = setTimeout(() => {
+    timerRef.current = setTimeout(() => {
       try {
         let results = [...mockBounties];
         if (category && category !== "ALL") {
@@ -58,7 +58,7 @@ export function useBounties(filter?: BountiesFilter) {
         setError(err instanceof Error ? err : new Error("Failed to load bounties"));
       } finally {
         setIsLoading(false);
-        refetchTimerRef.current = null;
+        timerRef.current = null;
       }
     }, 600);
   }, [category, query, status]);
@@ -66,8 +66,8 @@ export function useBounties(filter?: BountiesFilter) {
   useEffect(() => { refetch(); }, [refetch]);
   useEffect(() => {
     return () => {
-      if (refetchTimerRef.current) {
-        clearTimeout(refetchTimerRef.current);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
       }
     };
   }, []);
