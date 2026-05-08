@@ -202,7 +202,7 @@ export default function VideoShoppingOverlay({
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
               <h3 className="font-bold text-charcoal">Live Chat</h3>
-              <button onClick={() => setChatOpen(false)} className="text-muted"><X size={18} /></button>
+              <button onClick={() => setChatOpen(false)} aria-label="Close chat" className="text-muted"><X size={18} /></button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">

@@ -1,13 +1,9 @@
 "use client";
 
 import ChatThread from "@/components/messages/ChatThread";
-import { use } from "react";
+import { useParams } from "next/navigation";
 
-interface Props {
-  params: Promise<{ id: string }>;
-}
-
-export default function ConversationPage({ params }: Props) {
-  const { id } = use(params);
-  return <ChatThread conversationId={id} />;
+export default function ConversationPage() {
+  const params = useParams<{ id: string }>();
+  return <ChatThread conversationId={params.id} />;
 }

@@ -5,7 +5,7 @@
  * Ready to swap for real API calls once backend is wired.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { Bounty, BountyCategory, Profile, Bid } from "@/types";
 import { mockBounties, mockHelpers } from "@/lib/mock-data";
 
@@ -21,16 +21,21 @@ export function useBounties(filter?: BountiesFilter) {
   const [data, setData] = useState<Bounty[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const refetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const category = filter?.category;
   const query = filter?.query;
   const status = filter?.status;
 
   const refetch = useCallback(() => {
+    if (refetchTimerRef.current) {
+      clearTimeout(refetchTimerRef.current);
+      refetchTimerRef.current = null;
+    }
     setIsLoading(true);
     setError(null);
     // Simulate network latency
-    setTimeout(() => {
+    refetchTimerRef.current = setTimeout(() => {
       try {
         let results = [...mockBounties];
         if (category && category !== "ALL") {
@@ -53,11 +58,19 @@ export function useBounties(filter?: BountiesFilter) {
         setError(err instanceof Error ? err : new Error("Failed to load bounties"));
       } finally {
         setIsLoading(false);
+        refetchTimerRef.current = null;
       }
     }, 600);
   }, [category, query, status]);
 
   useEffect(() => { refetch(); }, [refetch]);
+  useEffect(() => {
+    return () => {
+      if (refetchTimerRef.current) {
+        clearTimeout(refetchTimerRef.current);
+      }
+    };
+  }, []);
 
   return { data, isLoading, error, refetch };
 }
@@ -122,11 +135,12 @@ export function useProfile(id: string) {
 
   useEffect(() => {
     setIsLoading(true);
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       const found = mockHelpers.find((h) => h.id === id) ?? mockHelpers[0];
       setData(found);
       setIsLoading(false);
     }, 400);
+    return () => clearTimeout(timer);
   }, [id]);
 
   return { data, isLoading };
@@ -151,12 +165,13 @@ export function usePlaceBid() {
     setError(null);
     try {
       await new Promise<void>((r) => setTimeout(r, 900));
+      const bounty = mockBounties.find((b) => b.id === params.bountyId);
       const newBid: Bid = {
         id: `bid-${Math.random().toString(36).slice(2, 7)}`,
         bountyId: params.bountyId,
         helper: mockHelpers[0],
         amount: params.amount,
-        currency: "USD",
+        currency: bounty?.currency ?? "USD",
         message: params.message,
         estimatedDeliveryMinutes: params.estimatedDeliveryMinutes,
         status: "PENDING",

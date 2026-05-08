@@ -24,6 +24,7 @@ export default function TopBar() {
         <motion.button
           whileTap={{ scale: 0.88 }}
           onClick={() => setDrawerOpen(true)}
+          aria-label="Open notifications"
           className="relative w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm"
         >
           <Bell size={17} className="text-charcoal" />

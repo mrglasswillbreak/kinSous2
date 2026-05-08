@@ -90,6 +90,8 @@ function NotificationItem({ notification: n, onRead, onDismiss, onClose }: Notif
       <motion.button
         whileTap={{ scale: 0.85 }}
         onClick={(e) => { e.stopPropagation(); onDismiss(n.id); }}
+        aria-label="Dismiss notification"
+        title="Dismiss notification"
         className="absolute right-3 top-3.5 text-muted hover:text-charcoal transition-colors"
       >
         <X size={14} />
@@ -151,7 +153,7 @@ export default function NotificationDrawer({
                     <CheckCheck size={13} /> Mark all read
                   </motion.button>
                 )}
-                <motion.button whileTap={{ scale: 0.9 }} onClick={onClose}>
+                <motion.button whileTap={{ scale: 0.9 }} onClick={onClose} aria-label="Close notifications">
                   <X size={20} className="text-muted" />
                 </motion.button>
               </div>

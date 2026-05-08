@@ -1,17 +1,13 @@
 "use client";
 
-import { use, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, MapPin, Clock, Tag, Users, DollarSign, Video, Star } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { mockBounties, formatCurrency, timeAgo, categoryLabels, categoryColors } from "@/lib/mock-data";
 import BidSection from "@/components/feed/BidSection";
 import LeaveReviewModal from "@/components/feed/LeaveReviewModal";
-
-interface Props {
-  params: Promise<{ id: string }>;
-}
 
 const statusColors: Record<string, string> = {
   OPEN: "bg-secondary-50 text-secondary-700 border border-secondary-200",
@@ -27,8 +23,9 @@ function shouldShowVideoAssist(category: string): boolean {
   return VIDEO_ASSIST_CATEGORIES.has(category);
 }
 
-export default function BountyDetailPage({ params }: Props) {
-  const { id } = use(params);
+export default function BountyDetailPage() {
+  const routeParams = useParams<{ id: string }>();
+  const { id } = routeParams;
   const router = useRouter();
   const bounty = mockBounties.find((b) => b.id === id);
   const [reviewOpen, setReviewOpen] = useState(false);
