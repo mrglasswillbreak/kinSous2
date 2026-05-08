@@ -23,7 +23,7 @@
 
 ## 🛠 Tech Stack
 
-- **Next.js 14** (App Router, TypeScript)
+- **Next.js 15** (App Router, TypeScript)
 - **Tailwind CSS** (custom design tokens — cream, charcoal, primary orange, secondary green)
 - **Framer Motion** (card animations, PiP drag, delivery stepper, chat slide-up)
 - **Lucide React** (icons)
