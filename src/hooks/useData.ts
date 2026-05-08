@@ -21,21 +21,21 @@ export function useBounties(filter?: BountiesFilter) {
   const [data, setData] = useState<Bounty[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const category = filter?.category;
   const query = filter?.query;
   const status = filter?.status;
 
   const refetch = useCallback(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
+    if (fetchTimerRef.current) {
+      clearTimeout(fetchTimerRef.current);
+      fetchTimerRef.current = null;
     }
     setIsLoading(true);
     setError(null);
     // Simulate network latency
-    timerRef.current = setTimeout(() => {
+    fetchTimerRef.current = setTimeout(() => {
       try {
         let results = [...mockBounties];
         if (category && category !== "ALL") {
@@ -58,7 +58,7 @@ export function useBounties(filter?: BountiesFilter) {
         setError(err instanceof Error ? err : new Error("Failed to load bounties"));
       } finally {
         setIsLoading(false);
-        timerRef.current = null;
+        fetchTimerRef.current = null;
       }
     }, 600);
   }, [category, query, status]);
@@ -66,8 +66,8 @@ export function useBounties(filter?: BountiesFilter) {
   useEffect(() => { refetch(); }, [refetch]);
   useEffect(() => {
     return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
+      if (fetchTimerRef.current) {
+        clearTimeout(fetchTimerRef.current);
       }
     };
   }, []);
@@ -165,13 +165,13 @@ export function usePlaceBid() {
     setError(null);
     try {
       await new Promise<void>((r) => setTimeout(r, 900));
-      const bounty = mockBounties.find((b) => b.id === params.bountyId);
+      const targetBounty = mockBounties.find((b) => b.id === params.bountyId);
       const newBid: Bid = {
         id: `bid-${Math.random().toString(36).slice(2, 7)}`,
         bountyId: params.bountyId,
         helper: mockHelpers[0],
         amount: params.amount,
-        currency: bounty?.currency ?? "USD",
+        currency: targetBounty?.currency ?? "USD",
         message: params.message,
         estimatedDeliveryMinutes: params.estimatedDeliveryMinutes,
         status: "PENDING",
