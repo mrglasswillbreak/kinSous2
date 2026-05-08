@@ -4,11 +4,12 @@ import ProfileCard from "@/components/profile/ProfileCard";
 import { mockHelpers } from "@/lib/mock-data";
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const helper = mockHelpers.find((h) => h.id === params.id);
+  const { id } = await params;
+  const helper = mockHelpers.find((h) => h.id === id);
   return {
     title: helper ? `${helper.name} · Helper Profile · KinSous` : "Helper Profile · KinSous",
     description: helper
@@ -17,8 +18,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function HelperProfilePage({ params }: Props) {
-  const helper = mockHelpers.find((h) => h.id === params.id);
+export default async function HelperProfilePage({ params }: Props) {
+  const { id } = await params;
+  const helper = mockHelpers.find((h) => h.id === id);
   if (!helper) notFound();
 
   return (
