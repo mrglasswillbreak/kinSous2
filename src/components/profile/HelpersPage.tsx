@@ -17,7 +17,7 @@ function HelperCard({ helper, index }: { helper: Profile; index: number }) {
       transition={{ delay: index * 0.06, duration: 0.3 }}
       whileTap={{ scale: 0.97 }}
     >
-      <Link href="/profile">
+      <Link href={`/helpers/${helper.id}`}>
         <div className="bg-white rounded-3xl shadow-card border border-gray-100 overflow-hidden">
           <div className="h-16 bg-gradient-to-r from-primary-400 to-primary-600" />
           <div className="px-4 pb-4">

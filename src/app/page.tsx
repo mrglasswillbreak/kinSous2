@@ -133,13 +133,13 @@ export default function HomePage() {
       <div className="px-4 mt-6">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-bold text-charcoal">Top Helpers</h3>
-          <Link href="/profile" className="text-primary text-sm font-semibold flex items-center gap-1">
+          <Link href="/helpers" className="text-primary text-sm font-semibold flex items-center gap-1">
             View all <ChevronRight size={14} />
           </Link>
         </div>
         <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4" style={{ scrollbarWidth: "none" }}>
           {mockHelpers.map((h, i) => (
-            <Link key={h.id} href="/profile">
+            <Link key={h.id} href={`/helpers/${h.id}`}>
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.1 + i * 0.05 }} whileTap={{ scale: 0.95 }}

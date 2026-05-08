@@ -18,6 +18,10 @@ export default function ProfileCard({ profile, isCurrentUser = false }: ProfileC
 
   // Bounties where this user is the seeker
   const myBounties = mockBounties.filter((b) => b.seeker.id === profile.id).slice(0, 3);
+  // Bounties this helper has bid on
+  const helperBounties = mockBounties
+    .filter((b) => b.bids?.some((bid) => bid.helper.id === profile.id))
+    .slice(0, 3);
   // Reviews written about this helper
   const reviews = mockReviews.filter((r) => r.targetId === profile.id);
 
@@ -198,6 +202,42 @@ export default function ProfileCard({ profile, isCurrentUser = false }: ProfileC
         </motion.div>
       )}
 
+      {/* Helper Jobs */}
+      {isHelper && helperBounties.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.28 }}
+          className="bg-white rounded-3xl shadow-card p-5"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-bold text-charcoal flex items-center gap-2">
+              <Scroll size={16} className="text-primary" /> Active Jobs
+            </h3>
+            <Link href="/bounties" className="text-xs text-primary font-semibold">Explore</Link>
+          </div>
+          <div className="space-y-2">
+            {helperBounties.map((bounty) => (
+              <Link key={bounty.id} href={`/bounties/${bounty.id}`} className="block">
+                <div className="flex items-center gap-3 bg-gray-50 rounded-2xl p-3">
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                    bounty.status === "OPEN" ? "bg-secondary-500" :
+                    bounty.status === "IN_PROGRESS" ? "bg-primary" :
+                    bounty.status === "COMPLETED" ? "bg-gray-400" : "bg-red-400"
+                  }`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-charcoal truncate">{bounty.title}</p>
+                    <p className="text-xs text-muted">{bounty.location.city} · {bounty.status.replace("_", " ")}</p>
+                  </div>
+                  <span className="text-xs font-bold text-secondary-700 flex-shrink-0">
+                    {formatCurrency(bounty.budget, bounty.currency)}
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
       {/* My Bounties (seeker view or current user) */}
       {(isCurrentUser || profile.id === currentUser.id) && myBounties.length > 0 && (
         <motion.div
@@ -213,20 +253,22 @@ export default function ProfileCard({ profile, isCurrentUser = false }: ProfileC
           </div>
           <div className="space-y-2">
             {myBounties.map((bounty) => (
-              <div key={bounty.id} className="flex items-center gap-3 bg-gray-50 rounded-2xl p-3">
-                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                  bounty.status === "OPEN" ? "bg-secondary-500" :
-                  bounty.status === "IN_PROGRESS" ? "bg-primary" :
-                  bounty.status === "COMPLETED" ? "bg-gray-400" : "bg-red-400"
-                }`} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-charcoal truncate">{bounty.title}</p>
-                  <p className="text-xs text-muted">{bounty.location.city} · {bounty.status.replace("_", " ")}</p>
+              <Link key={bounty.id} href={`/bounties/${bounty.id}`} className="block">
+                <div className="flex items-center gap-3 bg-gray-50 rounded-2xl p-3">
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                    bounty.status === "OPEN" ? "bg-secondary-500" :
+                    bounty.status === "IN_PROGRESS" ? "bg-primary" :
+                    bounty.status === "COMPLETED" ? "bg-gray-400" : "bg-red-400"
+                  }`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-charcoal truncate">{bounty.title}</p>
+                    <p className="text-xs text-muted">{bounty.location.city} · {bounty.status.replace("_", " ")}</p>
+                  </div>
+                  <span className="text-xs font-bold text-secondary-700 flex-shrink-0">
+                    {formatCurrency(bounty.budget, bounty.currency)}
+                  </span>
                 </div>
-                <span className="text-xs font-bold text-secondary-700 flex-shrink-0">
-                  {formatCurrency(bounty.budget, bounty.currency)}
-                </span>
-              </div>
+              </Link>
             ))}
           </div>
         </motion.div>
