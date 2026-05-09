@@ -60,8 +60,8 @@ function NotificationItem({ notification: n, onRead, onDismiss, onClose }: Notif
       exit={{ opacity: 0, x: 20, height: 0 }}
       transition={{ duration: 0.25 }}
       onClick={handleClick}
-      className={`relative flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-gray-50 ${
-        !n.read ? "bg-primary-50/40" : ""
+      className={`relative flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-subtle ${
+        !n.read ? "bg-primary-50/40 dark:bg-primary-900/20" : ""
       }`}
     >
       <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${cfg.color}`}>
@@ -130,10 +130,10 @@ export default function NotificationDrawer({
             key="drawer"
             initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
             transition={{ type: "spring", stiffness: 300, damping: 35 }}
-            className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-sm bg-white shadow-2xl flex flex-col"
+            className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-sm bg-card shadow-2xl flex flex-col"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-card-border">
               <div className="flex items-center gap-2">
                 <Bell size={20} className="text-charcoal" />
                 <h2 className="font-bold text-charcoal text-lg">Notifications</h2>
@@ -168,7 +168,7 @@ export default function NotificationDrawer({
                   <p className="text-sm text-center max-w-[200px]">No notifications right now.</p>
                 </div>
               ) : (
-                <motion.ul layout className="divide-y divide-gray-50">
+                <motion.ul layout className="divide-y divide-card-border">
                   <AnimatePresence>
                     {notifications.map((n) => (
                       <NotificationItem key={n.id} notification={n} onRead={onRead} onDismiss={onDismiss} onClose={onClose} />
@@ -178,7 +178,7 @@ export default function NotificationDrawer({
               )}
             </div>
 
-            <div className="p-4 border-t border-gray-100">
+            <div className="p-4 border-t border-card-border">
               <p className="text-center text-xs text-muted">Pull down in the app to refresh</p>
             </div>
           </motion.div>

@@ -32,7 +32,7 @@ export default function BidSection({ bounty }: BidSectionProps) {
                 key={bid.id}
                 initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.08 }}
-                className="flex gap-3 bg-gray-50 rounded-2xl p-3"
+                className="flex gap-3 bg-subtle rounded-2xl p-3"
               >
                 <img
                   src={bid.helper.avatarUrl} alt={bid.helper.name}
@@ -79,13 +79,13 @@ export default function BidSection({ bounty }: BidSectionProps) {
               <input
                 type="number" placeholder="Amount" value={amt}
                 onChange={(e) => setAmt(e.target.value)}
-                className="w-full pl-6 pr-2 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-300"
+                className="w-full pl-6 pr-2 py-2.5 text-sm border border-card-border rounded-xl bg-input-surface text-charcoal placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-300"
               />
             </div>
             <input
               type="text" placeholder="Your pitch…" value={msg}
               onChange={(e) => setMsg(e.target.value)}
-              className="flex-1 px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-300"
+              className="flex-1 px-3 py-2.5 text-sm border border-card-border rounded-xl bg-input-surface text-charcoal placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-300"
             />
           </div>
 

@@ -30,7 +30,7 @@ export default function ProfileCard({ profile, isCurrentUser = false }: ProfileC
       {/* Hero */}
       <motion.div
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-3xl shadow-card overflow-hidden"
+        className="bg-card rounded-3xl shadow-card overflow-hidden"
       >
         <div className="h-24 bg-gradient-to-br from-primary-400 to-primary-600 relative">
           {isHelper && (
@@ -55,7 +55,7 @@ export default function ProfileCard({ profile, isCurrentUser = false }: ProfileC
             {isCurrentUser && (
               <motion.button
                 whileTap={{ scale: 0.92 }}
-                className="ml-auto mb-1 flex items-center gap-1.5 text-xs text-muted border border-gray-200 px-3 py-1.5 rounded-xl hover:bg-gray-50 transition-colors"
+                className="ml-auto mb-1 flex items-center gap-1.5 text-xs text-muted border border-card-border px-3 py-1.5 rounded-xl hover:bg-subtle transition-colors"
               >
                 <Edit3 size={12} /> Edit
               </motion.button>
@@ -87,7 +87,7 @@ export default function ProfileCard({ profile, isCurrentUser = false }: ProfileC
         <motion.div
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white rounded-3xl shadow-card p-5"
+          className="bg-card rounded-3xl shadow-card p-5"
         >
           <h3 className="font-bold text-charcoal mb-3">Performance</h3>
           <div className="grid grid-cols-3 gap-3">
@@ -117,7 +117,7 @@ export default function ProfileCard({ profile, isCurrentUser = false }: ProfileC
         <motion.div
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="bg-white rounded-3xl shadow-card p-5 flex items-center gap-6"
+          className="bg-card rounded-3xl shadow-card p-5 flex items-center gap-6"
         >
           <ChefScore score={profile.chefScore} size="lg" />
           <div>
@@ -138,7 +138,7 @@ export default function ProfileCard({ profile, isCurrentUser = false }: ProfileC
         <motion.div
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white rounded-3xl shadow-card p-5"
+          className="bg-card rounded-3xl shadow-card p-5"
         >
           <h3 className="font-bold text-charcoal mb-3">
             Certifications ({profile.certificationBadges.length})
@@ -156,7 +156,7 @@ export default function ProfileCard({ profile, isCurrentUser = false }: ProfileC
         <motion.div
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
-          className="bg-white rounded-3xl shadow-card p-5"
+          className="bg-card rounded-3xl shadow-card p-5"
         >
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-bold text-charcoal">Reviews ({reviews.length})</h3>
@@ -173,7 +173,7 @@ export default function ProfileCard({ profile, isCurrentUser = false }: ProfileC
                 key={review.id}
                 initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.25 + i * 0.06 }}
-                className="flex gap-3 bg-gray-50 rounded-2xl p-3"
+                className="flex gap-3 bg-subtle rounded-2xl p-3"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -207,7 +207,7 @@ export default function ProfileCard({ profile, isCurrentUser = false }: ProfileC
         <motion.div
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.28 }}
-          className="bg-white rounded-3xl shadow-card p-5"
+          className="bg-card rounded-3xl shadow-card p-5"
         >
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-bold text-charcoal flex items-center gap-2">
@@ -218,7 +218,7 @@ export default function ProfileCard({ profile, isCurrentUser = false }: ProfileC
           <div className="space-y-2">
             {helperBounties.map((bounty) => (
               <Link key={bounty.id} href={`/bounties/${bounty.id}`} className="block">
-                <div className="flex items-center gap-3 bg-gray-50 rounded-2xl p-3">
+                <div className="flex items-center gap-3 bg-subtle rounded-2xl p-3">
                   <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                     bounty.status === "OPEN" ? "bg-secondary-500" :
                     bounty.status === "IN_PROGRESS" ? "bg-primary" :
@@ -243,7 +243,7 @@ export default function ProfileCard({ profile, isCurrentUser = false }: ProfileC
         <motion.div
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white rounded-3xl shadow-card p-5"
+          className="bg-card rounded-3xl shadow-card p-5"
         >
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-bold text-charcoal flex items-center gap-2">
@@ -254,7 +254,7 @@ export default function ProfileCard({ profile, isCurrentUser = false }: ProfileC
           <div className="space-y-2">
             {myBounties.map((bounty) => (
               <Link key={bounty.id} href={`/bounties/${bounty.id}`} className="block">
-                <div className="flex items-center gap-3 bg-gray-50 rounded-2xl p-3">
+                <div className="flex items-center gap-3 bg-subtle rounded-2xl p-3">
                   <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                     bounty.status === "OPEN" ? "bg-secondary-500" :
                     bounty.status === "IN_PROGRESS" ? "bg-primary" :

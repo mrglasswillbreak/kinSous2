@@ -58,7 +58,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
           <motion.button
             whileTap={{ scale: 0.97 }}
             onClick={() => onComplete("SEEKER")}
-            className="w-full bg-white rounded-3xl shadow-card border-2 border-transparent hover:border-primary-200 transition-all p-5 text-left flex items-center gap-4"
+            className="w-full bg-card rounded-3xl shadow-card border-2 border-transparent hover:border-primary-200 transition-all p-5 text-left flex items-center gap-4"
           >
             <div className="w-14 h-14 bg-primary-50 rounded-2xl flex items-center justify-center flex-shrink-0">
               <ShoppingBag size={28} className="text-primary" />
@@ -73,7 +73,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
           <motion.button
             whileTap={{ scale: 0.97 }}
             onClick={() => onComplete("HELPER")}
-            className="w-full bg-white rounded-3xl shadow-card border-2 border-transparent hover:border-secondary-200 transition-all p-5 text-left flex items-center gap-4"
+            className="w-full bg-card rounded-3xl shadow-card border-2 border-transparent hover:border-secondary-200 transition-all p-5 text-left flex items-center gap-4"
           >
             <div className="w-14 h-14 bg-secondary-50 rounded-2xl flex items-center justify-center flex-shrink-0">
               <ChefHat size={28} className="text-secondary" />

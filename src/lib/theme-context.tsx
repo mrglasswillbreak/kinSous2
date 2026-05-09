@@ -17,14 +17,17 @@ const ThemeContext = createContext<ThemeContextValue>({
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [darkMode, setDarkModeState] = useState(false);
 
-  // Initialise from localStorage on mount
+  // Initialise from localStorage on mount, then inject a blocking script
+  // so the <html> class is set before paint (avoids flash).
   useEffect(() => {
-    const stored = typeof window !== "undefined"
-      ? localStorage.getItem("kinsous-dark")
-      : null;
-    if (stored === "1") {
+    const stored = localStorage.getItem("kinsous-dark");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const isDark = stored === "1" || (stored === null && prefersDark);
+    if (isDark) {
       setDarkModeState(true);
       document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
     }
   }, []);
 
@@ -51,3 +54,4 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 export function useTheme() {
   return useContext(ThemeContext);
 }
+

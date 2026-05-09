@@ -1,8 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import BottomNav from "@/components/ui/BottomNav";
-import TopBar from "@/components/ui/TopBar";
+import AppShell from "@/components/ui/AppShell";
 import { ThemeProvider } from "@/lib/theme-context";
 
 const geistSans = localFont({
@@ -40,12 +39,10 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans bg-background antialiased`}>
         <ThemeProvider>
-          <TopBar />
-          <main className="min-h-screen">{children}</main>
-          <BottomNav />
+          <AppShell>{children}</AppShell>
         </ThemeProvider>
       </body>
     </html>

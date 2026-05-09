@@ -18,7 +18,7 @@ function Stepper({ tracking }: { tracking: DeliveryTracking }) {
   const currentIdx = stageOrder.indexOf(tracking.currentStage);
   return (
     <div className="relative">
-      <div className="absolute top-5 left-5 right-5 h-0.5 bg-gray-200 z-0">
+      <div className="absolute top-5 left-5 right-5 h-0.5 bg-badge z-0">
         <motion.div
           className="h-full bg-primary"
           initial={{ width: "0%" }}
@@ -65,7 +65,7 @@ function Stepper({ tracking }: { tracking: DeliveryTracking }) {
 
 function MapPlaceholder({ tracking }: { tracking: DeliveryTracking }) {
   return (
-    <div className="relative w-full h-64 rounded-3xl overflow-hidden bg-gradient-to-br from-green-50 to-blue-50 border border-gray-100">
+    <div className="relative w-full h-64 rounded-3xl overflow-hidden bg-gradient-to-br from-green-50 to-blue-50 border border-card-border">
       <div className="absolute inset-0 opacity-20">
         <div className="grid grid-cols-4 grid-rows-4 h-full">
           {Array.from({ length: 16 }).map((_, i) => (
@@ -127,7 +127,7 @@ export default function Tracker() {
       </div>
 
       {/* Helper info */}
-      <div className="flex items-center gap-3 bg-white rounded-3xl p-4 shadow-card">
+      <div className="flex items-center gap-3 bg-card rounded-3xl p-4 shadow-card">
         <div className="relative">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -152,13 +152,13 @@ export default function Tracker() {
 
       <MapPlaceholder tracking={tracking} />
 
-      <div className="bg-white rounded-3xl p-5 shadow-card space-y-4">
+      <div className="bg-card rounded-3xl p-5 shadow-card space-y-4">
         <h3 className="font-bold text-charcoal">Delivery Progress</h3>
         <Stepper tracking={tracking} />
       </div>
 
       {tracking.helperLocation && (
-        <div className="bg-white rounded-3xl p-4 shadow-card">
+        <div className="bg-card rounded-3xl p-4 shadow-card">
           <h4 className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Helper Status</h4>
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-primary-50 rounded-2xl p-3">

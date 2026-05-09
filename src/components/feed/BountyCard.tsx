@@ -29,7 +29,7 @@ export default function BountyCard({ bounty }: BountyCardProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
-      className="bg-white rounded-3xl shadow-card hover:shadow-card-hover transition-shadow cursor-pointer overflow-hidden border border-gray-100"
+      className="bg-card rounded-3xl shadow-card hover:shadow-card-hover transition-shadow cursor-pointer overflow-hidden border border-card-border"
     >
       {bounty.imageUrls && bounty.imageUrls.length > 0 && (
         <div className="relative h-40 overflow-hidden">
@@ -102,20 +102,20 @@ export default function BountyCard({ bounty }: BountyCardProps) {
             className="overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-4 pb-4 space-y-4 border-t border-gray-100 pt-4">
+            <div className="px-4 pb-4 space-y-4 border-t border-card-border pt-4">
               <p className="text-sm text-charcoal leading-relaxed">{bounty.description}</p>
 
               {bounty.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {bounty.tags.map((tag) => (
-                    <span key={tag} className="flex items-center gap-1 text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">
+                    <span key={tag} className="flex items-center gap-1 text-xs bg-badge text-muted px-2.5 py-1 rounded-full">
                       <Tag size={10} />{tag}
                     </span>
                   ))}
                 </div>
               )}
 
-              <div className="flex items-start gap-2 bg-gray-50 rounded-2xl p-3">
+              <div className="flex items-start gap-2 bg-subtle rounded-2xl p-3">
                 <MapPin size={16} className="text-primary mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-sm font-medium text-charcoal">{bounty.location.address}</p>

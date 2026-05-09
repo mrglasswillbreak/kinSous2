@@ -18,7 +18,7 @@ function HelperCard({ helper, index }: { helper: Profile; index: number }) {
       whileTap={{ scale: 0.97 }}
     >
       <Link href={`/helpers/${helper.id}`}>
-        <div className="bg-white rounded-3xl shadow-card border border-gray-100 overflow-hidden">
+        <div className="bg-card rounded-3xl shadow-card border border-card-border overflow-hidden">
           <div className="h-16 bg-gradient-to-r from-primary-400 to-primary-600" />
           <div className="px-4 pb-4">
             <div className="flex items-end gap-3 -mt-8 mb-3">
@@ -50,7 +50,7 @@ function HelperCard({ helper, index }: { helper: Profile; index: number }) {
             )}
 
             {helper.helperStats && (
-              <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100">
+              <div className="flex items-center gap-4 mt-3 pt-3 border-t border-card-border">
                 <div className="flex items-center gap-1 text-xs text-muted">
                   <Star size={12} className="text-yellow-400 fill-yellow-400" />
                   <span className="font-semibold text-charcoal">{helper.helperStats.averageRating.toFixed(1)}</span>
@@ -106,7 +106,7 @@ export default function HelpersPage() {
           <input
             type="text" placeholder="Search by name, city, or specialty…"
             value={query} onChange={(e) => setQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 shadow-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-input-surface border border-card-border rounded-2xl text-sm text-charcoal placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-200 shadow-sm"
           />
         </div>
 
@@ -116,7 +116,7 @@ export default function HelpersPage() {
               key={opt.value} whileTap={{ scale: 0.93 }}
               onClick={() => setCountry(opt.value)}
               className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                country === opt.value ? "bg-primary text-white shadow-primary" : "bg-white text-muted border border-gray-200"
+                country === opt.value ? "bg-primary text-white shadow-primary" : "bg-card text-muted border border-card-border"
               }`}
             >
               {opt.label}
@@ -128,7 +128,7 @@ export default function HelpersPage() {
       <div className="grid grid-cols-1 gap-4 mt-2">
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-3xl shadow-card p-4 space-y-3">
+            <div key={i} className="bg-card rounded-3xl shadow-card p-4 space-y-3">
               <SkeletonHelperCard />
             </div>
           ))

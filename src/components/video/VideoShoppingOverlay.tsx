@@ -198,9 +198,9 @@ export default function VideoShoppingOverlay({
             key="chat"
             initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 300, damping: 35 }}
-            className="absolute bottom-[88px] left-0 right-0 bg-white rounded-t-3xl max-h-[55vh] flex flex-col shadow-2xl"
+            className="absolute bottom-[88px] left-0 right-0 bg-card rounded-t-3xl max-h-[55vh] flex flex-col shadow-2xl"
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-card-border">
               <h3 className="font-bold text-charcoal">Live Chat</h3>
               <button onClick={() => setChatOpen(false)} aria-label="Close chat" className="text-muted"><X size={18} /></button>
             </div>
@@ -222,7 +222,7 @@ export default function VideoShoppingOverlay({
                         const safeUrl = safeImageUrl(msg.content);
                         return safeUrl ? (
                           /* eslint-disable-next-line @next/next/no-img-element */
-                          <img src={safeUrl} alt="snapshot" className="w-full max-w-xs rounded-2xl object-cover border border-gray-100" />
+                          <img src={safeUrl} alt="snapshot" className="w-full max-w-xs rounded-2xl object-cover border border-card-border" />
                         ) : null;
                       })()}
                       <motion.button
@@ -237,7 +237,7 @@ export default function VideoShoppingOverlay({
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={msg.senderAvatarUrl} alt={msg.senderName} className="w-7 h-7 rounded-full flex-shrink-0 object-cover" />
                       <div className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm ${
-                        msg.senderId === "seeker" ? "bg-primary text-white" : "bg-gray-100 text-charcoal"
+                        msg.senderId === "seeker" ? "bg-primary text-white" : "bg-badge text-charcoal"
                       }`}>
                         {msg.content}
                       </div>
@@ -247,13 +247,13 @@ export default function VideoShoppingOverlay({
               ))}
             </div>
 
-            <div className="p-3 border-t border-gray-100 flex gap-2">
+            <div className="p-3 border-t border-card-border flex gap-2">
               <input
                 type="text" value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 placeholder="Type a message…"
-                className="flex-1 bg-gray-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
+                className="flex-1 bg-input-surface rounded-xl px-3 py-2 text-sm text-charcoal placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-200"
               />
               <motion.button
                 whileTap={{ scale: 0.9 }} onClick={handleSend}

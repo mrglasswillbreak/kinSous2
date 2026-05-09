@@ -27,7 +27,7 @@ function MessageBubble({ msg, prevSenderId }: { msg: DirectMessage; prevSenderId
   if (isSystem) {
     return (
       <div className="flex justify-center my-2">
-        <span className="text-xs text-muted bg-gray-100 px-3 py-1 rounded-full">{msg.content}</span>
+        <span className="text-xs text-muted bg-badge px-3 py-1 rounded-full">{msg.content}</span>
       </div>
     );
   }
@@ -59,7 +59,7 @@ function MessageBubble({ msg, prevSenderId }: { msg: DirectMessage; prevSenderId
               />
             </div>
           ) : (
-            <div className="max-w-[220px] bg-gray-100 rounded-2xl flex items-center justify-center h-24 text-muted text-xs">
+            <div className="max-w-[220px] bg-badge rounded-2xl flex items-center justify-center h-24 text-muted text-xs">
               Image unavailable
             </div>
           )
@@ -68,7 +68,7 @@ function MessageBubble({ msg, prevSenderId }: { msg: DirectMessage; prevSenderId
             className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
               isMe
                 ? "bg-primary text-white rounded-br-sm"
-                : "bg-white border border-gray-200 text-charcoal rounded-bl-sm shadow-sm"
+                : "bg-card border border-card-border text-charcoal rounded-bl-sm shadow-sm"
             }`}
           >
             {msg.content}
@@ -124,21 +124,21 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
   return (
     <div className="flex flex-col h-screen max-h-screen bg-background">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-100 shadow-sm flex-shrink-0">
+      <div className="flex items-center gap-3 px-4 py-3 bg-card border-b border-card-border shadow-sm flex-shrink-0">
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => router.back()}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-badge transition-colors"
         >
           <ArrowLeft size={20} className="text-charcoal" />
         </motion.button>
 
         {isLoading || !other ? (
           <div className="flex items-center gap-2 flex-1">
-            <div className="w-9 h-9 rounded-full bg-gray-100 animate-pulse" />
+            <div className="w-9 h-9 rounded-full bg-badge animate-pulse" />
             <div className="space-y-1">
-              <div className="h-3 w-24 bg-gray-100 rounded animate-pulse" />
-              <div className="h-2 w-16 bg-gray-100 rounded animate-pulse" />
+              <div className="h-3 w-24 bg-badge rounded animate-pulse" />
+              <div className="h-2 w-16 bg-badge rounded animate-pulse" />
             </div>
           </div>
         ) : (
@@ -191,11 +191,11 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
       </div>
 
       {/* Input */}
-      <div className="flex-shrink-0 bg-white border-t border-gray-100 px-4 py-3 pb-safe">
+      <div className="flex-shrink-0 bg-card border-t border-card-border px-4 py-3 pb-safe">
         <div className="flex items-center gap-2">
           <motion.button
             whileTap={{ scale: 0.9 }}
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-muted hover:bg-primary-50 hover:text-primary transition-colors flex-shrink-0"
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-badge text-muted hover:bg-primary-50 hover:text-primary transition-colors flex-shrink-0"
           >
             <Camera size={17} />
           </motion.button>
@@ -207,7 +207,7 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Message…"
-            className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:bg-white transition-colors"
+            className="flex-1 px-4 py-2.5 bg-subtle border border-card-border rounded-2xl text-sm text-charcoal placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-200 focus:bg-input-surface transition-colors"
           />
 
           <motion.button

@@ -75,10 +75,10 @@ export default function PostBountyModal({ open, onClose }: PostBountyModalProps)
             key="sheet"
             initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 280, damping: 32 }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl max-h-[90vh] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl shadow-2xl max-h-[90vh] flex flex-col"
           >
             {/* Handle */}
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mt-3 flex-shrink-0" />
+            <div className="w-10 h-1 bg-badge rounded-full mx-auto mt-3 flex-shrink-0" />
 
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 flex-shrink-0">
@@ -98,7 +98,7 @@ export default function PostBountyModal({ open, onClose }: PostBountyModalProps)
                   <motion.div
                     key={s}
                     animate={{ flex: i === step ? 2 : 1 }}
-                    className={`h-1.5 rounded-full transition-colors ${i <= step ? "bg-primary" : "bg-gray-200"}`}
+                    className={`h-1.5 rounded-full transition-colors ${i <= step ? "bg-primary" : "bg-badge"}`}
                   />
                 ))}
               </div>
@@ -132,7 +132,7 @@ export default function PostBountyModal({ open, onClose }: PostBountyModalProps)
                       <input
                         value={form.title} onChange={set("title")}
                         placeholder="e.g. Need fresh Egusi leaves from Wuse market"
-                        className="w-full px-4 py-3 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
+                        className="w-full px-4 py-3 border border-card-border rounded-2xl text-sm bg-input-surface text-charcoal placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-200"
                       />
                       <p className="text-xs text-muted mt-1">{form.title.length}/80 chars (min 10)</p>
                     </div>
@@ -141,7 +141,7 @@ export default function PostBountyModal({ open, onClose }: PostBountyModalProps)
                       <textarea
                         value={form.description} onChange={set("description")}
                         rows={4} placeholder="Describe exactly what you need, quality requirements, any special instructions…"
-                        className="w-full px-4 py-3 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 resize-none"
+                        className="w-full px-4 py-3 border border-card-border rounded-2xl text-sm bg-input-surface text-charcoal placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-200 resize-none"
                       />
                     </div>
                     <div>
@@ -149,7 +149,7 @@ export default function PostBountyModal({ open, onClose }: PostBountyModalProps)
                       <div className="relative">
                         <select
                           value={form.category} onChange={set("category")}
-                          className="w-full px-4 py-3 border border-gray-200 rounded-2xl text-sm bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary-200"
+                          className="w-full px-4 py-3 border border-card-border rounded-2xl text-sm bg-input-surface text-charcoal appearance-none focus:outline-none focus:ring-2 focus:ring-primary-200"
                         >
                           {categories.map((c) => (
                             <option key={c} value={c}>{categoryLabels[c]}</option>
@@ -163,10 +163,10 @@ export default function PostBountyModal({ open, onClose }: PostBountyModalProps)
                       <input
                         value={form.tags} onChange={set("tags")}
                         placeholder="egusi, fresh, west-african"
-                        className="w-full px-4 py-3 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
+                        className="w-full px-4 py-3 border border-card-border rounded-2xl text-sm bg-input-surface text-charcoal placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-200"
                       />
                     </div>
-                    <div className="border-2 border-dashed border-gray-200 rounded-2xl p-6 flex flex-col items-center gap-2 text-muted cursor-pointer hover:border-primary-200 transition-colors">
+                    <div className="border-2 border-dashed border-card-border rounded-2xl p-6 flex flex-col items-center gap-2 text-muted cursor-pointer hover:border-primary-200 transition-colors">
                       <ImageIcon size={24} strokeWidth={1.5} />
                       <p className="text-sm">Add reference photos (optional)</p>
                       <p className="text-xs">Tap to upload</p>
@@ -185,7 +185,7 @@ export default function PostBountyModal({ open, onClose }: PostBountyModalProps)
                       <input
                         value={form.address} onChange={set("address")}
                         placeholder="e.g. Wuse Zone 4, near Jabi Lake"
-                        className="w-full px-4 py-3 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
+                        className="w-full px-4 py-3 border border-card-border rounded-2xl text-sm bg-input-surface text-charcoal placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-200"
                       />
                     </div>
                     <div>
@@ -193,7 +193,7 @@ export default function PostBountyModal({ open, onClose }: PostBountyModalProps)
                       <input
                         value={form.city} onChange={set("city")}
                         placeholder="e.g. Abuja, Lagos, Atlanta"
-                        className="w-full px-4 py-3 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
+                        className="w-full px-4 py-3 border border-card-border rounded-2xl text-sm bg-input-surface text-charcoal placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-200"
                       />
                     </div>
                     <div>
@@ -201,7 +201,7 @@ export default function PostBountyModal({ open, onClose }: PostBountyModalProps)
                       <div className="relative">
                         <select
                           value={form.country} onChange={set("country")}
-                          className="w-full px-4 py-3 border border-gray-200 rounded-2xl text-sm bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary-200"
+                          className="w-full px-4 py-3 border border-card-border rounded-2xl text-sm bg-input-surface text-charcoal appearance-none focus:outline-none focus:ring-2 focus:ring-primary-200"
                         >
                           <option>Nigeria</option>
                           <option>United States</option>
@@ -225,7 +225,7 @@ export default function PostBountyModal({ open, onClose }: PostBountyModalProps)
                           <input
                             type="number" value={form.budget} onChange={set("budget")}
                             placeholder="0"
-                            className="w-full pl-7 pr-4 py-3 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
+                            className="w-full pl-7 pr-4 py-3 border border-card-border rounded-2xl text-sm bg-input-surface text-charcoal placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-200"
                           />
                         </div>
                       </div>
@@ -234,7 +234,7 @@ export default function PostBountyModal({ open, onClose }: PostBountyModalProps)
                         <div className="relative">
                           <select
                             value={form.currency} onChange={set("currency")}
-                            className="w-full px-3 py-3 border border-gray-200 rounded-2xl text-sm bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary-200"
+                            className="w-full px-3 py-3 border border-card-border rounded-2xl text-sm bg-input-surface text-charcoal appearance-none focus:outline-none focus:ring-2 focus:ring-primary-200"
                           >
                             <option value="NGN">NGN ₦</option>
                             <option value="USD">USD $</option>
@@ -253,7 +253,7 @@ export default function PostBountyModal({ open, onClose }: PostBountyModalProps)
                       </ul>
                     </div>
 
-                    <div className="bg-gray-50 rounded-2xl p-4 space-y-2 text-sm">
+                    <div className="bg-subtle rounded-2xl p-4 space-y-2 text-sm">
                       <p className="font-semibold text-charcoal">Summary</p>
                       <p className="text-muted truncate"><strong>Title:</strong> {form.title || "–"}</p>
                       <p className="text-muted"><strong>Category:</strong> {categoryLabels[form.category]}</p>
@@ -269,12 +269,12 @@ export default function PostBountyModal({ open, onClose }: PostBountyModalProps)
 
             {/* Footer */}
             {!done && (
-              <div className="px-5 py-4 border-t border-gray-100 flex gap-3 flex-shrink-0">
+              <div className="px-5 py-4 border-t border-card-border flex gap-3 flex-shrink-0">
                 {step > 0 && (
                   <motion.button
                     whileTap={{ scale: 0.96 }}
                     onClick={() => setStep((s) => s - 1)}
-                    className="flex-1 bg-gray-100 text-charcoal py-3.5 rounded-2xl font-semibold text-sm"
+                    className="flex-1 bg-badge text-charcoal py-3.5 rounded-2xl font-semibold text-sm"
                   >
                     Back
                   </motion.button>
