@@ -157,7 +157,7 @@ export default function VideoShoppingOverlay({
         {/* Snapshot button */}
         <motion.button
           whileTap={{ scale: 0.9 }} onClick={handleSnapshot}
-          className="absolute bottom-4 right-4 flex items-center gap-2 bg-white text-charcoal text-sm font-semibold px-4 py-2.5 rounded-full shadow-lg"
+          className="absolute bottom-4 right-4 flex items-center gap-2 bg-card text-charcoal text-sm font-semibold px-4 py-2.5 rounded-full shadow-lg border border-card-border"
         >
           <Camera size={16} className="text-primary" /> Snapshot
         </motion.button>

@@ -14,7 +14,7 @@ const statusColors: Record<string, string> = {
   OPEN: "bg-secondary-50 text-secondary-700 border border-secondary-200",
   IN_PROGRESS: "bg-primary-50 text-primary-700 border border-primary-200",
   AWAITING_APPROVAL: "bg-yellow-50 text-yellow-700 border border-yellow-200",
-  COMPLETED: "bg-gray-100 text-gray-600 border border-gray-200",
+  COMPLETED: "bg-badge text-muted border border-card-border",
   CANCELLED: "bg-red-50 text-red-700 border border-red-200",
 };
 

@@ -13,7 +13,7 @@ const statusColors: Record<string, string> = {
   OPEN: "bg-secondary-50 text-secondary-700 border border-secondary-200",
   IN_PROGRESS: "bg-primary-50 text-primary-700 border border-primary-200",
   AWAITING_APPROVAL: "bg-yellow-50 text-yellow-700 border border-yellow-200",
-  COMPLETED: "bg-gray-100 text-gray-600 border border-gray-200",
+  COMPLETED: "bg-badge text-muted border border-card-border",
   CANCELLED: "bg-red-50 text-red-700 border border-red-200",
 };
 
@@ -55,7 +55,7 @@ export default function BountyDetailPage() {
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => router.back()}
-          className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-gray-200 shadow-sm"
+          className="w-9 h-9 flex items-center justify-center rounded-full bg-card border border-card-border shadow-sm"
         >
           <ArrowLeft size={18} className="text-charcoal" />
         </motion.button>
@@ -85,7 +85,7 @@ export default function BountyDetailPage() {
         <motion.div
           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
-          className="bg-white rounded-3xl shadow-card p-5 space-y-4"
+          className="bg-card rounded-3xl shadow-card p-5 space-y-4 border border-card-border"
         >
           <div className="flex items-start gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -112,7 +112,7 @@ export default function BountyDetailPage() {
           {bounty.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {bounty.tags.map((tag) => (
-                <span key={tag} className="flex items-center gap-1 text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">
+                <span key={tag} className="flex items-center gap-1 text-xs bg-badge text-muted px-2.5 py-1 rounded-full">
                   <Tag size={10} />{tag}
                 </span>
               ))}
@@ -126,7 +126,7 @@ export default function BountyDetailPage() {
           transition={{ delay: 0.1 }}
           className="grid grid-cols-2 gap-3"
         >
-          <div className="bg-white rounded-2xl shadow-card p-4">
+          <div className="bg-card rounded-2xl shadow-card p-4 border border-card-border">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-7 h-7 rounded-full bg-secondary-50 flex items-center justify-center">
                 <DollarSign size={14} className="text-secondary-600" />
@@ -137,7 +137,7 @@ export default function BountyDetailPage() {
               {formatCurrency(bounty.budget, bounty.currency)}
             </p>
           </div>
-          <div className="bg-white rounded-2xl shadow-card p-4">
+          <div className="bg-card rounded-2xl shadow-card p-4 border border-card-border">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-7 h-7 rounded-full bg-primary-50 flex items-center justify-center">
                 <Users size={14} className="text-primary" />
@@ -152,7 +152,7 @@ export default function BountyDetailPage() {
         <motion.div
           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="bg-white rounded-3xl shadow-card p-4 flex items-start gap-3"
+          className="bg-card rounded-3xl shadow-card p-4 flex items-start gap-3 border border-card-border"
         >
           <div className="w-9 h-9 rounded-xl bg-primary-50 flex items-center justify-center flex-shrink-0">
             <MapPin size={18} className="text-primary" />
@@ -207,7 +207,7 @@ export default function BountyDetailPage() {
         <motion.div
           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
-          className="bg-white rounded-3xl shadow-card p-5"
+          className="bg-card rounded-3xl shadow-card p-5 border border-card-border"
         >
           <BidSection bounty={bounty} />
         </motion.div>

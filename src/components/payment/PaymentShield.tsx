@@ -76,12 +76,12 @@ export default function PaymentShield({
       )}
 
       {escrow?.stripePaymentIntentId && (
-        <p className="font-mono text-xs bg-white/60 px-2 py-1 rounded-lg truncate text-muted">
+        <p className="font-mono text-xs bg-input-surface/80 px-2 py-1 rounded-lg truncate text-muted">
           Stripe: {escrow.stripePaymentIntentId}
         </p>
       )}
       {escrow?.flutterwaveTransactionId && (
-        <p className="font-mono text-xs bg-white/60 px-2 py-1 rounded-lg truncate text-muted">
+        <p className="font-mono text-xs bg-input-surface/80 px-2 py-1 rounded-lg truncate text-muted">
           Flutterwave: {escrow.flutterwaveTransactionId}
         </p>
       )}

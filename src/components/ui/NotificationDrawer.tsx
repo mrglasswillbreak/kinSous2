@@ -29,7 +29,7 @@ const typeConfig: Record<NotificationType, { icon: React.ReactNode; color: strin
   },
   SYSTEM: {
     icon: <ShieldCheck size={16} />,
-    color: "bg-gray-50 text-gray-500",
+    color: "bg-subtle text-muted",
   },
 };
 

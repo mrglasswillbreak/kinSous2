@@ -6,11 +6,6 @@ const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/auth/register", "/api/a
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow public paths
-  if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
-    return NextResponse.next();
-  }
-
   // Allow static assets and Next internals
   if (
     pathname.startsWith("/_next") ||
@@ -22,16 +17,25 @@ export function middleware(request: NextRequest) {
 
   // Check session cookie
   const token = request.cookies.get(COOKIE_NAME)?.value;
-  if (!token) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
 
   // Redirect authenticated users away from login
   if (pathname === "/login") {
+    if (token) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
+  }
+
+  // Allow other public paths
+  if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+    return NextResponse.next();
+  }
+
+  if (!token) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 

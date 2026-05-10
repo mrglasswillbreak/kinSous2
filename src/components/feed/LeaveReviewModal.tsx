@@ -111,7 +111,7 @@ export default function LeaveReviewModal({
                             className={`transition-colors ${
                               s <= stars
                                 ? "text-yellow-400 fill-yellow-400"
-                                : "text-gray-200 fill-gray-200"
+                                : "text-badge fill-badge"
                             }`}
                           />
                         </motion.button>

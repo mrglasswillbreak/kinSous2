@@ -35,7 +35,7 @@ function Stepper({ tracking }: { tracking: DeliveryTracking }) {
               <motion.div
                 animate={{
                   scale: isCurrent ? [1, 1.2, 1] : 1,
-                  backgroundColor: isDone ? "#27AE60" : isCurrent ? "#E67E22" : "#E5E7EB",
+                  backgroundColor: isDone ? "#27AE60" : isCurrent ? "#E67E22" : "var(--badge-bg)",
                 }}
                 transition={{
                   scale: isCurrent ? { repeat: Infinity, duration: 2 } : { duration: 0.3 },
@@ -46,7 +46,7 @@ function Stepper({ tracking }: { tracking: DeliveryTracking }) {
                 {isDone ? (
                   <CheckCircle2 size={18} className="text-white" />
                 ) : (
-                  <span className={isCurrent ? "text-white" : "text-gray-400"}>{stepIcons[step.stage]}</span>
+                  <span className={isCurrent ? "text-white" : "text-muted"}>{stepIcons[step.stage]}</span>
                 )}
               </motion.div>
               <div className="text-center">
@@ -69,7 +69,7 @@ function MapPlaceholder({ tracking }: { tracking: DeliveryTracking }) {
       <div className="absolute inset-0 opacity-20">
         <div className="grid grid-cols-4 grid-rows-4 h-full">
           {Array.from({ length: 16 }).map((_, i) => (
-            <div key={i} className="border border-gray-300" />
+            <div key={i} className="border border-card-border" />
           ))}
         </div>
       </div>
@@ -81,7 +81,7 @@ function MapPlaceholder({ tracking }: { tracking: DeliveryTracking }) {
       {/* Destination */}
       <div className="absolute bottom-8 left-1/3 flex flex-col items-center">
         <MapPin size={22} className="text-primary drop-shadow-md" />
-        <span className="text-[10px] font-semibold text-charcoal bg-white/80 px-1.5 py-0.5 rounded-full mt-0.5 shadow-sm">You</span>
+        <span className="text-[10px] font-semibold text-charcoal bg-card/80 px-1.5 py-0.5 rounded-full mt-0.5 shadow-sm">You</span>
       </div>
 
       {/* Helper pulsing marker */}
@@ -99,13 +99,13 @@ function MapPlaceholder({ tracking }: { tracking: DeliveryTracking }) {
         <motion.div
           animate={{ y: [-2, 2, -2] }}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-          className="relative z-10 w-8 h-8 rounded-full bg-primary shadow-md flex items-center justify-center border-2 border-white"
+          className="relative z-10 w-8 h-8 rounded-full bg-primary shadow-md flex items-center justify-center border-2 border-card"
         >
           <Navigation size={14} className="text-white" />
         </motion.div>
       </div>
 
-      <p className="absolute bottom-2 right-2 text-[10px] text-gray-400">Mapbox GL · Live</p>
+      <p className="absolute bottom-2 right-2 text-[10px] text-muted">Mapbox GL · Live</p>
     </div>
   );
 }

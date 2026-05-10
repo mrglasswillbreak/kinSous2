@@ -427,7 +427,7 @@ export const categoryColors: Record<string, string> = {
   CATERING: "bg-purple-100 text-purple-800",
   INGREDIENT_SOURCING: "bg-yellow-100 text-yellow-800",
   RECIPE_HELP: "bg-blue-100 text-blue-800",
-  OTHER: "bg-gray-100 text-gray-800",
+  OTHER: "bg-badge text-charcoal",
 };
 
 // ── Conversations ──────────────────────────────────────────────────────────────
@@ -566,4 +566,3 @@ export const mockReviews: Review[] = [
 
 // Current user for the demo (seeker-1 perspective)
 export const currentUser = mockSeekers[0];
-

@@ -139,7 +139,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               key={i}
               onClick={() => setSlideIdx(i)}
               animate={{ width: i === slideIdx ? 24 : 8 }}
-              className={`h-2 rounded-full transition-colors ${i === slideIdx ? "bg-primary" : "bg-gray-200"}`}
+              className={`h-2 rounded-full transition-colors ${i === slideIdx ? "bg-primary" : "bg-badge"}`}
             />
           ))}
         </div>

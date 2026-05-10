@@ -44,8 +44,8 @@ export default function ProfileCard({ profile, isCurrentUser = false }: ProfileC
           <div className="flex items-end gap-4 -mt-10 mb-4">
             <motion.img
               whileHover={{ scale: 1.05 }}
-              src={profile.avatarUrl} alt={profile.name}
-              className="w-20 h-20 rounded-2xl ring-4 ring-white object-cover shadow-md"
+               src={profile.avatarUrl} alt={profile.name}
+               className="w-20 h-20 rounded-2xl ring-4 ring-card object-cover shadow-md"
             />
             {isHelper && profile.chefScore !== undefined && (
               <div className="mb-1">
@@ -189,8 +189,8 @@ export default function ProfileCard({ profile, isCurrentUser = false }: ProfileC
                         <Star
                           key={s}
                           size={10}
-                          className={s < review.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-200 fill-gray-200"}
-                        />
+                           className={s < review.rating ? "text-yellow-400 fill-yellow-400" : "text-badge fill-badge"}
+                         />
                       ))}
                     </div>
                   </div>
@@ -222,8 +222,8 @@ export default function ProfileCard({ profile, isCurrentUser = false }: ProfileC
                   <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                     bounty.status === "OPEN" ? "bg-secondary-500" :
                     bounty.status === "IN_PROGRESS" ? "bg-primary" :
-                    bounty.status === "COMPLETED" ? "bg-gray-400" : "bg-red-400"
-                  }`} />
+                     bounty.status === "COMPLETED" ? "bg-muted" : "bg-red-400"
+                   }`} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-charcoal truncate">{bounty.title}</p>
                     <p className="text-xs text-muted">{bounty.location.city} · {bounty.status.replace("_", " ")}</p>
@@ -258,8 +258,8 @@ export default function ProfileCard({ profile, isCurrentUser = false }: ProfileC
                   <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                     bounty.status === "OPEN" ? "bg-secondary-500" :
                     bounty.status === "IN_PROGRESS" ? "bg-primary" :
-                    bounty.status === "COMPLETED" ? "bg-gray-400" : "bg-red-400"
-                  }`} />
+                     bounty.status === "COMPLETED" ? "bg-muted" : "bg-red-400"
+                   }`} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-charcoal truncate">{bounty.title}</p>
                     <p className="text-xs text-muted">{bounty.location.city} · {bounty.status.replace("_", " ")}</p>

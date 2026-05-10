@@ -18,7 +18,7 @@ function Toggle({ enabled, onChange }: ToggleProps) {
     >
       <motion.div
         layout
-        className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md"
+        className="absolute top-0.5 w-5 h-5 rounded-full bg-card shadow-md border border-card-border"
         animate={{ x: enabled ? "calc(100% - 4px)" : 4 }}
         transition={{ type: "spring", stiffness: 500, damping: 35 }}
       />
@@ -222,4 +222,3 @@ export default function Settings() {
     </div>
   );
 }
-
