@@ -2,17 +2,19 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Flame, Bell } from "lucide-react";
+import { Flame, Bell, Moon, Sun } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import NotificationDrawer from "./NotificationDrawer";
+import { useTheme } from "@/lib/theme-context";
 
 export default function TopBar() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { notifications, unreadCount, markRead, markAllRead, dismiss } = useNotifications();
+  const { darkMode, toggle } = useTheme();
 
   return (
     <>
-      <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center justify-between max-w-2xl mx-auto w-full">
+      <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-md border-b border-card-border px-4 py-3 flex items-center justify-between max-w-2xl mx-auto w-full">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center">
             <Flame size={16} className="text-white" />
@@ -21,24 +23,41 @@ export default function TopBar() {
           <span className="text-muted text-xs font-medium">· FolkProvidr</span>
         </div>
 
-        <motion.button
-          whileTap={{ scale: 0.88 }}
-          onClick={() => setDrawerOpen(true)}
-          aria-label="Open notifications"
-          className="relative w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm"
-        >
-          <Bell size={17} className="text-charcoal" />
-          {unreadCount > 0 && (
-            <motion.span
-              key={unreadCount}
-              initial={{ scale: 0 }} animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 400 }}
-              className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5"
-            >
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </motion.span>
-          )}
-        </motion.button>
+        <div className="flex items-center gap-2">
+          {/* Dark mode toggle */}
+          <motion.button
+            whileTap={{ scale: 0.88 }}
+            onClick={toggle}
+            aria-label="Toggle dark mode"
+            className="w-9 h-9 rounded-full bg-card border border-card-border flex items-center justify-center shadow-sm"
+          >
+            {darkMode ? (
+              <Sun size={17} className="text-yellow-400" />
+            ) : (
+              <Moon size={17} className="text-charcoal" />
+            )}
+          </motion.button>
+
+          {/* Notifications */}
+          <motion.button
+            whileTap={{ scale: 0.88 }}
+            onClick={() => setDrawerOpen(true)}
+            aria-label="Open notifications"
+            className="relative w-9 h-9 rounded-full bg-card border border-card-border flex items-center justify-center shadow-sm"
+          >
+            <Bell size={17} className="text-charcoal" />
+            {unreadCount > 0 && (
+              <motion.span
+                key={unreadCount}
+                initial={{ scale: 0 }} animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 400 }}
+                className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5"
+              >
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </motion.span>
+            )}
+          </motion.button>
+        </div>
       </header>
 
       <NotificationDrawer
@@ -53,3 +72,4 @@ export default function TopBar() {
     </>
   );
 }
+

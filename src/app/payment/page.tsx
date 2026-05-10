@@ -19,7 +19,7 @@ export default function PaymentPage() {
         <p className="text-muted text-sm mt-1">Dual-market gateway: Stripe (US) · Flutterwave (NG)</p>
       </div>
 
-      <div className="bg-white rounded-3xl shadow-card p-4">
+      <div className="bg-card rounded-3xl shadow-card p-4">
         <h2 className="font-bold text-charcoal mb-1 text-sm">Bounty</h2>
         <p className="text-charcoal">{bounty.title}</p>
         <p className="text-muted text-sm mt-0.5">{bounty.location.city}, {bounty.location.country}</p>
@@ -65,7 +65,7 @@ export default function PaymentPage() {
               whileTap={{ scale: 0.96 }}
               onClick={() => refundEscrow(bounty.id)}
               disabled={isLoading}
-              className="w-full bg-white text-red-600 border border-red-200 py-3.5 rounded-2xl font-bold disabled:opacity-60"
+              className="w-full bg-card text-red-600 border border-red-200 py-3.5 rounded-2xl font-bold disabled:opacity-60"
             >
               Request Refund
             </motion.button>
@@ -79,7 +79,7 @@ export default function PaymentPage() {
         )}
       </div>
 
-      <div className="text-xs text-muted space-y-1.5 bg-gray-50 rounded-2xl p-4">
+      <div className="text-xs text-muted space-y-1.5 bg-subtle rounded-2xl p-4">
         <p><strong>US payments:</strong> Powered by Stripe – USD escrow</p>
         <p><strong>NG payments:</strong> Powered by Flutterwave – NGN escrow</p>
         <p>Provider is automatically detected from the bounty&apos;s currency.</p>

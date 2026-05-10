@@ -7,13 +7,29 @@
   --fg: #1A1A1A;
   --charcoal: #2C2C2C;
   --muted: #8E8E8E;
+  /* card / surface tokens */
+  --card-bg: #FFFFFF;
+  --card-border: #F3F4F6;
+  --subtle-bg: #F9FAFB;
+  --badge-bg: #F3F4F6;
+  --input-bg: #FFFFFF;
+  --nav-bg: rgba(255,255,255,0.92);
+  --nav-border: #F3F4F6;
 }
 
 .dark {
-  --bg: #121212;
+  --bg: #0F0F0F;
   --fg: #F0F0F0;
   --charcoal: #ECECEC;
   --muted: #9A9A9A;
+  /* card / surface tokens */
+  --card-bg: #1C1C1E;
+  --card-border: #2C2C2E;
+  --subtle-bg: #141416;
+  --badge-bg: #2C2C2E;
+  --input-bg: #1C1C1E;
+  --nav-bg: rgba(15,15,15,0.92);
+  --nav-border: #2C2C2E;
 }
 
 * { box-sizing: border-box; }

@@ -18,15 +18,15 @@ export default function CertificationBadge({ badge, index = 0 }: CertificationBa
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: index * 0.08, type: "spring", stiffness: 280 }}
       whileHover={{ scale: 1.03, y: -2 }}
-      className={`relative bg-white rounded-2xl p-3 shadow-card border ${
-        isExpired ? "border-gray-200 opacity-60" : "border-secondary-100"
+      className={`relative bg-card rounded-2xl p-3 shadow-card border ${
+        isExpired ? "border-card-border opacity-60" : "border-secondary-100"
       }`}
     >
       <div className="flex items-start gap-2">
         <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-          isExpired ? "bg-gray-100" : "bg-secondary-50"
+          isExpired ? "bg-badge" : "bg-secondary-50"
         }`}>
-          <Award size={18} className={isExpired ? "text-gray-400" : "text-secondary-600"} />
+          <Award size={18} className={isExpired ? "text-muted" : "text-secondary-600"} />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-charcoal leading-tight">{badge.name}</p>
@@ -48,7 +48,7 @@ export default function CertificationBadge({ badge, index = 0 }: CertificationBa
       </div>
 
       {!isExpired && (
-        <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-secondary-500 rounded-full flex items-center justify-center border-2 border-white">
+        <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-secondary-500 rounded-full flex items-center justify-center border-2 border-card">
           <svg viewBox="0 0 12 12" className="w-3 h-3 fill-white">
             <path d="M10 3L5 8.5 2 5.5l-.7.7 3.7 3.7 5.7-6-.7-.9z" />
           </svg>

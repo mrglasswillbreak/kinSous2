@@ -53,7 +53,7 @@ export default function HomePage() {
             <Link href="/profile">
               <motion.button
                 whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-2 bg-white text-charcoal px-5 py-2.5 rounded-2xl text-sm font-semibold border border-gray-200 shadow-card"
+                className="flex items-center gap-2 bg-card text-charcoal px-5 py-2.5 rounded-2xl text-sm font-semibold border border-card-border shadow-card"
               >
                 Become a Helper
               </motion.button>
@@ -65,7 +65,7 @@ export default function HomePage() {
       {/* Stats */}
       <motion.div
         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-        className="mx-4 bg-white rounded-3xl shadow-card p-4 flex items-center justify-around"
+        className="mx-4 bg-card rounded-3xl shadow-card p-4 flex items-center justify-around border border-card-border"
       >
         {[{ value: "2,400+", label: "Bounties Filled" }, { value: "340", label: "Active Helpers" }, { value: "4.9★", label: "Avg Rating" }].map((s) => (
           <div key={s.label} className="text-center">
@@ -84,7 +84,7 @@ export default function HomePage() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.1 + i * 0.05 }} whileTap={{ scale: 0.97 }}
-                className="bg-white rounded-3xl shadow-card p-4 h-full"
+                className="bg-card rounded-3xl shadow-card p-4 h-full border border-card-border"
               >
                 <div className={`w-10 h-10 rounded-2xl ${feat.color} flex items-center justify-center mb-3`}>
                   <feat.icon size={20} />
@@ -112,7 +112,7 @@ export default function HomePage() {
                 initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.15 + i * 0.05 }}
                 whileTap={{ scale: 0.98 }}
-                className="bg-white rounded-2xl shadow-card p-3 flex items-center gap-3"
+                className="bg-card rounded-2xl shadow-card p-3 flex items-center gap-3 border border-card-border"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={b.seeker.avatarUrl} alt={b.seeker.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
@@ -143,7 +143,7 @@ export default function HomePage() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.1 + i * 0.05 }} whileTap={{ scale: 0.95 }}
-                className="flex-shrink-0 bg-white rounded-3xl shadow-card p-4 w-44 text-center"
+                className="flex-shrink-0 bg-card rounded-3xl shadow-card p-4 w-44 text-center border border-card-border"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={h.avatarUrl} alt={h.name} className="w-14 h-14 rounded-full object-cover mx-auto ring-2 ring-primary-100" />

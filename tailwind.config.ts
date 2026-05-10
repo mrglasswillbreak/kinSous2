@@ -35,6 +35,11 @@ const config: Config = {
         cream: "#FDFCFB",
         charcoal: "var(--charcoal)",
         muted: "var(--muted)",
+        card: "var(--card-bg)",
+        "card-border": "var(--card-border)",
+        subtle: "var(--subtle-bg)",
+        badge: "var(--badge-bg)",
+        "input-surface": "var(--input-bg)",
       },
       fontFamily: {
         sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],

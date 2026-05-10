@@ -18,7 +18,7 @@ function Stepper({ tracking }: { tracking: DeliveryTracking }) {
   const currentIdx = stageOrder.indexOf(tracking.currentStage);
   return (
     <div className="relative">
-      <div className="absolute top-5 left-5 right-5 h-0.5 bg-gray-200 z-0">
+      <div className="absolute top-5 left-5 right-5 h-0.5 bg-badge z-0">
         <motion.div
           className="h-full bg-primary"
           initial={{ width: "0%" }}
@@ -35,7 +35,7 @@ function Stepper({ tracking }: { tracking: DeliveryTracking }) {
               <motion.div
                 animate={{
                   scale: isCurrent ? [1, 1.2, 1] : 1,
-                  backgroundColor: isDone ? "#27AE60" : isCurrent ? "#E67E22" : "#E5E7EB",
+                  backgroundColor: isDone ? "#27AE60" : isCurrent ? "#E67E22" : "var(--badge-bg)",
                 }}
                 transition={{
                   scale: isCurrent ? { repeat: Infinity, duration: 2 } : { duration: 0.3 },
@@ -46,7 +46,7 @@ function Stepper({ tracking }: { tracking: DeliveryTracking }) {
                 {isDone ? (
                   <CheckCircle2 size={18} className="text-white" />
                 ) : (
-                  <span className={isCurrent ? "text-white" : "text-gray-400"}>{stepIcons[step.stage]}</span>
+                  <span className={isCurrent ? "text-white" : "text-muted"}>{stepIcons[step.stage]}</span>
                 )}
               </motion.div>
               <div className="text-center">
@@ -65,11 +65,11 @@ function Stepper({ tracking }: { tracking: DeliveryTracking }) {
 
 function MapPlaceholder({ tracking }: { tracking: DeliveryTracking }) {
   return (
-    <div className="relative w-full h-64 rounded-3xl overflow-hidden bg-gradient-to-br from-green-50 to-blue-50 border border-gray-100">
+    <div className="relative w-full h-64 rounded-3xl overflow-hidden bg-gradient-to-br from-green-50 to-blue-50 border border-card-border">
       <div className="absolute inset-0 opacity-20">
         <div className="grid grid-cols-4 grid-rows-4 h-full">
           {Array.from({ length: 16 }).map((_, i) => (
-            <div key={i} className="border border-gray-300" />
+            <div key={i} className="border border-card-border" />
           ))}
         </div>
       </div>
@@ -81,7 +81,7 @@ function MapPlaceholder({ tracking }: { tracking: DeliveryTracking }) {
       {/* Destination */}
       <div className="absolute bottom-8 left-1/3 flex flex-col items-center">
         <MapPin size={22} className="text-primary drop-shadow-md" />
-        <span className="text-[10px] font-semibold text-charcoal bg-white/80 px-1.5 py-0.5 rounded-full mt-0.5 shadow-sm">You</span>
+        <span className="text-[10px] font-semibold text-charcoal bg-card/80 px-1.5 py-0.5 rounded-full mt-0.5 shadow-sm">You</span>
       </div>
 
       {/* Helper pulsing marker */}
@@ -99,13 +99,13 @@ function MapPlaceholder({ tracking }: { tracking: DeliveryTracking }) {
         <motion.div
           animate={{ y: [-2, 2, -2] }}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-          className="relative z-10 w-8 h-8 rounded-full bg-primary shadow-md flex items-center justify-center border-2 border-white"
+          className="relative z-10 w-8 h-8 rounded-full bg-primary shadow-md flex items-center justify-center border-2 border-card"
         >
           <Navigation size={14} className="text-white" />
         </motion.div>
       </div>
 
-      <p className="absolute bottom-2 right-2 text-[10px] text-gray-400">Mapbox GL · Live</p>
+      <p className="absolute bottom-2 right-2 text-[10px] text-muted">Mapbox GL · Live</p>
     </div>
   );
 }
@@ -127,7 +127,7 @@ export default function Tracker() {
       </div>
 
       {/* Helper info */}
-      <div className="flex items-center gap-3 bg-white rounded-3xl p-4 shadow-card">
+      <div className="flex items-center gap-3 bg-card rounded-3xl p-4 shadow-card">
         <div className="relative">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -152,13 +152,13 @@ export default function Tracker() {
 
       <MapPlaceholder tracking={tracking} />
 
-      <div className="bg-white rounded-3xl p-5 shadow-card space-y-4">
+      <div className="bg-card rounded-3xl p-5 shadow-card space-y-4">
         <h3 className="font-bold text-charcoal">Delivery Progress</h3>
         <Stepper tracking={tracking} />
       </div>
 
       {tracking.helperLocation && (
-        <div className="bg-white rounded-3xl p-4 shadow-card">
+        <div className="bg-card rounded-3xl p-4 shadow-card">
           <h4 className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Helper Status</h4>
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-primary-50 rounded-2xl p-3">

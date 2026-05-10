@@ -54,9 +54,9 @@ export default function LeaveReviewModal({
             key="sheet"
             initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 280, damping: 32 }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl"
+            className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl shadow-2xl"
           >
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mt-3" />
+            <div className="w-10 h-1 bg-badge rounded-full mx-auto mt-3" />
 
             <div className="px-5 py-4 flex items-center justify-between">
               <h2 className="text-lg font-bold text-charcoal">Leave a Review</h2>
@@ -111,7 +111,7 @@ export default function LeaveReviewModal({
                             className={`transition-colors ${
                               s <= stars
                                 ? "text-yellow-400 fill-yellow-400"
-                                : "text-gray-200 fill-gray-200"
+                                : "text-badge fill-badge"
                             }`}
                           />
                         </motion.button>
@@ -132,7 +132,7 @@ export default function LeaveReviewModal({
                       onChange={(e) => setComment(e.target.value)}
                       rows={3}
                       placeholder="Share your experience with this helper…"
-                      className="w-full px-4 py-3 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 resize-none"
+                      className="w-full px-4 py-3 border border-card-border rounded-2xl text-sm bg-input-surface text-charcoal placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-200 resize-none"
                     />
                   </div>
 

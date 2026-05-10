@@ -13,7 +13,7 @@ function Shimmer({ className }: { className?: string }) {
     <motion.div
       animate={{ opacity: [0.5, 1, 0.5] }}
       transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-      className={`bg-gray-100 rounded-xl ${className ?? ""}`}
+      className={`bg-badge rounded-xl ${className ?? ""}`}
     />
   );
 }
@@ -30,7 +30,7 @@ function ConversationRow({ conv, index }: { conv: Conversation; index: number })
       transition={{ delay: index * 0.06 }}
     >
       <Link href={`/messages/${conv.id}`}>
-        <div className={`flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors ${conv.unreadCount > 0 ? "bg-primary-50/30" : ""}`}>
+        <div className={`flex items-center gap-3 px-4 py-3.5 hover:bg-subtle transition-colors ${conv.unreadCount > 0 ? "bg-primary-50/30" : ""}`}>
           <div className="relative flex-shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -100,15 +100,15 @@ export default function ConversationList() {
             placeholder="Search conversations…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 shadow-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-input-surface border border-card-border rounded-2xl text-sm text-charcoal placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-200 shadow-sm"
           />
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl shadow-card overflow-hidden mx-4 mt-2">
+      <div className="bg-card rounded-3xl shadow-card overflow-hidden mx-4 mt-2">
         {isLoading ? (
           Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-3 px-4 py-4 border-b border-gray-50 last:border-0">
+            <div key={i} className="flex items-center gap-3 px-4 py-4 border-b border-card-border last:border-0">
               <Shimmer className="w-12 h-12 rounded-full flex-shrink-0" />
               <div className="flex-1 space-y-1.5">
                 <Shimmer className="h-3 w-32" />
@@ -127,7 +127,7 @@ export default function ConversationList() {
           </div>
         ) : (
           <AnimatePresence>
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-card-border">
               {filtered.map((conv, i) => (
                 <ConversationRow key={conv.id} conv={conv} index={i} />
               ))}

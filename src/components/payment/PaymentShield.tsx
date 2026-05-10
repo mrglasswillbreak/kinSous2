@@ -13,7 +13,7 @@ interface PaymentShieldProps {
 }
 
 const statusConfig = {
-  IDLE: { label: "Ready to Pay", color: "text-muted", bg: "bg-gray-50 border-gray-200" },
+  IDLE: { label: "Ready to Pay", color: "text-muted", bg: "bg-subtle border-card-border" },
   PENDING: { label: "Processing…", color: "text-yellow-700", bg: "bg-yellow-50 border-yellow-200" },
   ESCROWED: { label: "Funds in Escrow", color: "text-secondary-700", bg: "bg-secondary-50 border-secondary-200" },
   RELEASED: { label: "Payment Released", color: "text-blue-700", bg: "bg-blue-50 border-blue-200" },
@@ -76,12 +76,12 @@ export default function PaymentShield({
       )}
 
       {escrow?.stripePaymentIntentId && (
-        <p className="font-mono text-xs bg-white/60 px-2 py-1 rounded-lg truncate text-muted">
+        <p className="font-mono text-xs bg-input-surface/80 px-2 py-1 rounded-lg truncate text-muted">
           Stripe: {escrow.stripePaymentIntentId}
         </p>
       )}
       {escrow?.flutterwaveTransactionId && (
-        <p className="font-mono text-xs bg-white/60 px-2 py-1 rounded-lg truncate text-muted">
+        <p className="font-mono text-xs bg-input-surface/80 px-2 py-1 rounded-lg truncate text-muted">
           Flutterwave: {escrow.flutterwaveTransactionId}
         </p>
       )}

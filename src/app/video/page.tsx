@@ -31,7 +31,7 @@ export default function VideoPage() {
 
       <motion.div
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-3xl shadow-card overflow-hidden mb-4"
+        className="bg-card rounded-3xl shadow-card overflow-hidden mb-4"
       >
         <div className="h-32 bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center">
           <Video size={48} className="text-white/30" />
