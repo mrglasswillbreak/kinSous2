@@ -14,7 +14,9 @@ function getClient(): NeonQueryFunction<false, false> {
 
 /** Tagged-template SQL helper (lazy — safe to import without DATABASE_URL at build time) */
 export const sql: NeonQueryFunction<false, false> = new Proxy(
-  {} as NeonQueryFunction<false, false>,
+  (function sqlProxyTarget() {
+    // Calls are handled by the Proxy apply trap.
+  }) as unknown as NeonQueryFunction<false, false>,
   {
     apply(_target, _thisArg, args) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
