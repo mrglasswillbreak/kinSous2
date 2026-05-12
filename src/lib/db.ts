@@ -169,6 +169,19 @@ export interface CreateBountyParams {
   tags: string[];
 }
 
+export interface UpdateBountyParams {
+  title?: string;
+  description?: string;
+  category?: string;
+  status?: string;
+  budget?: number;
+  currency?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  tags?: string[];
+}
+
 /** List bounties with optional filters (category, status, text query). */
 export async function getBounties(opts?: {
   category?: string;
@@ -244,3 +257,37 @@ export async function createBounty(p: CreateBountyParams): Promise<DbBounty> {
   return getBountyById((rows[0] as { id: string }).id) as Promise<DbBounty>;
 }
 
+/** Update a bounty if owned by seekerId; returns updated bounty or null. */
+export async function updateBounty(id: string, seekerId: string, p: UpdateBountyParams): Promise<DbBounty | null> {
+  await initBounties();
+  const rows = await sql`
+    UPDATE bounties
+    SET
+      title = COALESCE(${p.title ?? null}, title),
+      description = COALESCE(${p.description ?? null}, description),
+      category = COALESCE(${p.category ?? null}, category),
+      status = COALESCE(${p.status ?? null}, status),
+      budget = COALESCE(${typeof p.budget === "number" ? p.budget : null}, budget),
+      currency = COALESCE(${p.currency ?? null}, currency),
+      address = COALESCE(${p.address ?? null}, address),
+      city = COALESCE(${p.city ?? null}, city),
+      country = COALESCE(${p.country ?? null}, country),
+      tags = COALESCE(${p.tags ?? null}, tags),
+      updated_at = now()
+    WHERE id = ${id} AND seeker_id = ${seekerId}
+    RETURNING id
+  `;
+  if (!rows[0]) return null;
+  return getBountyById(id);
+}
+
+/** Delete a bounty if owned by seekerId; returns whether a row was deleted. */
+export async function deleteBounty(id: string, seekerId: string): Promise<boolean> {
+  await initBounties();
+  const rows = await sql`
+    DELETE FROM bounties
+    WHERE id = ${id} AND seeker_id = ${seekerId}
+    RETURNING id
+  `;
+  return Boolean(rows[0]);
+}
