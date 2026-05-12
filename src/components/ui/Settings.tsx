@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   User, Bell, Globe, Shield, ChevronRight, Moon, Sun, Smartphone, LogOut, CreditCard,
+  Mail, Lock, Check, X, Loader2,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 import { useRouter } from "next/navigation";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface ToggleProps { enabled: boolean; onChange: (v: boolean) => void }
 
@@ -58,6 +60,7 @@ function SectionItem({ icon, label, sublabel, right, onClick, danger }: SectionI
 
 export default function Settings() {
   const router = useRouter();
+  const { user, refetch: refetchUser } = useCurrentUser();
   const [notifications, setNotifications] = useState({
     newBid: true, bidAccepted: true, deliveryUpdate: true,
     messages: true, promotions: false,
@@ -78,6 +81,23 @@ export default function Settings() {
     return "NGN";
   });
 
+  // ── Change Email state ──────────────────────────────────────────────────────
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [emailPassword, setEmailPassword] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [emailSuccess, setEmailSuccess] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
+
+  // ── Change Password state ───────────────────────────────────────────────────
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
   const setRole = (r: "SEEKER" | "HELPER") => {
     setRoleState(r);
     localStorage.setItem("kinsous-role", r);
@@ -93,8 +113,79 @@ export default function Settings() {
     router.push("/login");
   };
 
+  const handleChangeEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmailError("");
+    setEmailSuccess(false);
+    setEmailLoading(true);
+    try {
+      const res = await fetch("/api/auth/update-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: emailPassword, newEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setEmailError(data.error || "Something went wrong");
+      } else {
+        setEmailSuccess(true);
+        setNewEmail("");
+        setEmailPassword("");
+        await refetchUser();
+        setTimeout(() => { setShowEmailForm(false); setEmailSuccess(false); }, 1500);
+      }
+    } catch {
+      setEmailError("Network error. Please try again.");
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError("");
+    setPasswordSuccess(false);
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Passwords do not match");
+      return;
+    }
+    setPasswordLoading(true);
+    try {
+      const res = await fetch("/api/auth/update-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPasswordError(data.error || "Something went wrong");
+      } else {
+        setPasswordSuccess(true);
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setTimeout(() => { setShowPasswordForm(false); setPasswordSuccess(false); }, 1500);
+      }
+    } catch {
+      setPasswordError("Network error. Please try again.");
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const displayName = user?.name ?? "Loading…";
+  const displayEmail = user?.email ?? "";
+  const displayCity = user?.city;
+  const displayCountry = user?.country;
+  const locationLabel = displayCity && displayCountry
+    ? `${displayCity}, ${displayCountry}`
+    : displayCity || displayCountry || null;
+  const avatarUrl = user?.avatarUrl
+    || `https://i.pravatar.cc/150?u=${encodeURIComponent(user?.userId ?? "default")}`;
+
   const sectionCard = "bg-card rounded-3xl shadow-card border border-card-border overflow-hidden";
   const sectionHeader = "px-4 py-3 border-b border-card-border";
+  const inputCls = "w-full px-3 py-2.5 rounded-xl bg-input-surface border border-card-border text-charcoal placeholder:text-muted text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 transition";
 
   return (
     <div className="max-w-md mx-auto px-4 pb-24 pt-6 space-y-5">
@@ -107,16 +198,159 @@ export default function Settings() {
         </div>
         <div className="flex items-center gap-3 px-4 py-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="https://i.pravatar.cc/150?img=23" alt="You" className="w-12 h-12 rounded-2xl object-cover ring-2 ring-primary-100" />
-          <div>
-            <p className="font-bold text-charcoal">Chioma Nwosu</p>
-            <p className="text-xs text-muted">chioma@kinsous.com · Abuja, NG</p>
+          <img src={avatarUrl} alt={displayName} className="w-12 h-12 rounded-2xl object-cover ring-2 ring-primary-100" />
+          <div className="min-w-0">
+            <p className="font-bold text-charcoal truncate">{displayName}</p>
+            <p className="text-xs text-muted truncate">
+              {displayEmail}{locationLabel ? ` · ${locationLabel}` : ""}
+            </p>
           </div>
-          <ChevronRight size={16} className="text-muted ml-auto" />
         </div>
         <div className="border-t border-card-border">
-          <SectionItem icon={<User size={16} className="text-muted" />} label="Edit Profile" sublabel="Name, bio, avatar" onClick={() => {}} />
+          <SectionItem icon={<User size={16} className="text-muted" />} label="Edit Profile" sublabel="Name, bio, avatar" onClick={() => router.push("/profile")} />
         </div>
+      </div>
+
+      {/* Change Email */}
+      <div className={sectionCard}>
+        <div className={sectionHeader}>
+          <p className="text-xs font-semibold text-muted uppercase tracking-wider">Email Address</p>
+        </div>
+        <div className="flex items-center gap-3 px-4 py-3.5">
+          <div className="w-8 h-8 bg-badge rounded-xl flex items-center justify-center">
+            <Mail size={15} className="text-muted" />
+          </div>
+          <p className="flex-1 text-sm text-charcoal truncate">{displayEmail || "—"}</p>
+          <button
+            onClick={() => { setShowEmailForm((v) => !v); setEmailError(""); setEmailSuccess(false); }}
+            className="text-xs text-primary font-semibold flex-shrink-0"
+          >
+            {showEmailForm ? "Cancel" : "Change"}
+          </button>
+        </div>
+        <AnimatePresence>
+          {showEmailForm && (
+            <motion.form
+              key="email-form"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              onSubmit={handleChangeEmail}
+              className="overflow-hidden border-t border-card-border px-4 pb-4 pt-3 space-y-2.5"
+            >
+              <input
+                type="email"
+                placeholder="New email address"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                required
+                className={inputCls}
+              />
+              <input
+                type="password"
+                placeholder="Confirm with your password"
+                value={emailPassword}
+                onChange={(e) => setEmailPassword(e.target.value)}
+                required
+                className={inputCls}
+              />
+              {emailError && (
+                <p className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-3 py-2">
+                  {emailError}
+                </p>
+              )}
+              {emailSuccess && (
+                <p className="text-xs text-green-600 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl px-3 py-2 flex items-center gap-1.5">
+                  <Check size={13} /> Email updated successfully
+                </p>
+              )}
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                type="submit"
+                disabled={emailLoading}
+                className="w-full flex items-center justify-center gap-2 bg-primary text-white py-2.5 rounded-xl font-semibold text-sm shadow-primary disabled:opacity-60 transition"
+              >
+                {emailLoading ? <Loader2 size={16} className="animate-spin" /> : <><Check size={15} /> Update Email</>}
+              </motion.button>
+            </motion.form>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Change Password */}
+      <div className={sectionCard}>
+        <div className={sectionHeader}>
+          <p className="text-xs font-semibold text-muted uppercase tracking-wider">Password</p>
+        </div>
+        <div className="flex items-center gap-3 px-4 py-3.5">
+          <div className="w-8 h-8 bg-badge rounded-xl flex items-center justify-center">
+            <Lock size={15} className="text-muted" />
+          </div>
+          <p className="flex-1 text-sm text-charcoal">••••••••</p>
+          <button
+            onClick={() => { setShowPasswordForm((v) => !v); setPasswordError(""); setPasswordSuccess(false); }}
+            className="text-xs text-primary font-semibold flex-shrink-0"
+          >
+            {showPasswordForm ? "Cancel" : "Change"}
+          </button>
+        </div>
+        <AnimatePresence>
+          {showPasswordForm && (
+            <motion.form
+              key="password-form"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              onSubmit={handleChangePassword}
+              className="overflow-hidden border-t border-card-border px-4 pb-4 pt-3 space-y-2.5"
+            >
+              <input
+                type="password"
+                placeholder="Current password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                required
+                className={inputCls}
+              />
+              <input
+                type="password"
+                placeholder="New password (min 6 chars)"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                className={inputCls}
+              />
+              <input
+                type="password"
+                placeholder="Confirm new password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                className={inputCls}
+              />
+              {passwordError && (
+                <p className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-3 py-2 flex items-center gap-1.5">
+                  <X size={13} /> {passwordError}
+                </p>
+              )}
+              {passwordSuccess && (
+                <p className="text-xs text-green-600 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl px-3 py-2 flex items-center gap-1.5">
+                  <Check size={13} /> Password updated successfully
+                </p>
+              )}
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                type="submit"
+                disabled={passwordLoading}
+                className="w-full flex items-center justify-center gap-2 bg-primary text-white py-2.5 rounded-xl font-semibold text-sm shadow-primary disabled:opacity-60 transition"
+              >
+                {passwordLoading ? <Loader2 size={16} className="animate-spin" /> : <><Check size={15} /> Update Password</>}
+              </motion.button>
+            </motion.form>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Role */}

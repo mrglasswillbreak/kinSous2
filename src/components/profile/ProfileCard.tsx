@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { MapPin, Star, Package, DollarSign, ShieldCheck, Edit3, Scroll, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import type { Profile } from "@/types";
-import { formatCurrency, mockBounties, mockReviews, currentUser } from "@/lib/mock-data";
+import { formatCurrency, mockBounties, mockReviews } from "@/lib/mock-data";
 import ChefScore from "./ChefScore";
 import CertificationBadge from "./CertificationBadge";
 
@@ -239,7 +239,7 @@ export default function ProfileCard({ profile, isCurrentUser = false }: ProfileC
       )}
 
       {/* My Bounties (seeker view or current user) */}
-      {(isCurrentUser || profile.id === currentUser.id) && myBounties.length > 0 && (
+      {isCurrentUser && myBounties.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}

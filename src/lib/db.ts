@@ -42,7 +42,41 @@ export async function initDb() {
       password_hash TEXT NOT NULL,
       avatar_url    TEXT,
       role          TEXT NOT NULL DEFAULT 'SEEKER',
+      bio           TEXT,
+      city          TEXT,
+      country       TEXT,
+      country_code  TEXT,
       created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `;
+  // Add profile columns to existing tables that pre-date this migration
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS city TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS country TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS country_code TEXT`;
+}
+
+export interface DbUser {
+  id: string;
+  email: string;
+  name: string;
+  password_hash: string;
+  avatar_url: string | null;
+  role: string;
+  bio: string | null;
+  city: string | null;
+  country: string | null;
+  country_code: string | null;
+  created_at: string;
+}
+
+/** Fetch a single user by ID; returns null if not found. */
+export async function getUserById(id: string): Promise<DbUser | null> {
+  await initDb();
+  const rows = await sql`
+    SELECT id, email, name, password_hash, avatar_url, role, bio, city, country, country_code, created_at
+    FROM users
+    WHERE id = ${id}
+  `;
+  return (rows[0] as DbUser) ?? null;
 }
