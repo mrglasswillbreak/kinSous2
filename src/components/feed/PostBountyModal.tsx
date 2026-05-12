@@ -9,13 +9,14 @@ import { categoryLabels } from "@/lib/mock-data";
 interface PostBountyModalProps {
   open: boolean;
   onClose: () => void;
+  onPosted?: () => void;
 }
 
 const categories = Object.keys(categoryLabels) as BountyCategory[];
 
 const steps = ["Details", "Location", "Budget"];
 
-export default function PostBountyModal({ open, onClose }: PostBountyModalProps) {
+export default function PostBountyModal({ open, onClose, onPosted }: PostBountyModalProps) {
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
@@ -42,12 +43,44 @@ export default function PostBountyModal({ open, onClose }: PostBountyModalProps)
     Number(form.budget) > 0,
   ][step];
 
-  const handleNext = () => {
+  const [submitError, setSubmitError] = useState("");
+
+  const handleNext = async () => {
     if (step < 2) { setStep((s) => s + 1); return; }
     setSubmitting(true);
-    setTimeout(() => {
+    setSubmitError("");
+    try {
+      const tags = form.tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
+
+      const res = await fetch("/api/bounties", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: form.title,
+          description: form.description,
+          category: form.category,
+          budget: Number(form.budget),
+          currency: form.currency,
+          address: form.address,
+          city: form.city,
+          country: form.country,
+          tags,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setSubmitError(data.error || "Failed to post bounty");
+        setSubmitting(false);
+        return;
+      }
+
       setSubmitting(false);
       setDone(true);
+      onPosted?.();
       setTimeout(() => {
         setDone(false);
         setStep(0);
@@ -58,7 +91,10 @@ export default function PostBountyModal({ open, onClose }: PostBountyModalProps)
         });
         onClose();
       }, 2000);
-    }, 1400);
+    } catch {
+      setSubmitError("Network error. Please try again.");
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -269,7 +305,13 @@ export default function PostBountyModal({ open, onClose }: PostBountyModalProps)
 
             {/* Footer */}
             {!done && (
-              <div className="px-5 py-4 border-t border-card-border flex gap-3 flex-shrink-0">
+              <div className="px-5 py-4 border-t border-card-border flex-shrink-0 space-y-2">
+                {submitError && (
+                  <p className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-3 py-2">
+                    {submitError}
+                  </p>
+                )}
+                <div className="flex gap-3">
                 {step > 0 && (
                   <motion.button
                     whileTap={{ scale: 0.96 }}
@@ -293,6 +335,7 @@ export default function PostBountyModal({ open, onClose }: PostBountyModalProps)
                     "Post Bounty 🎯"
                   )}
                 </motion.button>
+                </div>
               </div>
             )}
           </motion.div>

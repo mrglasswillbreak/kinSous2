@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ProfileCard from "@/components/profile/ProfileCard";
+import { getUserById } from "@/lib/db";
+import { dbUserToProfile } from "@/lib/mappers";
 import { mockHelpers } from "@/lib/mock-data";
 
 interface Props {
@@ -9,23 +11,38 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const helper = mockHelpers.find((h) => h.id === id);
+  // Try DB first, fall back to mock for demo helpers
+  const dbUser = await getUserById(id).catch(() => null);
+  const name = dbUser?.name ?? mockHelpers.find((h) => h.id === id)?.name;
   return {
-    title: helper ? `${helper.name} · Helper Profile · KinSous` : "Helper Profile · KinSous",
-    description: helper
-      ? `View ${helper.name}'s certifications, ratings, and active jobs.`
+    title: name ? `${name} · Helper Profile · KinSous` : "Helper Profile · KinSous",
+    description: name
+      ? `View ${name}'s certifications, ratings, and active jobs.`
       : "View helper profile",
   };
 }
 
 export default async function HelperProfilePage({ params }: Props) {
   const { id } = await params;
-  const helper = mockHelpers.find((h) => h.id === id);
-  if (!helper) notFound();
+
+  // Try to load from DB
+  const dbUser = await getUserById(id).catch(() => null);
+  if (dbUser) {
+    const profile = dbUserToProfile(dbUser);
+    return (
+      <div className="pt-4 pb-24">
+        <ProfileCard profile={profile} />
+      </div>
+    );
+  }
+
+  // Fall back to mock helpers (demo data)
+  const mockHelper = mockHelpers.find((h) => h.id === id);
+  if (!mockHelper) notFound();
 
   return (
     <div className="pt-4 pb-24">
-      <ProfileCard profile={helper} />
+      <ProfileCard profile={mockHelper} />
     </div>
   );
 }
