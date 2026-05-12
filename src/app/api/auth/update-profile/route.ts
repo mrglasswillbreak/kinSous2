@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (avatarUrl && !isValidUrl(avatarUrl)) {
-      return NextResponse.json({ error: "Avatar URL must be a valid http/https URL" }, { status: 400 });
+      return NextResponse.json({ error: "Avatar URL must be a valid HTTPS URL" }, { status: 400 });
     }
 
     await sql`
