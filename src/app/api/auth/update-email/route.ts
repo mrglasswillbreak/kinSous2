@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import { sql } from "@/lib/db";
 import { getSession, setSessionCookie } from "@/lib/auth";
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
@@ -20,6 +22,13 @@ export async function POST(req: NextRequest) {
     }
 
     const normalised = newEmail.toLowerCase().trim();
+
+    if (!EMAIL_REGEX.test(normalised)) {
+      return NextResponse.json(
+        { error: "Please enter a valid email address" },
+        { status: 400 }
+      );
+    }
 
     const rows = await sql`
       SELECT password_hash, name, role FROM users WHERE id = ${session.userId}

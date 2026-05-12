@@ -2,6 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { getSession, setSessionCookie } from "@/lib/auth";
 
+const MAX_NAME_LEN = 100;
+const MAX_BIO_LEN = 500;
+const MAX_CITY_LEN = 100;
+const MAX_COUNTRY_LEN = 100;
+const MAX_COUNTRY_CODE_LEN = 10;
+
+function isValidUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
@@ -13,6 +28,30 @@ export async function POST(req: NextRequest) {
 
     if (!name || !name.trim()) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
+    }
+
+    if (name.trim().length > MAX_NAME_LEN) {
+      return NextResponse.json({ error: `Name must be at most ${MAX_NAME_LEN} characters` }, { status: 400 });
+    }
+
+    if (bio && bio.length > MAX_BIO_LEN) {
+      return NextResponse.json({ error: `Bio must be at most ${MAX_BIO_LEN} characters` }, { status: 400 });
+    }
+
+    if (city && city.length > MAX_CITY_LEN) {
+      return NextResponse.json({ error: `City must be at most ${MAX_CITY_LEN} characters` }, { status: 400 });
+    }
+
+    if (country && country.length > MAX_COUNTRY_LEN) {
+      return NextResponse.json({ error: `Country must be at most ${MAX_COUNTRY_LEN} characters` }, { status: 400 });
+    }
+
+    if (countryCode && countryCode.length > MAX_COUNTRY_CODE_LEN) {
+      return NextResponse.json({ error: `Country code must be at most ${MAX_COUNTRY_CODE_LEN} characters` }, { status: 400 });
+    }
+
+    if (avatarUrl && !isValidUrl(avatarUrl)) {
+      return NextResponse.json({ error: "Avatar URL must be a valid http/https URL" }, { status: 400 });
     }
 
     await sql`

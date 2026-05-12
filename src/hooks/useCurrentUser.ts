@@ -17,9 +17,11 @@ export interface CurrentUser {
 export function useCurrentUser() {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const refetch = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const res = await fetch("/api/auth/me");
       if (res.ok) {
@@ -28,7 +30,9 @@ export function useCurrentUser() {
       } else {
         setUser(null);
       }
-    } catch {
+    } catch (err) {
+      console.error("useCurrentUser: failed to fetch session", err);
+      setError("Failed to load user");
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -39,5 +43,5 @@ export function useCurrentUser() {
     refetch();
   }, [refetch]);
 
-  return { user, isLoading, refetch };
+  return { user, isLoading, error, refetch };
 }
