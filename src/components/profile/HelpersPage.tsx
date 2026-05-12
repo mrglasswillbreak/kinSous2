@@ -8,7 +8,6 @@ import { SkeletonHelperCard } from "@/components/ui/Skeleton";
 import ChefScore from "@/components/profile/ChefScore";
 import Link from "next/link";
 import { dbUserToProfile } from "@/lib/mappers";
-import { mockHelpers } from "@/lib/mock-data";
 
 function HelperCard({ helper, index }: { helper: Profile; index: number }) {
   return (
@@ -101,12 +100,11 @@ export default function HelpersPage() {
         const data = await res.json();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const profiles = (data.helpers ?? []).map((u: any) => dbUserToProfile(u));
-        // Fall back to mock helpers if DB has none and no filter
-        setHelpers(profiles.length === 0 && !q ? mockHelpers : profiles);
+        setHelpers(profiles);
       }
     } catch (err) {
       console.error("HelpersPage: failed to load helpers", err);
-      if (!q) setHelpers(mockHelpers);
+      setHelpers([]);
     } finally {
       setIsLoading(false);
     }

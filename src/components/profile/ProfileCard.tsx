@@ -6,7 +6,7 @@ import { MapPin, Star, Package, DollarSign, ShieldCheck, Edit3, Scroll, MessageC
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Profile, Bounty } from "@/types";
-import { formatCurrency, mockBounties, mockReviews } from "@/lib/mock-data";
+import { formatCurrency } from "@/lib/mock-data";
 import ChefScore from "./ChefScore";
 import CertificationBadge from "./CertificationBadge";
 
@@ -24,13 +24,9 @@ export default function ProfileCard({ profile, isCurrentUser = false, liveBounti
   const isHelper = profile.role === "HELPER";
 
   // Determine bounties to show
-  const myBounties = liveBounties !== undefined
-    ? liveBounties.slice(0, 5)
-    : mockBounties.filter((b) => b.seeker.id === profile.id).slice(0, 3);
-  const helperBounties = liveBounties !== undefined
-    ? [] // helper jobs not yet fetched from DB for public profiles
-    : mockBounties.filter((b) => b.bids?.some((bid) => bid.helper.id === profile.id)).slice(0, 3);
-  const reviews = mockReviews.filter((r) => r.targetId === profile.id);
+  const myBounties = (liveBounties ?? []).slice(0, 5);
+  const helperBounties: Bounty[] = []; // helper jobs not yet fetched from DB
+  const reviews: Array<{ id: string; rating: number; authorAvatarUrl: string; authorName: string; comment: string }> = [];
 
   // ── Inline edit form state ──────────────────────────────────────────────────
   const [editOpen, setEditOpen] = useState(false);

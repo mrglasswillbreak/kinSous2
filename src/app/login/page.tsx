@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Flame, Eye, EyeOff, Mail, Lock, User, ArrowRight, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -16,16 +16,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/auth/seed", { method: "POST" }).catch(() => {});
-  }, []);
-
-  const fillDemo = () => {
-    setTab("login");
-    setEmail("chioma@kinsous.com");
-    setPassword("KinSous2024!");
-  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -190,28 +180,6 @@ export default function LoginPage() {
             </motion.button>
           </form>
         </div>
-
-        {/* Demo credentials hint */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="mt-4 bg-card/80 backdrop-blur border border-card-border rounded-2xl p-4"
-        >
-          <p className="text-xs text-muted text-center mb-2 font-medium">
-            🔑 Demo Account
-          </p>
-          <div className="text-xs text-charcoal space-y-1 text-center">
-            <p><span className="text-muted">Email:</span> chioma@kinsous.com</p>
-            <p><span className="text-muted">Password:</span> KinSous2024!</p>
-          </div>
-          <button
-            onClick={fillDemo}
-            className="mt-3 w-full text-xs text-primary font-semibold py-1.5 rounded-xl border border-primary-200 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition"
-          >
-            Use demo credentials
-          </button>
-        </motion.div>
 
         <p className="text-center text-xs text-muted mt-6">
           KinSous · FolkProvidr · v0.1.0

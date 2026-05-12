@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, SlidersHorizontal, Plus, Flame } from "lucide-react";
 import type { BountyCategory, Bounty } from "@/types";
-import { categoryLabels, mockBounties } from "@/lib/mock-data";
+import { categoryLabels } from "@/lib/mock-data";
 import { dbBountyToAppBounty } from "@/lib/mappers";
 import BountyCard from "./BountyCard";
 import PostBountyModal from "./PostBountyModal";
@@ -20,7 +20,7 @@ function useLiveBounties(category: BountyCategory | "ALL", query: string) {
   const [loading, setLoading] = useState(true);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetch_ = useCallback(async (cat: string, q: string) => {
+  const fetchBounties = useCallback(async (cat: string, q: string) => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -40,13 +40,13 @@ function useLiveBounties(category: BountyCategory | "ALL", query: string) {
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => fetch_(category, query), query ? 400 : 0);
+    debounceRef.current = setTimeout(() => fetchBounties(category, query), query ? 400 : 0);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [category, query, fetch_]);
+  }, [category, query, fetchBounties]);
 
-  return { bounties, loading, refetch: () => fetch_(category, query) };
+  return { bounties, loading, refetch: () => fetchBounties(category, query) };
 }
 
 export default function Feed() {
@@ -56,10 +56,7 @@ export default function Feed() {
 
   const { bounties, loading, refetch } = useLiveBounties(activeCategory, searchQuery);
 
-  // Fall back to mock data during first load if DB is empty
-  const displayed = !loading && bounties.length === 0 && !searchQuery && activeCategory === "ALL"
-    ? mockBounties
-    : bounties;
+  const displayed = bounties;
 
   return (
     <div className="max-w-2xl mx-auto px-4 pb-24">
