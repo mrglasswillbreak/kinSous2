@@ -25,8 +25,6 @@ export default function ProfileCard({ profile, isCurrentUser = false, liveBounti
 
   // Determine bounties to show
   const myBounties = (liveBounties ?? []).slice(0, 5);
-  const helperBounties: Bounty[] = []; // helper jobs not yet fetched from DB
-  const reviews: Array<{ id: string; rating: number; authorAvatarUrl: string; authorName: string; comment: string }> = [];
 
   // ── Inline edit form state ──────────────────────────────────────────────────
   const [editOpen, setEditOpen] = useState(false);
@@ -295,93 +293,6 @@ export default function ProfileCard({ profile, isCurrentUser = false, liveBounti
           <div className="grid grid-cols-1 gap-2">
             {profile.certificationBadges.map((badge, i) => (
               <CertificationBadge key={badge.id} badge={badge} index={i} />
-            ))}
-          </div>
-        </motion.div>
-      )}
-
-      {/* Reviews */}
-      {isHelper && reviews.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-          className="bg-card rounded-3xl shadow-card p-5"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-charcoal">Reviews ({reviews.length})</h3>
-            <div className="flex items-center gap-1">
-              <Star size={13} className="text-yellow-400 fill-yellow-400" />
-              <span className="text-sm font-semibold text-charcoal">
-                {(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)}
-              </span>
-            </div>
-          </div>
-          <div className="space-y-3">
-            {reviews.map((review, i) => (
-              <motion.div
-                key={review.id}
-                initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.25 + i * 0.06 }}
-                className="flex gap-3 bg-subtle rounded-2xl p-3"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={review.authorAvatarUrl}
-                  alt={review.authorName}
-                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-semibold text-charcoal">{review.authorName}</span>
-                    <div className="flex items-center gap-0.5">
-                      {Array.from({ length: 5 }).map((_, s) => (
-                        <Star
-                          key={s}
-                          size={10}
-                           className={s < review.rating ? "text-yellow-400 fill-yellow-400" : "text-badge fill-badge"}
-                         />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-xs text-charcoal mt-1 leading-relaxed">{review.comment}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      )}
-
-      {/* Helper Jobs */}
-      {isHelper && helperBounties.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.28 }}
-          className="bg-card rounded-3xl shadow-card p-5"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-charcoal flex items-center gap-2">
-              <Scroll size={16} className="text-primary" /> Active Jobs
-            </h3>
-            <Link href="/bounties" className="text-xs text-primary font-semibold">Explore</Link>
-          </div>
-          <div className="space-y-2">
-            {helperBounties.map((bounty) => (
-              <Link key={bounty.id} href={`/bounties/${bounty.id}`} className="block">
-                <div className="flex items-center gap-3 bg-subtle rounded-2xl p-3">
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                    bounty.status === "OPEN" ? "bg-secondary-500" :
-                    bounty.status === "IN_PROGRESS" ? "bg-primary" :
-                     bounty.status === "COMPLETED" ? "bg-muted" : "bg-red-400"
-                   }`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-charcoal truncate">{bounty.title}</p>
-                    <p className="text-xs text-muted">{bounty.location.city} · {bounty.status.replace("_", " ")}</p>
-                  </div>
-                  <span className="text-xs font-bold text-secondary-700 flex-shrink-0">
-                    {formatCurrency(bounty.budget, bounty.currency)}
-                  </span>
-                </div>
-              </Link>
             ))}
           </div>
         </motion.div>

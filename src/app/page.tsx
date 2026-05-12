@@ -43,11 +43,12 @@ export default function HomePage() {
       .catch((err) => { console.error("HomePage: failed to load helpers", err); });
   }, []);
 
-  const avgHelperRating = topHelpers.length
+  const ratedHelpers = topHelpers.filter((h) => h.helperStats?.averageRating !== undefined);
+  const avgHelperRating = ratedHelpers.length
     ? (
-      topHelpers.reduce((sum, h) => sum + (h.helperStats?.averageRating ?? 0), 0) / topHelpers.length
+      ratedHelpers.reduce((sum, h) => sum + (h.helperStats?.averageRating ?? 0), 0) / ratedHelpers.length
     ).toFixed(1)
-    : "0.0";
+    : "N/A";
 
   return (
     <div className="max-w-md mx-auto pb-24">
@@ -103,7 +104,7 @@ export default function HomePage() {
         {[
           { value: `${recentBounties.length}`, label: "Recent Bounties" },
           { value: `${topHelpers.length}`, label: "Active Helpers" },
-          { value: `${avgHelperRating}★`, label: "Avg Rating" },
+          { value: avgHelperRating === "N/A" ? "N/A" : `${avgHelperRating}★`, label: "Avg Rating" },
         ].map((s) => (
           <div key={s.label} className="text-center">
             <p className="text-xl font-bold text-charcoal">{s.value}</p>
