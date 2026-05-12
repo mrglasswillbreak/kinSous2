@@ -11,7 +11,7 @@ const MAX_COUNTRY_CODE_LEN = 10;
 function isValidUrl(value: string): boolean {
   try {
     const url = new URL(value);
-    return url.protocol === "https:" || url.protocol === "http:";
+    return url.protocol === "https:";
   } catch {
     return false;
   }

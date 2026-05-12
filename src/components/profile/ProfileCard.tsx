@@ -39,7 +39,7 @@ export default function ProfileCard({ profile, isCurrentUser = false, liveBounti
   const [editCity, setEditCity] = useState(profile.location.city !== "Unknown" ? profile.location.city : "");
   const [editCountry, setEditCountry] = useState(profile.location.country !== "Unknown" ? profile.location.country : "");
   const [editAvatarUrl, setEditAvatarUrl] = useState(
-    profile.avatarUrl.startsWith("https://i.pravatar.cc") ? "" : profile.avatarUrl
+    profile.avatarUrl && !profile.avatarUrl.startsWith("https://i.pravatar.cc") ? profile.avatarUrl : ""
   );
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState("");

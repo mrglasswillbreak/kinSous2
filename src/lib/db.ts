@@ -190,24 +190,40 @@ export async function getBounties(opts?: {
   seekerId?: string;
 }): Promise<DbBounty[]> {
   await initBounties();
-  const rows = await sql`
-    SELECT
-      b.id, b.title, b.description, b.category, b.status,
-      b.budget, b.currency, b.seeker_id,
-      b.address, b.city, b.country, b.tags,
-      b.created_at, b.updated_at,
-      u.name  AS seeker_name,
-      u.avatar_url AS seeker_avatar_url,
-      u.city  AS seeker_city,
-      u.country AS seeker_country
-    FROM bounties b
-    JOIN users u ON u.id = b.seeker_id
-    ORDER BY b.created_at DESC
-  `;
+
+  // Apply seekerId in SQL to avoid transferring unneeded rows from the DB.
+  const rows = opts?.seekerId
+    ? await sql`
+        SELECT
+          b.id, b.title, b.description, b.category, b.status,
+          b.budget, b.currency, b.seeker_id,
+          b.address, b.city, b.country, b.tags,
+          b.created_at, b.updated_at,
+          u.name  AS seeker_name,
+          u.avatar_url AS seeker_avatar_url,
+          u.city  AS seeker_city,
+          u.country AS seeker_country
+        FROM bounties b
+        JOIN users u ON u.id = b.seeker_id
+        WHERE b.seeker_id = ${opts.seekerId}
+        ORDER BY b.created_at DESC
+      `
+    : await sql`
+        SELECT
+          b.id, b.title, b.description, b.category, b.status,
+          b.budget, b.currency, b.seeker_id,
+          b.address, b.city, b.country, b.tags,
+          b.created_at, b.updated_at,
+          u.name  AS seeker_name,
+          u.avatar_url AS seeker_avatar_url,
+          u.city  AS seeker_city,
+          u.country AS seeker_country
+        FROM bounties b
+        JOIN users u ON u.id = b.seeker_id
+        ORDER BY b.created_at DESC
+      `;
+
   let results = rows as DbBounty[];
-  if (opts?.seekerId) {
-    results = results.filter((r) => r.seeker_id === opts.seekerId);
-  }
   if (opts?.category && opts.category !== "ALL") {
     results = results.filter((r) => r.category === opts.category);
   }

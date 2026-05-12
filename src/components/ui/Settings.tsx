@@ -107,15 +107,17 @@ export default function Settings() {
   const [passwordLoading, setPasswordLoading] = useState(false);
 
   const setRole = async (r: "SEEKER" | "HELPER") => {
-    setRoleState(r);
-    localStorage.setItem("kinsous-role", r);
     try {
-      await fetch("/api/auth/update-role", {
+      const res = await fetch("/api/auth/update-role", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: r }),
       });
-      await refetchUser();
+      if (res.ok) {
+        setRoleState(r);
+        localStorage.setItem("kinsous-role", r);
+        await refetchUser();
+      }
     } catch (err) {
       console.error("Failed to persist role change:", err);
     }
