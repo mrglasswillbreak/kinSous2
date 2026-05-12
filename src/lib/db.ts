@@ -182,11 +182,12 @@ export interface UpdateBountyParams {
   tags?: string[];
 }
 
-/** List bounties with optional filters (category, status, text query). */
+/** List bounties with optional filters (category, status, text query, seekerId). */
 export async function getBounties(opts?: {
   category?: string;
   status?: string;
   query?: string;
+  seekerId?: string;
 }): Promise<DbBounty[]> {
   await initBounties();
   const rows = await sql`
@@ -204,6 +205,9 @@ export async function getBounties(opts?: {
     ORDER BY b.created_at DESC
   `;
   let results = rows as DbBounty[];
+  if (opts?.seekerId) {
+    results = results.filter((r) => r.seeker_id === opts.seekerId);
+  }
   if (opts?.category && opts.category !== "ALL") {
     results = results.filter((r) => r.category === opts.category);
   }

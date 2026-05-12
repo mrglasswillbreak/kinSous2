@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { getUserById } from "@/lib/db";
+import { getUserById, getBounties } from "@/lib/db";
+import { dbBountyToAppBounty } from "@/lib/mappers";
 import ProfileCard from "@/components/profile/ProfileCard";
 import type { Metadata } from "next";
 import type { Profile } from "@/types";
@@ -32,9 +33,13 @@ export default async function ProfilePage() {
     createdAt: dbUser.created_at,
   };
 
+  // Fetch this user's own bounties from the real DB
+  const dbBounties = await getBounties({ seekerId: dbUser.id }).catch(() => []);
+  const liveBounties = dbBounties.map(dbBountyToAppBounty).slice(0, 5);
+
   return (
     <div className="pt-4 pb-24">
-      <ProfileCard profile={profile} isCurrentUser />
+      <ProfileCard profile={profile} isCurrentUser liveBounties={liveBounties} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User, Bell, Globe, Shield, ChevronRight, Moon, Sun, Smartphone, LogOut, CreditCard,
@@ -67,6 +67,14 @@ export default function Settings() {
   });
   const { darkMode, setDarkMode } = useTheme();
 
+  // Sync role from DB user once loaded so Settings reflects real DB state
+  useEffect(() => {
+    if (user?.role === "SEEKER" || user?.role === "HELPER") {
+      setRoleState(user.role);
+      localStorage.setItem("kinsous-role", user.role);
+    }
+  }, [user?.role]);
+
   const [role, setRoleState] = useState<"SEEKER" | "HELPER">(() => {
     if (typeof window !== "undefined") {
       return (localStorage.getItem("kinsous-role") as "SEEKER" | "HELPER") ?? "SEEKER";
@@ -98,9 +106,19 @@ export default function Settings() {
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
 
-  const setRole = (r: "SEEKER" | "HELPER") => {
+  const setRole = async (r: "SEEKER" | "HELPER") => {
     setRoleState(r);
     localStorage.setItem("kinsous-role", r);
+    try {
+      await fetch("/api/auth/update-role", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: r }),
+      });
+      await refetchUser();
+    } catch (err) {
+      console.error("Failed to persist role change:", err);
+    }
   };
 
   const setCurrency = (c: "NGN" | "USD") => {
