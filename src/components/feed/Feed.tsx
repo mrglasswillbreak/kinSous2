@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, SlidersHorizontal, Plus, Flame } from "lucide-react";
 import type { BountyCategory, Bounty } from "@/types";
@@ -18,7 +18,6 @@ const tabLabel: Record<string, string> = { ALL: "All", ...categoryLabels };
 function useLiveBounties(category: BountyCategory | "ALL", query: string) {
   const [bounties, setBounties] = useState<Bounty[]>([]);
   const [loading, setLoading] = useState(true);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchBounties = useCallback(async (cat: string, q: string) => {
     setLoading(true);
@@ -39,11 +38,8 @@ function useLiveBounties(category: BountyCategory | "ALL", query: string) {
   }, []);
 
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => fetchBounties(category, query), query ? 400 : 0);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
+    const timer = setTimeout(() => fetchBounties(category, query), query ? 400 : 0);
+    return () => clearTimeout(timer);
   }, [category, query, fetchBounties]);
 
   return { bounties, loading, refetch: () => fetchBounties(category, query) };

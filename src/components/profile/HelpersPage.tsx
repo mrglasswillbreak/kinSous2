@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Search, Star, MapPin, Package, Flame } from "lucide-react";
 import type { Profile } from "@/types";
@@ -80,14 +80,10 @@ export default function HelpersPage() {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [helpers, setHelpers] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => setDebouncedQuery(query), 300);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
+    const timer = setTimeout(() => setDebouncedQuery(query), 300);
+    return () => clearTimeout(timer);
   }, [query]);
 
   const loadHelpers = useCallback(async (q: string) => {
