@@ -273,8 +273,16 @@ export async function createBounty(p: CreateBountyParams): Promise<DbBounty> {
        ${p.seekerId}, ${p.address}, ${p.city}, ${p.country}, ${p.tags})
     RETURNING *
   `;
+  const created = rows[0] as { id: string } | undefined;
+  if (!created?.id) {
+    throw new Error("Failed to create bounty");
+  }
   // Re-fetch with joined seeker to keep shape consistent
-  return getBountyById((rows[0] as { id: string }).id) as Promise<DbBounty>;
+  const bounty = await getBountyById(created.id);
+  if (!bounty) {
+    throw new Error("Failed to load created bounty");
+  }
+  return bounty;
 }
 
 /** Update a bounty if owned by seekerId; returns updated bounty or null. */
@@ -310,4 +318,308 @@ export async function deleteBounty(id: string, seekerId: string): Promise<boolea
     RETURNING id
   `;
   return Boolean(rows[0]);
+}
+
+// ─── Messaging tables & helpers ───────────────────────────────────────────────
+
+export interface DbConversationMessage {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  sender_name: string;
+  sender_avatar_url: string | null;
+  type: "TEXT" | "IMAGE" | "SYSTEM";
+  content: string;
+  read: boolean;
+  created_at: string;
+}
+
+export interface DbConversationSummary {
+  id: string;
+  bounty_id: string | null;
+  bounty_title: string | null;
+  participants: DbUser[];
+  last_message: DbConversationMessage | null;
+  unread_count: number;
+  updated_at: string;
+}
+
+export async function initMessages() {
+  await initDb();
+  await initBounties();
+  await sql`
+    CREATE TABLE IF NOT EXISTS conversations (
+      id         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      bounty_id  TEXT REFERENCES bounties(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS conversation_participants (
+      conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+      user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      last_read_at    TIMESTAMPTZ,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+      PRIMARY KEY (conversation_id, user_id)
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS messages (
+      id              TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+      sender_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      type            TEXT NOT NULL DEFAULT 'TEXT',
+      content         TEXT NOT NULL,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `;
+}
+
+async function getParticipants(conversationId: string): Promise<DbUser[]> {
+  const rows = await sql`
+    SELECT u.id, u.email, u.name, u.password_hash, u.avatar_url, u.role, u.bio, u.city, u.country, u.country_code, u.created_at
+    FROM conversation_participants cp
+    JOIN users u ON u.id = cp.user_id
+    WHERE cp.conversation_id = ${conversationId}
+    ORDER BY cp.created_at ASC
+  `;
+  return rows as DbUser[];
+}
+
+async function getLastMessage(conversationId: string, currentUserId: string): Promise<DbConversationMessage | null> {
+  const rows = await sql`
+    SELECT
+      m.id, m.conversation_id, m.sender_id, m.type, m.content, m.created_at,
+      s.name AS sender_name, s.avatar_url AS sender_avatar_url,
+      CASE
+        WHEN m.sender_id = ${currentUserId} THEN (
+          SELECT COALESCE(other.last_read_at >= m.created_at, false)
+          FROM conversation_participants other
+          WHERE other.conversation_id = m.conversation_id
+            AND other.user_id <> ${currentUserId}
+          ORDER BY other.created_at ASC
+          LIMIT 1
+        )
+        ELSE true
+      END AS read
+    FROM messages m
+    JOIN users s ON s.id = m.sender_id
+    WHERE m.conversation_id = ${conversationId}
+    ORDER BY m.created_at DESC
+    LIMIT 1
+  `;
+  return (rows[0] as DbConversationMessage) ?? null;
+}
+
+async function getUnreadCount(conversationId: string, userId: string): Promise<number> {
+  const rows = await sql`
+    SELECT COUNT(*)::int AS count
+    FROM messages m
+    JOIN conversation_participants cp
+      ON cp.conversation_id = m.conversation_id
+     AND cp.user_id = ${userId}
+    WHERE m.conversation_id = ${conversationId}
+      AND m.sender_id <> ${userId}
+      AND (cp.last_read_at IS NULL OR m.created_at > cp.last_read_at)
+  `;
+  return Number((rows[0] as { count: number })?.count ?? 0);
+}
+
+export async function getConversationsForUser(userId: string): Promise<DbConversationSummary[]> {
+  await initMessages();
+  const rows = await sql`
+    SELECT c.id, c.bounty_id, b.title AS bounty_title, c.updated_at
+    FROM conversations c
+    JOIN conversation_participants cp ON cp.conversation_id = c.id
+    LEFT JOIN bounties b ON b.id = c.bounty_id
+    WHERE cp.user_id = ${userId}
+    ORDER BY c.updated_at DESC
+  `;
+
+  const summaries = await Promise.all((rows as Array<{ id: string; bounty_id: string | null; bounty_title: string | null; updated_at: string }>).map(async (row) => {
+    const [participants, last_message, unread_count] = await Promise.all([
+      getParticipants(row.id),
+      getLastMessage(row.id, userId),
+      getUnreadCount(row.id, userId),
+    ]);
+    return {
+      id: row.id,
+      bounty_id: row.bounty_id,
+      bounty_title: row.bounty_title,
+      participants,
+      last_message,
+      unread_count,
+      updated_at: row.updated_at,
+    } satisfies DbConversationSummary;
+  }));
+
+  return summaries;
+}
+
+export async function getConversationForUser(conversationId: string, userId: string): Promise<DbConversationSummary | null> {
+  await initMessages();
+  const rows = await sql`
+    SELECT c.id, c.bounty_id, b.title AS bounty_title, c.updated_at
+    FROM conversations c
+    JOIN conversation_participants cp ON cp.conversation_id = c.id
+    LEFT JOIN bounties b ON b.id = c.bounty_id
+    WHERE c.id = ${conversationId}
+      AND cp.user_id = ${userId}
+    LIMIT 1
+  `;
+  const row = rows[0] as { id: string; bounty_id: string | null; bounty_title: string | null; updated_at: string } | undefined;
+  if (!row) return null;
+
+  const [participants, last_message, unread_count] = await Promise.all([
+    getParticipants(row.id),
+    getLastMessage(row.id, userId),
+    getUnreadCount(row.id, userId),
+  ]);
+
+  return {
+    id: row.id,
+    bounty_id: row.bounty_id,
+    bounty_title: row.bounty_title,
+    participants,
+    last_message,
+    unread_count,
+    updated_at: row.updated_at,
+  };
+}
+
+export async function listMessagesForConversation(conversationId: string, userId: string): Promise<DbConversationMessage[]> {
+  await initMessages();
+  const access = await sql`
+    SELECT 1
+    FROM conversation_participants
+    WHERE conversation_id = ${conversationId}
+      AND user_id = ${userId}
+    LIMIT 1
+  `;
+  if (!access[0]) return [];
+
+  const rows = await sql`
+    SELECT
+      m.id, m.conversation_id, m.sender_id, m.type, m.content, m.created_at,
+      s.name AS sender_name, s.avatar_url AS sender_avatar_url,
+      CASE
+        WHEN m.sender_id = ${userId} THEN (
+          SELECT COALESCE(other.last_read_at >= m.created_at, false)
+          FROM conversation_participants other
+          WHERE other.conversation_id = m.conversation_id
+            AND other.user_id <> ${userId}
+          ORDER BY other.created_at ASC
+          LIMIT 1
+        )
+        ELSE true
+      END AS read
+    FROM messages m
+    JOIN users s ON s.id = m.sender_id
+    WHERE m.conversation_id = ${conversationId}
+    ORDER BY m.created_at ASC
+  `;
+  return rows as DbConversationMessage[];
+}
+
+export async function markConversationRead(conversationId: string, userId: string): Promise<void> {
+  await initMessages();
+  await sql`
+    UPDATE conversation_participants
+    SET last_read_at = now()
+    WHERE conversation_id = ${conversationId}
+      AND user_id = ${userId}
+  `;
+}
+
+export async function sendConversationMessage(params: {
+  conversationId: string;
+  senderId: string;
+  type?: "TEXT" | "IMAGE" | "SYSTEM";
+  content: string;
+}): Promise<DbConversationMessage | null> {
+  await initMessages();
+  const access = await sql`
+    SELECT 1
+    FROM conversation_participants
+    WHERE conversation_id = ${params.conversationId}
+      AND user_id = ${params.senderId}
+    LIMIT 1
+  `;
+  if (!access[0]) return null;
+
+  const inserted = await sql`
+    INSERT INTO messages (conversation_id, sender_id, type, content)
+    VALUES (${params.conversationId}, ${params.senderId}, ${params.type ?? "TEXT"}, ${params.content})
+    RETURNING id
+  `;
+  await sql`
+    UPDATE conversations
+    SET updated_at = now()
+    WHERE id = ${params.conversationId}
+  `;
+  const messageId = (inserted[0] as { id: string } | undefined)?.id;
+  if (!messageId) return null;
+
+  const rows = await sql`
+    SELECT
+      m.id, m.conversation_id, m.sender_id, m.type, m.content, m.created_at,
+      s.name AS sender_name, s.avatar_url AS sender_avatar_url,
+      true AS read
+    FROM messages m
+    JOIN users s ON s.id = m.sender_id
+    WHERE m.id = ${messageId}
+    LIMIT 1
+  `;
+  return (rows[0] as DbConversationMessage) ?? null;
+}
+
+export async function getOrCreateDirectConversation(params: {
+  userId: string;
+  otherUserId: string;
+  bountyId?: string | null;
+}): Promise<string> {
+  await initMessages();
+  if (params.userId === params.otherUserId) {
+    throw new Error("Cannot create conversation with self");
+  }
+
+  const existing = await sql`
+    SELECT c.id
+    FROM conversations c
+    JOIN conversation_participants p1
+      ON p1.conversation_id = c.id AND p1.user_id = ${params.userId}
+    JOIN conversation_participants p2
+      ON p2.conversation_id = c.id AND p2.user_id = ${params.otherUserId}
+    WHERE (${params.bountyId ?? null} IS NULL OR c.bounty_id = ${params.bountyId ?? null})
+      AND (
+        SELECT COUNT(*)
+        FROM conversation_participants cp
+        WHERE cp.conversation_id = c.id
+      ) = 2
+    ORDER BY c.updated_at DESC
+    LIMIT 1
+  `;
+
+  const existingId = (existing[0] as { id: string } | undefined)?.id;
+  if (existingId) return existingId;
+
+  const created = await sql`
+    INSERT INTO conversations (bounty_id)
+    VALUES (${params.bountyId ?? null})
+    RETURNING id
+  `;
+  const conversationId = (created[0] as { id: string } | undefined)?.id;
+  if (!conversationId) {
+    throw new Error("Failed to create conversation");
+  }
+
+  await sql`
+    INSERT INTO conversation_participants (conversation_id, user_id, last_read_at)
+    VALUES
+      (${conversationId}, ${params.userId}, now()),
+      (${conversationId}, ${params.otherUserId}, now())
+  `;
+
+  return conversationId;
 }

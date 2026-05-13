@@ -6,7 +6,7 @@ import { ArrowLeft, Send, Camera, MapPin, CheckCheck, Loader2 } from "lucide-rea
 import { useRouter } from "next/navigation";
 import type { DirectMessage } from "@/types";
 import { useConversation } from "@/hooks/useConversations";
-import { currentUser } from "@/lib/mock-data";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 /** Only allow absolute https:// image URLs to prevent XSS via javascript: or data: URIs. */
 function safeImageUrl(url: string): string | undefined {
@@ -19,8 +19,8 @@ function safeImageUrl(url: string): string | undefined {
   }
 }
 
-function MessageBubble({ msg, prevSenderId }: { msg: DirectMessage; prevSenderId?: string }) {
-  const isMe = msg.senderId === currentUser.id;
+function MessageBubble({ msg, prevSenderId, currentUserId }: { msg: DirectMessage; prevSenderId?: string; currentUserId: string }) {
+  const isMe = msg.senderId === currentUserId;
   const isSystem = msg.type === "SYSTEM";
   const showAvatar = !isMe && prevSenderId !== msg.senderId;
 
@@ -93,6 +93,7 @@ interface ChatThreadProps {
 
 export default function ChatThread({ conversationId }: ChatThreadProps) {
   const router = useRouter();
+  const { user } = useCurrentUser();
   const { conversation, messages, isLoading, sendMessage } = useConversation(conversationId);
   const [inputText, setInputText] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -119,7 +120,7 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
     }
   };
 
-  const other = conversation?.participants.find((p) => p.id !== currentUser.id);
+  const other = conversation?.participants.find((p) => p.id !== user?.userId);
 
   return (
     <div className="flex flex-col h-screen max-h-screen bg-background">
@@ -181,6 +182,7 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
               >
                 <MessageBubble
                   msg={msg}
+                  currentUserId={user?.userId ?? ""}
                   prevSenderId={i > 0 ? messages[i - 1].senderId : undefined}
                 />
               </motion.div>

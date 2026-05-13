@@ -361,7 +361,7 @@ export default function ProfileCard({ profile, isCurrentUser = false, liveBounti
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35 }}
         >
-          <Link href="/messages">
+          <Link href={`/messages?helperId=${encodeURIComponent(profile.id)}`}>
             <motion.button
               whileTap={{ scale: 0.97 }}
               className="w-full flex items-center justify-center gap-2 bg-primary text-white py-3.5 rounded-2xl font-bold shadow-primary"
