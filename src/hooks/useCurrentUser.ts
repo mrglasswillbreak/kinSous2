@@ -4,8 +4,13 @@ import { useState, useEffect, useCallback } from "react";
 
 export interface CurrentUser {
   userId: string;
-  email: string;
+  email: string | null;
+  phone?: string | null;
   name: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  dateOfBirth?: string | null;
+  gender?: string | null;
   role: string;
   avatarUrl?: string | null;
   bio?: string | null;

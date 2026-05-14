@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sql } from "@/lib/db";
+import { initDb, sql } from "@/lib/db";
 import { getSession, setSessionCookie } from "@/lib/auth";
 
 const ALLOWED_ROLES = new Set(["SEEKER", "HELPER"]);
 
 export async function POST(req: NextRequest) {
   try {
+    await initDb();
+
     const session = await getSession();
     if (!session) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -17,15 +19,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Role must be SEEKER or HELPER" }, { status: 400 });
     }
 
-    await sql`
-      UPDATE users SET role = ${role} WHERE id = ${session.userId}
+    const rows = await sql`
+      UPDATE users
+      SET role = ${role}
+      WHERE id = ${session.userId}
+      RETURNING email, phone, name
     `;
+    const user = rows[0];
 
     // Refresh session cookie with new role
     await setSessionCookie({
       userId: session.userId,
-      email: session.email,
-      name: session.name,
+      email: user?.email ?? session.email,
+      phone: user?.phone ?? session.phone ?? null,
+      name: user?.name ?? session.name,
       role,
       exp: Date.now() + 1000 * 60 * 60 * 24 * 30,
     });

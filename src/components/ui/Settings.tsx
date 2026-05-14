@@ -61,9 +61,54 @@ function SectionItem({ icon, label, sublabel, right, onClick, danger }: SectionI
 export default function Settings() {
   const router = useRouter();
   const { user, refetch: refetchUser } = useCurrentUser();
-  const [notifications, setNotifications] = useState({
-    newBid: true, bidAccepted: true, deliveryUpdate: true,
-    messages: true, promotions: false,
+  const [notifications, setNotifications] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("kinsous-notification-settings");
+      if (saved) {
+        try {
+          return JSON.parse(saved) as {
+            newBid: boolean;
+            bidAccepted: boolean;
+            deliveryUpdate: boolean;
+            messages: boolean;
+            promotions: boolean;
+          };
+        } catch {
+          localStorage.removeItem("kinsous-notification-settings");
+        }
+      }
+    }
+
+    return {
+      newBid: true,
+      bidAccepted: true,
+      deliveryUpdate: true,
+      messages: true,
+      promotions: false,
+    };
+  });
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [privacySettings, setPrivacySettings] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("kinsous-privacy-settings");
+      if (saved) {
+        try {
+          return JSON.parse(saved) as {
+            showLocation: boolean;
+            showProfileInSearch: boolean;
+            allowDirectMessages: boolean;
+          };
+        } catch {
+          localStorage.removeItem("kinsous-privacy-settings");
+        }
+      }
+    }
+
+    return {
+      showLocation: true,
+      showProfileInSearch: true,
+      allowDirectMessages: true,
+    };
   });
   const { darkMode, setDarkMode } = useTheme();
 
@@ -74,6 +119,14 @@ export default function Settings() {
       localStorage.setItem("kinsous-role", user.role);
     }
   }, [user?.role]);
+
+  useEffect(() => {
+    localStorage.setItem("kinsous-notification-settings", JSON.stringify(notifications));
+  }, [notifications]);
+
+  useEffect(() => {
+    localStorage.setItem("kinsous-privacy-settings", JSON.stringify(privacySettings));
+  }, [privacySettings]);
 
   const [role, setRoleState] = useState<"SEEKER" | "HELPER">(() => {
     if (typeof window !== "undefined") {
@@ -194,7 +247,7 @@ export default function Settings() {
   };
 
   const displayName = user?.name ?? "Loading…";
-  const displayEmail = user?.email ?? "";
+  const displayEmail = user?.email ?? user?.phone ?? "";
   const displayCity = user?.city;
   const displayCountry = user?.country;
   const locationLabel = displayCity && displayCountry
@@ -336,7 +389,7 @@ export default function Settings() {
               />
               <input
                 type="password"
-                placeholder="New password (min 6 chars)"
+                placeholder="New password (min 8 chars)"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 required
@@ -421,7 +474,7 @@ export default function Settings() {
             icon={<CreditCard size={16} className="text-muted" />}
             label="Payment Methods"
             sublabel={currency === "NGN" ? "Flutterwave · NGN" : "Stripe · USD"}
-            onClick={() => {}}
+            onClick={() => router.push("/payment")}
           />
         </div>
       </div>
@@ -468,7 +521,39 @@ export default function Settings() {
         <div className={sectionHeader}>
           <p className="text-xs font-semibold text-muted uppercase tracking-wider">Security & Privacy</p>
         </div>
-        <SectionItem icon={<Shield size={16} className="text-muted" />} label="Privacy Settings" onClick={() => {}} />
+        <SectionItem
+          icon={<Shield size={16} className="text-muted" />}
+          label="Privacy Settings"
+          sublabel="Profile visibility and messages"
+          onClick={() => setPrivacyOpen((v) => !v)}
+        />
+        <AnimatePresence>
+          {privacyOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden border-y border-card-border bg-subtle/50"
+            >
+              {[
+                { key: "showProfileInSearch" as const, label: "Show profile in helper search" },
+                { key: "showLocation" as const, label: "Show city and country on profile" },
+                { key: "allowDirectMessages" as const, label: "Allow direct messages" },
+              ].map((item) => (
+                <div key={item.key} className="flex items-center gap-3 px-4 py-3 border-b border-card-border last:border-0">
+                  <p className="flex-1 text-sm text-charcoal">{item.label}</p>
+                  <Toggle
+                    enabled={privacySettings[item.key]}
+                    onChange={(v) =>
+                      setPrivacySettings((current) => ({ ...current, [item.key]: v }))
+                    }
+                  />
+                </div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
         <SectionItem icon={<LogOut size={16} className="text-red-500" />} label="Sign Out" danger onClick={handleLogout} />
       </div>
 

@@ -19,7 +19,13 @@ export interface HelperStats {
 
 export interface Profile {
   id: string;
+  email?: string | null;
+  phone?: string | null;
   name: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  dateOfBirth?: string | null;
+  gender?: string | null;
   avatarUrl: string;
   role: UserRole;
   location: { city: string; country: string; countryCode: string };

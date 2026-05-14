@@ -19,7 +19,19 @@ export async function POST() {
 
     const passwordHash = await bcrypt.hash("KinSous2024!", 12);
     await sql`
-      INSERT INTO users (email, name, first_name, last_name, password_hash, role, avatar_url)
+      INSERT INTO users (
+        email,
+        name,
+        first_name,
+        last_name,
+        password_hash,
+        role,
+        avatar_url,
+        bio,
+        city,
+        country,
+        country_code
+      )
       VALUES (
         ${email},
         'Chioma Nwosu',
@@ -27,7 +39,11 @@ export async function POST() {
         'Nwosu',
         ${passwordHash},
         'SEEKER',
-        'https://i.pravatar.cc/150?img=23'
+        'https://i.pravatar.cc/150?img=23',
+        'Exploring authentic ingredients and home-style West African cooking.',
+        'Lagos',
+        'Nigeria',
+        'NG'
       )
     `;
 

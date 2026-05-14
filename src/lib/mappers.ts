@@ -43,7 +43,13 @@ export function dbBountyToAppBounty(b: DbBounty): Bounty {
 export function dbUserToProfile(u: DbUser): Profile {
   return {
     id: u.id,
+    email: u.email,
+    phone: u.phone,
     name: u.name,
+    firstName: u.first_name,
+    lastName: u.last_name,
+    dateOfBirth: u.date_of_birth,
+    gender: u.gender,
     avatarUrl:
       u.avatar_url ||
       `https://i.pravatar.cc/150?u=${encodeURIComponent(u.id)}`,

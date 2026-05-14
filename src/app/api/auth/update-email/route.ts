@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { sql } from "@/lib/db";
+import { initDb, sql } from "@/lib/db";
 import { getSession, setSessionCookie } from "@/lib/auth";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req: NextRequest) {
   try {
+    await initDb();
+
     const session = await getSession();
     if (!session) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -31,7 +33,7 @@ export async function POST(req: NextRequest) {
     }
 
     const rows = await sql`
-      SELECT password_hash, name, role FROM users WHERE id = ${session.userId}
+      SELECT password_hash, name, phone, role FROM users WHERE id = ${session.userId}
     `;
     const user = rows[0];
     if (!user) {
@@ -64,6 +66,7 @@ export async function POST(req: NextRequest) {
     await setSessionCookie({
       userId: session.userId,
       email: normalised,
+      phone: user.phone ?? session.phone ?? null,
       name: user.name,
       role: user.role,
       exp: Date.now() + 1000 * 60 * 60 * 24 * 30,
