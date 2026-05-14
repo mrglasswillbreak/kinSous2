@@ -37,12 +37,25 @@ export async function initDb() {
   await sql`
     CREATE TABLE IF NOT EXISTS users (
       id            TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-      email         TEXT UNIQUE NOT NULL,
+      email         TEXT UNIQUE,
+      phone         TEXT,
       name          TEXT NOT NULL,
+      first_name    TEXT,
+      last_name     TEXT,
+      date_of_birth DATE,
+      gender        TEXT,
       password_hash TEXT NOT NULL,
       avatar_url    TEXT,
       role          TEXT NOT NULL DEFAULT 'SEEKER',
       created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `;
+
+  await sql`ALTER TABLE users ALTER COLUMN email DROP NOT NULL`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth DATE`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS gender TEXT`;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS users_phone_unique_idx ON users (phone) WHERE phone IS NOT NULL`;
 }

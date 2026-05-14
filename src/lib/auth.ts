@@ -8,7 +8,8 @@ const SECRET = process.env.AUTH_SECRET ?? "kinsous-dev-secret-change-in-prod";
 
 export interface SessionPayload {
   userId: string;
-  email: string;
+  email: string | null;
+  phone?: string | null;
   name: string;
   role: string;
   exp: number;

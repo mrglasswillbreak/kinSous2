@@ -10,6 +10,7 @@ export async function GET() {
     user: {
       userId: session.userId,
       email: session.email,
+      phone: session.phone ?? null,
       name: session.name,
       role: session.role,
     },
