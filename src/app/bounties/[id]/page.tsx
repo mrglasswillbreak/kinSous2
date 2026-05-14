@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, MapPin, Clock, Tag, Users, DollarSign, Video, Star } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { mockBounties, formatCurrency, timeAgo, categoryLabels, categoryColors } from "@/lib/mock-data";
+import type { Bounty } from "@/types";
+import { formatCurrency, timeAgo, categoryLabels, categoryColors } from "@/lib/mock-data";
+import { dbBountyToAppBounty } from "@/lib/mappers";
 import BidSection from "@/components/feed/BidSection";
 import LeaveReviewModal from "@/components/feed/LeaveReviewModal";
 
@@ -27,10 +29,38 @@ export default function BountyDetailPage() {
   const routeParams = useParams<{ id: string }>();
   const { id } = routeParams;
   const router = useRouter();
-  const bounty = mockBounties.find((b) => b.id === id);
+  const [bounty, setBounty] = useState<Bounty | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
 
-  if (!bounty) {
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    fetch(`/api/bounties/${id}`)
+      .then((res) => {
+        if (res.status === 404) { setNotFound(true); setLoading(false); return null; }
+        return res.json();
+      })
+      .then((data) => {
+        if (!data) return;
+        setBounty(dbBountyToAppBounty(data.bounty));
+        setLoading(false);
+      })
+      .catch(() => { setNotFound(true); setLoading(false); });
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="max-w-md mx-auto px-4 pt-12 pb-24 space-y-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="bg-card rounded-3xl h-24 animate-pulse border border-card-border" />
+        ))}
+      </div>
+    );
+  }
+
+  if (notFound || !bounty) {
     return (
       <div className="max-w-md mx-auto px-4 pt-12 pb-24 text-center">
         <p className="text-4xl mb-3">🍽️</p>
@@ -158,7 +188,7 @@ export default function BountyDetailPage() {
             <MapPin size={18} className="text-primary" />
           </div>
           <div>
-            <p className="font-semibold text-charcoal text-sm">{bounty.location.address}</p>
+            <p className="font-semibold text-charcoal text-sm">{bounty.location.address || bounty.location.city}</p>
             <p className="text-xs text-muted">{bounty.location.city}, {bounty.location.country}</p>
           </div>
         </motion.div>
@@ -196,7 +226,7 @@ export default function BountyDetailPage() {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-charcoal">Order in progress</p>
-                  <p className="text-xs text-muted">Track your helper's location live</p>
+                  <p className="text-xs text-muted">Track your helper&apos;s location live</p>
                 </div>
               </div>
             </Link>

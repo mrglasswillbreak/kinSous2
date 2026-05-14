@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ShoppingCart, Truck, CheckCircle2, Clock, Navigation, MapPin } from "lucide-react";
 import type { DeliveryTracking, DeliveryStage } from "@/types";
-import { mockDeliveryTracking } from "@/lib/mock-data";
+import { dbBountyToAppBounty, dbUserToProfile } from "@/lib/mappers";
 
 const stageOrder: DeliveryStage[] = ["MARKET", "IN_TRANSIT", "ARRIVED"];
 
@@ -111,13 +111,74 @@ function MapPlaceholder({ tracking }: { tracking: DeliveryTracking }) {
 }
 
 export default function Tracker() {
-  const [tracking] = useState<DeliveryTracking>(mockDeliveryTracking);
+  const [tracking, setTracking] = useState<DeliveryTracking | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const t = setInterval(() => setElapsed((e) => e + 1), 1000);
     return () => clearInterval(t);
   }, []);
+
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/bounties?status=IN_PROGRESS").then((r) => (r.ok ? r.json() : null)),
+      fetch("/api/helpers").then((r) => (r.ok ? r.json() : null)),
+    ])
+      .then(([bountyData, helperData]) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const bounty = (bountyData?.bounties ?? []).map((b: any) => dbBountyToAppBounty(b))[0];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const helper = (helperData?.helpers ?? []).map((u: any) => dbUserToProfile(u))[0];
+        if (!bounty || !helper) {
+          setTracking(null);
+          return;
+        }
+
+        const currentStage: DeliveryStage = "IN_TRANSIT";
+        setTracking({
+          bountyId: bounty.id,
+          helper,
+          currentStage,
+          estimatedArrivalMinutes: 18,
+          helperLocation: {
+            lat: 6.5244,
+            lng: 3.3792,
+            speed: 24,
+            heading: 95,
+            updatedAt: new Date().toISOString(),
+          },
+          steps: [
+            { stage: "MARKET", label: "At Market", description: "Shopping done", completedAt: bounty.createdAt },
+            { stage: "IN_TRANSIT", label: "In Transit", description: "Heading your way" },
+            { stage: "ARRIVED", label: "Arrived", description: "At your location" },
+          ],
+        });
+      })
+      .catch(() => setTracking(null))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (!loading && !tracking) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-6">
+        <div className="bg-card rounded-3xl shadow-card p-5 border border-card-border text-center">
+          <p className="text-sm font-semibold text-charcoal">No active delivery</p>
+          <p className="text-xs text-muted mt-1">Tracking will appear once a bounty is in progress.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!tracking) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-6">
+        <div className="bg-card rounded-3xl shadow-card p-5 border border-card-border text-center">
+          <p className="text-sm text-muted">Loading tracking…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto px-4 py-6 space-y-6">

@@ -2,8 +2,11 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Flame, MapPin, Shield, Video, ArrowRight, Star, ChevronRight, MessageCircle, Map } from "lucide-react";
-import { mockBounties, mockHelpers, formatCurrency, timeAgo } from "@/lib/mock-data";
+import type { Bounty, Profile } from "@/types";
+import { formatCurrency, timeAgo } from "@/lib/mock-data";
+import { dbBountyToAppBounty, dbUserToProfile } from "@/lib/mappers";
 
 const features = [
   { icon: Flame, title: "Bounty Board", description: "Post food requests and get bids from local culinary helpers", href: "/bounties", color: "bg-primary-50 text-primary-500" },
@@ -15,7 +18,38 @@ const features = [
 ].slice(0, 4);
 
 export default function HomePage() {
-  const recent = mockBounties.slice(0, 3);
+  const [recentBounties, setRecentBounties] = useState<Bounty[]>([]);
+  const [topHelpers, setTopHelpers] = useState<Profile[]>([]);
+
+  useEffect(() => {
+    fetch("/api/bounties")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (!data) return;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const live = (data.bounties ?? []).slice(0, 3).map((b: any) => dbBountyToAppBounty(b));
+        setRecentBounties(live);
+      })
+      .catch((err) => { console.error("HomePage: failed to load bounties", err); });
+
+    fetch("/api/helpers")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (!data) return;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const live = (data.helpers ?? []).slice(0, 5).map((u: any) => dbUserToProfile(u));
+        setTopHelpers(live);
+      })
+      .catch((err) => { console.error("HomePage: failed to load helpers", err); });
+  }, []);
+
+  const ratedHelpers = topHelpers.filter((h) => h.helperStats?.averageRating !== undefined);
+  const avgHelperRating = ratedHelpers.length
+    ? (
+      ratedHelpers.reduce((sum, h) => sum + (h.helperStats?.averageRating ?? 0), 0) / ratedHelpers.length
+    ).toFixed(1)
+    : "N/A";
+
   return (
     <div className="max-w-md mx-auto pb-24">
       {/* Hero */}
@@ -67,7 +101,11 @@ export default function HomePage() {
         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
         className="mx-4 bg-card rounded-3xl shadow-card p-4 flex items-center justify-around border border-card-border"
       >
-        {[{ value: "2,400+", label: "Bounties Filled" }, { value: "340", label: "Active Helpers" }, { value: "4.9★", label: "Avg Rating" }].map((s) => (
+        {[
+          { value: `${recentBounties.length}`, label: "Recent Bounties" },
+          { value: `${topHelpers.length}`, label: "Active Helpers" },
+          { value: avgHelperRating === "N/A" ? "N/A" : `${avgHelperRating}★`, label: "Avg Rating" },
+        ].map((s) => (
           <div key={s.label} className="text-center">
             <p className="text-xl font-bold text-charcoal">{s.value}</p>
             <p className="text-xs text-muted">{s.label}</p>
@@ -106,7 +144,12 @@ export default function HomePage() {
           </Link>
         </div>
         <div className="space-y-3">
-          {recent.map((b, i) => (
+          {recentBounties.length === 0 ? (
+            <div className="bg-card rounded-2xl shadow-card p-4 border border-card-border text-center">
+              <p className="text-sm font-semibold text-charcoal">No bounties yet</p>
+              <p className="text-xs text-muted mt-1">Be the first to post one.</p>
+            </div>
+          ) : recentBounties.map((b, i) => (
             <Link key={b.id} href={`/bounties/${b.id}`}>
               <motion.div
                 initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
@@ -138,7 +181,12 @@ export default function HomePage() {
           </Link>
         </div>
         <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4" style={{ scrollbarWidth: "none" }}>
-          {mockHelpers.map((h, i) => (
+          {topHelpers.length === 0 ? (
+            <div className="bg-card rounded-2xl shadow-card p-4 border border-card-border text-center min-w-full">
+              <p className="text-sm font-semibold text-charcoal">No helpers yet</p>
+              <p className="text-xs text-muted mt-1">New helpers will appear here.</p>
+            </div>
+          ) : topHelpers.map((h, i) => (
             <Link key={h.id} href={`/helpers/${h.id}`}>
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
@@ -149,11 +197,15 @@ export default function HomePage() {
                 <img src={h.avatarUrl} alt={h.name} className="w-14 h-14 rounded-full object-cover mx-auto ring-2 ring-primary-100" />
                 <p className="text-sm font-bold text-charcoal mt-2 truncate">{h.name}</p>
                 <p className="text-xs text-muted">{h.location.city}</p>
-                <div className="flex items-center justify-center gap-1 mt-1">
-                  <Star size={11} className="text-yellow-400 fill-yellow-400" />
-                  <span className="text-xs font-semibold text-charcoal">{h.helperStats?.averageRating.toFixed(1)}</span>
-                  <span className="text-xs text-muted">({h.helperStats?.completedOrders})</span>
-                </div>
+                {h.helperStats ? (
+                  <div className="flex items-center justify-center gap-1 mt-1">
+                    <Star size={11} className="text-yellow-400 fill-yellow-400" />
+                    <span className="text-xs font-semibold text-charcoal">{h.helperStats.averageRating.toFixed(1)}</span>
+                    <span className="text-xs text-muted">({h.helperStats.completedOrders})</span>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted mt-1">New Helper</p>
+                )}
                 {h.chefScore && (
                   <div className="mt-2 bg-primary-50 rounded-full px-2 py-0.5 inline-block">
                     <span className="text-xs font-bold text-primary">🔥 {h.chefScore}</span>
