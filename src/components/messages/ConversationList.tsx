@@ -3,10 +3,12 @@
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { MessageCircle, ChevronRight, Search } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { Conversation } from "@/types";
 import { useConversations } from "@/hooks/useConversations";
-import { timeAgo, currentUser } from "@/lib/mock-data";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { timeAgo } from "@/lib/mock-data";
 
 function Shimmer({ className }: { className?: string }) {
   return (
@@ -18,10 +20,10 @@ function Shimmer({ className }: { className?: string }) {
   );
 }
 
-function ConversationRow({ conv, index }: { conv: Conversation; index: number }) {
-  const other = conv.participants.find((p) => p.id !== currentUser.id) ?? conv.participants[0];
+function ConversationRow({ conv, index, currentUserId }: { conv: Conversation; index: number; currentUserId: string }) {
+  const other = conv.participants.find((p) => p.id !== currentUserId) ?? conv.participants[0];
   const lastMsg = conv.lastMessage;
-  const isMe = lastMsg.senderId === currentUser.id;
+  const isMe = lastMsg.senderId === currentUserId;
 
   return (
     <motion.div
@@ -72,12 +74,35 @@ function ConversationRow({ conv, index }: { conv: Conversation; index: number })
 }
 
 export default function ConversationList() {
-  const { conversations, isLoading } = useConversations();
+  const { user } = useCurrentUser();
+  const { conversations, isLoading, refetch } = useConversations();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
+  const helperId = searchParams.get("helperId");
+  const bountyId = searchParams.get("bountyId");
+
+  useEffect(() => {
+    if (!helperId) return;
+    fetch("/api/messages/conversations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ helperId, bountyId }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.conversationId) {
+          router.replace(`/messages/${data.conversationId}`);
+          return;
+        }
+        refetch();
+      })
+      .catch(() => refetch());
+  }, [helperId, bountyId, router, refetch]);
 
   const filtered = conversations.filter((c) => {
     if (!query) return true;
-    const other = c.participants.find((p) => p.id !== currentUser.id);
+    const other = c.participants.find((p) => p.id !== user?.userId);
     const q = query.toLowerCase();
     return (
       other?.name.toLowerCase().includes(q) ||
@@ -129,7 +154,7 @@ export default function ConversationList() {
           <AnimatePresence>
             <div className="divide-y divide-card-border">
               {filtered.map((conv, i) => (
-                <ConversationRow key={conv.id} conv={conv} index={i} />
+                <ConversationRow key={conv.id} conv={conv} index={i} currentUserId={user?.userId ?? ""} />
               ))}
             </div>
           </AnimatePresence>

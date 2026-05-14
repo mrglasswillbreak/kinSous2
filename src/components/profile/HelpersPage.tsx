@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Search, Star, MapPin, Package, Flame } from "lucide-react";
 import type { Profile } from "@/types";
-import { useHelpers } from "@/hooks/useData";
 import { SkeletonHelperCard } from "@/components/ui/Skeleton";
 import ChefScore from "@/components/profile/ChefScore";
 import Link from "next/link";
+import { dbUserToProfile } from "@/lib/mappers";
 
 function HelperCard({ helper, index }: { helper: Profile; index: number }) {
   return (
@@ -78,18 +78,35 @@ function HelperCard({ helper, index }: { helper: Profile; index: number }) {
 export default function HelpersPage() {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [country, setCountry] = useState("");
+  const [helpers, setHelpers] = useState<Profile[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Proper debounce with cleanup to avoid stale timeout memory leaks
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(query), 300);
     return () => clearTimeout(timer);
   }, [query]);
 
-  const { data: helpers, isLoading } = useHelpers({
-    query: debouncedQuery || undefined,
-    country: country || undefined,
-  });
+  const loadHelpers = useCallback(async (q: string) => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (q) params.set("q", q);
+      const res = await fetch(`/api/helpers?${params}`);
+      if (res.ok) {
+        const data = await res.json();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const profiles = (data.helpers ?? []).map((u: any) => dbUserToProfile(u));
+        setHelpers(profiles);
+      }
+    } catch (err) {
+      console.error("HelpersPage: failed to load helpers", err);
+      setHelpers([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadHelpers(debouncedQuery); }, [debouncedQuery, loadHelpers]);
 
   return (
     <div className="max-w-2xl mx-auto px-4 pb-24">
@@ -108,20 +125,6 @@ export default function HelpersPage() {
             value={query} onChange={(e) => setQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-input-surface border border-card-border rounded-2xl text-sm text-charcoal placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-200 shadow-sm"
           />
-        </div>
-
-        <div className="flex gap-2">
-          {[{ value: "", label: "All Countries" }, { value: "Nigeria", label: "🇳🇬 Nigeria" }, { value: "United States", label: "🇺🇸 USA" }].map((opt) => (
-            <motion.button
-              key={opt.value} whileTap={{ scale: 0.93 }}
-              onClick={() => setCountry(opt.value)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                country === opt.value ? "bg-primary text-white shadow-primary" : "bg-card text-muted border border-card-border"
-              }`}
-            >
-              {opt.label}
-            </motion.button>
-          ))}
         </div>
       </div>
 

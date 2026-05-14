@@ -1,22 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Video } from "lucide-react";
 import VideoShoppingOverlay from "@/components/video/VideoShoppingOverlay";
-import { mockHelpers, mockSeekers } from "@/lib/mock-data";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { dbUserToProfile } from "@/lib/mappers";
+import type { Profile } from "@/types";
 
 export default function VideoPage() {
   const [active, setActive] = useState(false);
-  const helper = mockHelpers[0];
-  const seeker = mockSeekers[0];
+  const [helper, setHelper] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { user } = useCurrentUser();
 
-  if (active) {
+  useEffect(() => {
+    fetch("/api/helpers")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const helpers = (data?.helpers ?? []).map((u: any) => dbUserToProfile(u));
+        setHelper(helpers[0] ?? null);
+      })
+      .catch(() => setHelper(null))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (active && helper) {
     return (
       <VideoShoppingOverlay
         helperName={helper.name}
         helperAvatar={helper.avatarUrl}
-        seekerName={seeker.name}
+        seekerName={user?.name ?? "You"}
         onClose={() => setActive(false)}
       />
     );
@@ -29,6 +44,13 @@ export default function VideoPage() {
         Start a FaceTime-style session with a Helper who shops for you in real-time.
       </p>
 
+      {!loading && !helper && (
+        <div className="bg-card rounded-3xl shadow-card p-4 border border-card-border text-center mb-4">
+          <p className="text-sm font-semibold text-charcoal">No helpers available</p>
+          <p className="text-xs text-muted mt-1">Switch to helper role on another account to start live sessions.</p>
+        </div>
+      )}
+
       <motion.div
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
         className="bg-card rounded-3xl shadow-card overflow-hidden mb-4"
@@ -37,13 +59,22 @@ export default function VideoPage() {
           <Video size={48} className="text-white/30" />
         </div>
         <div className="p-4 flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={helper.avatarUrl} alt={helper.name} className="w-14 h-14 rounded-2xl object-cover ring-2 ring-primary-100" />
-          <div>
-            <p className="font-bold text-charcoal">{helper.name}</p>
-            <p className="text-sm text-muted">{helper.location.city} · 🔥 {helper.chefScore}</p>
-            <p className="text-xs text-secondary-600 font-semibold mt-0.5">● Available now</p>
-          </div>
+          {helper ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={helper.avatarUrl} alt={helper.name} className="w-14 h-14 rounded-2xl object-cover ring-2 ring-primary-100" />
+              <div>
+                <p className="font-bold text-charcoal">{helper.name}</p>
+                <p className="text-sm text-muted">{helper.location.city} · {helper.location.country}</p>
+                <p className="text-xs text-secondary-600 font-semibold mt-0.5">● Available now</p>
+              </div>
+            </>
+          ) : (
+            <div>
+              <p className="font-bold text-charcoal">Waiting for helper</p>
+              <p className="text-sm text-muted">No active helper profile found yet.</p>
+            </div>
+          )}
         </div>
       </motion.div>
 
@@ -63,6 +94,7 @@ export default function VideoPage() {
 
       <motion.button
         whileTap={{ scale: 0.96 }} onClick={() => setActive(true)}
+        disabled={!helper}
         className="w-full flex items-center justify-center gap-3 bg-primary text-white py-4 rounded-3xl font-bold text-lg shadow-primary"
       >
         <Video size={22} /> Start Live Session

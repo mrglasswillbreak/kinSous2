@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, SlidersHorizontal, Plus, Flame } from "lucide-react";
-import type { BountyCategory } from "@/types";
-import { mockBounties, categoryLabels } from "@/lib/mock-data";
+import type { BountyCategory, Bounty } from "@/types";
+import { categoryLabels } from "@/lib/mock-data";
+import { dbBountyToAppBounty } from "@/lib/mappers";
 import BountyCard from "./BountyCard";
 import PostBountyModal from "./PostBountyModal";
 
@@ -14,21 +15,44 @@ const categories: Array<BountyCategory | "ALL"> = [
 
 const tabLabel: Record<string, string> = { ALL: "All", ...categoryLabels };
 
+function useLiveBounties(category: BountyCategory | "ALL", query: string) {
+  const [bounties, setBounties] = useState<Bounty[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchBounties = useCallback(async (cat: string, q: string) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (cat && cat !== "ALL") params.set("category", cat);
+      if (q) params.set("q", q);
+      const res = await fetch(`/api/bounties?${params}`);
+      if (res.ok) {
+        const data = await res.json();
+        setBounties((data.bounties ?? []).map(dbBountyToAppBounty));
+      }
+    } catch (err) {
+      console.error("Feed: failed to load bounties", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => fetchBounties(category, query), query ? 400 : 0);
+    return () => clearTimeout(timer);
+  }, [category, query, fetchBounties]);
+
+  return { bounties, loading, refetch: () => fetchBounties(category, query) };
+}
+
 export default function Feed() {
   const [activeCategory, setActiveCategory] = useState<BountyCategory | "ALL">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [postModalOpen, setPostModalOpen] = useState(false);
 
-  const filtered = mockBounties.filter((b) => {
-    const matchesCat = activeCategory === "ALL" || b.category === activeCategory;
-    const q = searchQuery.toLowerCase();
-    const matchesSearch =
-      !q ||
-      b.title.toLowerCase().includes(q) ||
-      b.description.toLowerCase().includes(q) ||
-      b.tags.some((t) => t.toLowerCase().includes(q));
-    return matchesCat && matchesSearch;
-  });
+  const { bounties, loading, refetch } = useLiveBounties(activeCategory, searchQuery);
+
+  const displayed = bounties;
 
   return (
     <div className="max-w-2xl mx-auto px-4 pb-24">
@@ -39,7 +63,7 @@ export default function Feed() {
               <Flame size={24} className="text-primary" /> Bounty Board
             </h1>
             <p className="text-muted text-sm mt-0.5">
-              {filtered.length} request{filtered.length !== 1 ? "s" : ""} near you
+              {loading ? "Loading…" : `${displayed.length} request${displayed.length !== 1 ? "s" : ""} near you`}
             </p>
           </div>
           <motion.button
@@ -80,7 +104,15 @@ export default function Feed() {
 
       <motion.div layout className="space-y-4 mt-2">
         <AnimatePresence mode="popLayout">
-          {filtered.length === 0 ? (
+          {loading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <motion.div
+                key={`skel-${i}`}
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                className="bg-card rounded-3xl h-32 animate-pulse border border-card-border"
+              />
+            ))
+          ) : displayed.length === 0 ? (
             <motion.div
               key="empty"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -91,7 +123,7 @@ export default function Feed() {
               <p className="text-sm mt-1">Try a different search or category</p>
             </motion.div>
           ) : (
-            filtered.map((bounty) => (
+            displayed.map((bounty) => (
               <motion.div
                 key={bounty.id} layout
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
@@ -105,7 +137,11 @@ export default function Feed() {
         </AnimatePresence>
       </motion.div>
 
-      <PostBountyModal open={postModalOpen} onClose={() => setPostModalOpen(false)} />
+      <PostBountyModal
+        open={postModalOpen}
+        onClose={() => setPostModalOpen(false)}
+        onPosted={refetch}
+      />
     </div>
   );
 }

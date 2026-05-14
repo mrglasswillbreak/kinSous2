@@ -1,13 +1,18 @@
 "use client";
 
-/**
- * Mock React Query-style hooks.
- * Ready to swap for real API calls once backend is wired.
- */
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Bounty, BountyCategory, Profile, Bid } from "@/types";
-import { mockBounties, mockHelpers } from "@/lib/mock-data";
+import { dbBountyToAppBounty, dbUserToProfile } from "@/lib/mappers";
+
+async function fetchJson<T>(url: string): Promise<T | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
 
 // ── useBounties ───────────────────────────────────────────────────────────────
 
@@ -34,32 +39,23 @@ export function useBounties(filter?: BountiesFilter) {
     }
     setIsLoading(true);
     setError(null);
-    // Simulate network latency
     fetchTimerRef.current = setTimeout(() => {
-      try {
-        let results = [...mockBounties];
-        if (category && category !== "ALL") {
-          results = results.filter((b) => b.category === category);
-        }
-        if (status) {
-          results = results.filter((b) => b.status === status);
-        }
-        if (query) {
-          const q = query.toLowerCase();
-          results = results.filter(
-            (b) =>
-              b.title.toLowerCase().includes(q) ||
-              b.description.toLowerCase().includes(q) ||
-              b.tags.some((t) => t.toLowerCase().includes(q))
-          );
-        }
-        setData(results);
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error("Failed to load bounties"));
-      } finally {
-        setIsLoading(false);
-        fetchTimerRef.current = null;
-      }
+      const params = new URLSearchParams();
+      if (category && category !== "ALL") params.set("category", category);
+      if (status) params.set("status", status);
+      if (query) params.set("q", query);
+      fetchJson<{ bounties?: unknown[] }>(`/api/bounties?${params.toString()}`)
+        .then((payload) => {
+          const results = (payload?.bounties ?? []).map((b) => dbBountyToAppBounty(b as never));
+          setData(results);
+        })
+        .catch((err) => {
+          setError(err instanceof Error ? err : new Error("Failed to load bounties"));
+        })
+        .finally(() => {
+          setIsLoading(false);
+          fetchTimerRef.current = null;
+        });
     }, 600);
   }, [category, query, status]);
 
@@ -95,31 +91,25 @@ export function useHelpers(filter?: HelpersFilter) {
   useEffect(() => {
     setIsLoading(true);
     const timer = setTimeout(() => {
-      try {
-        let results = [...mockHelpers];
-        if (query) {
-          const q = query.toLowerCase();
-          results = results.filter(
-            (h) =>
-              h.name.toLowerCase().includes(q) ||
-              h.location.city.toLowerCase().includes(q) ||
-              h.bio?.toLowerCase().includes(q)
-          );
-        }
-        if (minChefScore) {
-          results = results.filter((h) => (h.chefScore ?? 0) >= minChefScore);
-        }
-        if (country) {
-          results = results.filter(
-            (h) => h.location.country.toLowerCase() === country.toLowerCase()
-          );
-        }
-        setData(results);
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error("Failed to load helpers"));
-      } finally {
-        setIsLoading(false);
-      }
+      const params = new URLSearchParams();
+      if (query) params.set("q", query);
+      fetchJson<{ helpers?: unknown[] }>(`/api/helpers?${params.toString()}`)
+        .then((payload) => {
+          let results = (payload?.helpers ?? []).map((u) => dbUserToProfile(u as never));
+          if (minChefScore) {
+            results = results.filter((h) => (h.chefScore ?? 0) >= minChefScore);
+          }
+          if (country) {
+            results = results.filter(
+              (h) => h.location.country.toLowerCase() === country.toLowerCase()
+            );
+          }
+          setData(results);
+        })
+        .catch((err) => {
+          setError(err instanceof Error ? err : new Error("Failed to load helpers"));
+        })
+        .finally(() => setIsLoading(false));
     }, 500);
     return () => clearTimeout(timer);
   }, [query, minChefScore, country]);
@@ -136,9 +126,13 @@ export function useProfile(id: string) {
   useEffect(() => {
     setIsLoading(true);
     const timer = setTimeout(() => {
-      const found = mockHelpers.find((h) => h.id === id) ?? mockHelpers[0];
-      setData(found);
-      setIsLoading(false);
+      fetchJson<{ helpers?: unknown[] }>("/api/helpers")
+        .then((payload) => {
+          const profiles = (payload?.helpers ?? []).map((u) => dbUserToProfile(u as never));
+          const found = profiles.find((h) => h.id === id) ?? null;
+          setData(found);
+        })
+        .finally(() => setIsLoading(false));
     }, 400);
     return () => clearTimeout(timer);
   }, [id]);
@@ -165,13 +159,32 @@ export function usePlaceBid() {
     setError(null);
     try {
       await new Promise<void>((r) => setTimeout(r, 900));
-      const targetBounty = mockBounties.find((b) => b.id === params.bountyId);
+      const [mePayload, bountyPayload] = await Promise.all([
+        fetchJson<{ user?: { userId: string; name: string; avatarUrl?: string | null; city?: string | null; country?: string | null } }>("/api/auth/me"),
+        fetchJson<{ bounty?: unknown }>(`/api/bounties/${encodeURIComponent(params.bountyId)}`),
+      ]);
+      const bounty = bountyPayload?.bounty ? dbBountyToAppBounty(bountyPayload.bounty as never) : null;
+      const me = mePayload?.user;
+      const helperProfile: Profile = {
+        id: me?.userId ?? "me",
+        name: me?.name ?? "You",
+        avatarUrl:
+          me?.avatarUrl ||
+          `https://i.pravatar.cc/150?u=${encodeURIComponent(me?.userId ?? "me")}`,
+        role: "HELPER",
+        location: {
+          city: me?.city || "Unknown",
+          country: me?.country || "Unknown",
+          countryCode: "XX",
+        },
+        createdAt: new Date().toISOString(),
+      };
       const newBid: Bid = {
         id: `bid-${Math.random().toString(36).slice(2, 7)}`,
         bountyId: params.bountyId,
-        helper: mockHelpers[0],
+        helper: helperProfile,
         amount: params.amount,
-        currency: targetBounty?.currency ?? "USD",
+        currency: bounty?.currency ?? "USD",
         message: params.message,
         estimatedDeliveryMinutes: params.estimatedDeliveryMinutes,
         status: "PENDING",
