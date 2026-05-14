@@ -74,6 +74,12 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("Login error:", err);
+    if (err instanceof Error && err.message.includes("DATABASE_URL")) {
+      return NextResponse.json(
+        { error: "Database is not configured. Add DATABASE_URL to .env.local." },
+        { status: 500 }
+      );
+    }
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

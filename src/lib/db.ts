@@ -149,16 +149,22 @@ export async function initDb() {
     )
   `;
 
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT`;
   await sql`ALTER TABLE users ALTER COLUMN email DROP NOT NULL`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name TEXT`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name TEXT`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth DATE`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS gender TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'SEEKER'`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS city TEXT`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS country TEXT`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS country_code TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()`;
   await sql`
     CREATE UNIQUE INDEX IF NOT EXISTS users_phone_unique_idx
     ON users (phone)
@@ -184,6 +190,21 @@ export async function initDb() {
     )
   `;
 
+  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS id TEXT DEFAULT gen_random_uuid()::text`;
+  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS title TEXT`;
+  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS description TEXT`;
+  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS category TEXT`;
+  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'OPEN'`;
+  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS budget NUMERIC`;
+  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'NGN'`;
+  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS seeker_id TEXT`;
+  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS address TEXT`;
+  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS city TEXT`;
+  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS country TEXT`;
+  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT ARRAY[]::TEXT[]`;
+  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()`;
+  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now()`;
+
   await sql`
     CREATE TABLE IF NOT EXISTS conversations (
       id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
@@ -195,13 +216,22 @@ export async function initDb() {
     )
   `;
 
+  await sql`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS id TEXT DEFAULT gen_random_uuid()::text`;
+  await sql`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS user_one_id TEXT`;
+  await sql`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS user_two_id TEXT`;
+  await sql`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS bounty_id TEXT`;
+  await sql`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()`;
+  await sql`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now()`;
+
   await sql`
-    CREATE UNIQUE INDEX IF NOT EXISTS conversations_unique_direct_idx
+    CREATE INDEX IF NOT EXISTS conversations_direct_lookup_idx
     ON conversations (
       LEAST(user_one_id, user_two_id),
       GREATEST(user_one_id, user_two_id),
       COALESCE(bounty_id, '')
     )
+    WHERE user_one_id IS NOT NULL
+      AND user_two_id IS NOT NULL
   `;
 
   await sql`
@@ -215,6 +245,14 @@ export async function initDb() {
       created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `;
+
+  await sql`ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS id TEXT DEFAULT gen_random_uuid()::text`;
+  await sql`ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS conversation_id TEXT`;
+  await sql`ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS sender_id TEXT`;
+  await sql`ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'TEXT'`;
+  await sql`ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS content TEXT`;
+  await sql`ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS read BOOLEAN DEFAULT false`;
+  await sql`ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()`;
 
   await sql`
     CREATE INDEX IF NOT EXISTS conversation_messages_conversation_idx
