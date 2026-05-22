@@ -1,0 +1,22 @@
+Update profile error: Error: DATABASE_URL environment variable is not set. See .env.local.example for setup instructions.
+    at getClient (src\lib\db.ts:15:13)
+    at Object.apply (src\lib\db.ts:32:14)
+    at POST (src\app\api\auth\update-profile\route.ts:188:27)
+  13 |   if (!_client) {
+  14 |     if (!process.env.DATABASE_URL) {
+> 15 |       throw new Error(
+     |             ^
+  16 |         "DATABASE_URL environment variable is not set. See .env.local.example for setup instructions."
+  17 |       );
+  18 |     }
+Update profile error: Error: DATABASE_URL environment variable is not set. See .env.local.example for setup instructions.
+    at getClient (src\lib\db.ts:15:13)
+    at Object.apply (src\lib\db.ts:32:14)
+    at POST (src\app\api\auth\update-profile\route.ts:188:27)
+  13 |   if (!_client) {
+  14 |     if (!process.env.DATABASE_URL) {
+> 15 |       throw new Error(
+     |             ^
+  16 |         "DATABASE_URL environment variable is not set. See .env.local.example for setup instructions."
+  17 |       );
+  18 |     }

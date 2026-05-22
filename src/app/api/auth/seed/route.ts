@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { sql, initDb } from "@/lib/db";
+import { sql, initDb, usingLocalDb, upsertLocalUser, findLocalUserByIdentifier } from "@/lib/db";
 
 /**
  * POST /api/auth/seed
@@ -13,6 +13,52 @@ export async function POST() {
 
     const email = "chioma@kinsous.com";
     const passwordHash = await bcrypt.hash("KinSous2024!", 12);
+    if (usingLocalDb()) {
+      const existing = await findLocalUserByIdentifier(email);
+      await upsertLocalUser({
+        id: existing?.id ?? "seeker-1",
+        email,
+        phone: null,
+        name: "Chioma Nwosu",
+        first_name: "Chioma",
+        last_name: "Nwosu",
+        date_of_birth: null,
+        gender: null,
+        password_hash: passwordHash,
+        role: "SEEKER",
+        avatar_url: "https://i.pravatar.cc/150?img=23",
+        bio: "Exploring authentic ingredients and home-style West African cooking.",
+        city: "Lagos",
+        country: "Nigeria",
+        country_code: "NG",
+        created_at: existing?.created_at ?? new Date().toISOString(),
+      });
+      await upsertLocalUser({
+        id: "helper-demo",
+        email: "amara@kinsous.com",
+        phone: null,
+        name: "Amara Demo",
+        first_name: "Amara",
+        last_name: "Demo",
+        date_of_birth: null,
+        gender: null,
+        password_hash: passwordHash,
+        role: "HELPER",
+        avatar_url: "https://i.pravatar.cc/150?img=47",
+        bio: "Demo helper account for testing bids.",
+        city: "Lagos",
+        country: "Nigeria",
+        country_code: "NG",
+        created_at: new Date().toISOString(),
+      });
+      return NextResponse.json({
+        message: "Local demo users ready",
+        seeker: email,
+        helper: "amara@kinsous.com",
+        password: "KinSous2024!",
+      });
+    }
+
     const existing = await sql`SELECT id FROM users WHERE email = ${email}`;
     if (existing.length > 0) {
       await sql`

@@ -1,5 +1,5 @@
-import type { Bounty, Profile } from "@/types";
-import type { DbBounty, DbUser } from "@/lib/db";
+import type { Bid, Bounty, Profile } from "@/types";
+import type { DbBid, DbBounty, DbUser } from "@/lib/db";
 
 /** Convert a DbBounty row (with joined seeker fields) to the app Bounty type */
 export function dbBountyToAppBounty(b: DbBounty): Bounty {
@@ -33,9 +33,44 @@ export function dbBountyToAppBounty(b: DbBounty): Bounty {
       country: b.country || "Unknown",
     },
     tags: b.tags ?? [],
-    bids: [],
+    bids: (b.bids ?? []).map(dbBidToAppBid),
     createdAt: b.created_at,
     updatedAt: b.updated_at,
+  };
+}
+
+/** Convert a DbBid row (with joined helper fields) to the app Bid type */
+export function dbBidToAppBid(bid: DbBid): Bid {
+  return {
+    id: bid.id,
+    bountyId: bid.bounty_id,
+    helper: {
+      id: bid.helper_id,
+      email: bid.helper_email,
+      phone: bid.helper_phone,
+      name: bid.helper_name,
+      firstName: bid.helper_first_name,
+      lastName: bid.helper_last_name,
+      dateOfBirth: bid.helper_date_of_birth,
+      gender: bid.helper_gender,
+      avatarUrl:
+        bid.helper_avatar_url ||
+        `https://i.pravatar.cc/150?u=${encodeURIComponent(bid.helper_id)}`,
+      role: bid.helper_role as Profile["role"],
+      location: {
+        city: bid.helper_city || "Unknown",
+        country: bid.helper_country || "Unknown",
+        countryCode: bid.helper_country_code || "XX",
+      },
+      bio: bid.helper_bio ?? undefined,
+      createdAt: bid.helper_created_at,
+    },
+    amount: Number(bid.amount),
+    currency: bid.currency as Bid["currency"],
+    message: bid.message,
+    estimatedDeliveryMinutes: bid.estimated_delivery_minutes,
+    status: bid.status as Bid["status"],
+    createdAt: bid.created_at,
   };
 }
 

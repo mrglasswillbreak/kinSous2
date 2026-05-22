@@ -7,6 +7,7 @@ import {
   getConversationForUser,
   getUserById,
   sendConversationMessage,
+  canContactAcceptedBidder,
 } from "@/lib/db";
 
 export async function GET() {
@@ -74,6 +75,19 @@ export async function POST(req: NextRequest) {
     const target = await getUserById(helperId);
     if (!target) {
       return NextResponse.json({ error: "Helper not found" }, { status: 404 });
+    }
+    if (bountyId) {
+      const allowed = await canContactAcceptedBidder({
+        bountyId,
+        seekerId: session.userId,
+        helperId,
+      });
+      if (!allowed) {
+        return NextResponse.json(
+          { error: "Only the bounty poster can contact the selected bidder" },
+          { status: 403 }
+        );
+      }
     }
 
     const conversationId = await getOrCreateDirectConversation({

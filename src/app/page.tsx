@@ -10,7 +10,7 @@ import { dbBountyToAppBounty, dbUserToProfile } from "@/lib/mappers";
 
 const features = [
   { icon: Flame, title: "Bounty Board", description: "Post food requests and get bids from local culinary helpers", href: "/bounties", color: "bg-primary-50 text-primary-500" },
-  { icon: Video, title: "FaceTime Assist", description: "Live video shopping – approve ingredients in real-time", href: "/video", color: "bg-blue-50 text-blue-600" },
+  { icon: Video, title: "Live Calls", description: "Message, audio, or video chat after a bidder is selected", href: "/bounties", color: "bg-blue-50 text-blue-600" },
   { icon: Shield, title: "Secure Escrow", description: "Funds held safely until you confirm your order", href: "/payment", color: "bg-secondary-50 text-secondary-500" },
   { icon: MapPin, title: "Live Tracking", description: "Follow your helper's real-time location", href: "/tracker", color: "bg-purple-50 text-purple-600" },
   { icon: MessageCircle, title: "Messages", description: "Chat with helpers and manage your orders", href: "/messages", color: "bg-indigo-50 text-indigo-600" },

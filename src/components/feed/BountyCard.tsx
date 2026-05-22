@@ -8,7 +8,10 @@ import type { Bounty } from "@/types";
 import { timeAgo, formatCurrency, categoryLabels, categoryColors } from "@/lib/mock-data";
 import BidSection from "./BidSection";
 
-interface BountyCardProps { bounty: Bounty }
+interface BountyCardProps {
+  bounty: Bounty;
+  onChanged?: () => void;
+}
 
 const statusColors: Record<string, string> = {
   OPEN: "bg-secondary-50 text-secondary-700 border border-secondary-200",
@@ -18,7 +21,7 @@ const statusColors: Record<string, string> = {
   CANCELLED: "bg-red-50 text-red-700 border border-red-200",
 };
 
-export default function BountyCard({ bounty }: BountyCardProps) {
+export default function BountyCard({ bounty, onChanged }: BountyCardProps) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -123,7 +126,7 @@ export default function BountyCard({ bounty }: BountyCardProps) {
                 </div>
               </div>
 
-              <BidSection bounty={bounty} />
+              <BidSection bounty={bounty} onChanged={onChanged} />
 
               <Link href={`/bounties/${bounty.id}`} onClick={(e) => e.stopPropagation()}>
                 <motion.div

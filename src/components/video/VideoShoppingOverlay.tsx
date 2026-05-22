@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import {
-  Camera, Mic, MicOff, Video, VideoOff, Phone,
+  Camera, Headphones, Mic, MicOff, Video, VideoOff, Phone,
   MessageCircle, Send, X, Minimize2, CheckCircle,
 } from "lucide-react";
 import type { ChatMessage } from "@/types";
@@ -12,6 +12,7 @@ interface VideoShoppingOverlayProps {
   helperName: string;
   helperAvatar: string;
   seekerName: string;
+  mode?: "video" | "audio";
   onClose?: () => void;
 }
 
@@ -33,10 +34,10 @@ function safeImageUrl(url: string): string | undefined {
 }
 
 export default function VideoShoppingOverlay({
-  helperName, helperAvatar, seekerName, onClose,
+  helperName, helperAvatar, seekerName, mode = "video", onClose,
 }: VideoShoppingOverlayProps) {
   const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(mode === "audio");
   const [isPiPMin, setIsPiPMin] = useState(false);
   const [isFlashing, setIsFlashing] = useState(false);
   const [chatOpen, setChatOpen] = useState(true);
@@ -107,8 +108,12 @@ export default function VideoShoppingOverlay({
       <div className="flex-1 relative flex items-center justify-center bg-charcoal">
         <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
           <div className="text-center text-white/40">
-            <Video size={48} className="mx-auto mb-3 opacity-30" />
-            <p className="text-sm">Your camera</p>
+            {mode === "audio" || isVideoOff ? (
+              <Headphones size={48} className="mx-auto mb-3 opacity-30" />
+            ) : (
+              <Video size={48} className="mx-auto mb-3 opacity-30" />
+            )}
+            <p className="text-sm">{mode === "audio" || isVideoOff ? "Audio call" : "Your camera"}</p>
           </div>
         </div>
 

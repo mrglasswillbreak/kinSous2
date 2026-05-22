@@ -1,30 +1,52 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Video } from "lucide-react";
+import { Headphones, Video } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import VideoShoppingOverlay from "@/components/video/VideoShoppingOverlay";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { dbUserToProfile } from "@/lib/mappers";
 import type { Profile } from "@/types";
 
-export default function VideoPage() {
+function VideoPageContent() {
   const [active, setActive] = useState(false);
   const [helper, setHelper] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useCurrentUser();
+  const searchParams = useSearchParams();
+  const helperId = searchParams.get("helperId");
+  const bountyId = searchParams.get("bountyId");
+  const mode = searchParams.get("mode") === "audio" ? "audio" : "video";
 
   useEffect(() => {
-    fetch("/api/helpers")
+    setLoading(true);
+    setError(null);
+    const authorize = helperId && bountyId
+      ? fetch("/api/messages/conversations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ helperId, bountyId }),
+        }).then((r) => {
+          if (!r.ok) throw new Error("Live calls are available only for the poster and selected bidder.");
+        })
+      : Promise.resolve();
+
+    authorize
+      .then(() => fetch("/api/helpers"))
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const helpers = (data?.helpers ?? []).map((u: any) => dbUserToProfile(u));
-        setHelper(helpers[0] ?? null);
+        setHelper(helperId ? helpers.find((h: Profile) => h.id === helperId) ?? null : null);
       })
-      .catch(() => setHelper(null))
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Unable to start live session.");
+        setHelper(null);
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [helperId, bountyId]);
 
   if (active && helper) {
     return (
@@ -32,6 +54,7 @@ export default function VideoPage() {
         helperName={helper.name}
         helperAvatar={helper.avatarUrl}
         seekerName={user?.name ?? "You"}
+        mode={mode}
         onClose={() => setActive(false)}
       />
     );
@@ -41,13 +64,15 @@ export default function VideoPage() {
     <div className="max-w-md mx-auto px-4 pt-6 pb-24">
       <h1 className="text-2xl font-bold text-charcoal mb-2">Live Assist</h1>
       <p className="text-muted text-sm mb-6">
-        Start a FaceTime-style session with a Helper who shops for you in real-time.
+        Start a secure session with the selected bidder for this bounty.
       </p>
 
-      {!loading && !helper && (
+      {!loading && (!helper || error) && (
         <div className="bg-card rounded-3xl shadow-card p-4 border border-card-border text-center mb-4">
-          <p className="text-sm font-semibold text-charcoal">No helpers available</p>
-          <p className="text-xs text-muted mt-1">Switch to helper role on another account to start live sessions.</p>
+          <p className="text-sm font-semibold text-charcoal">No active live session</p>
+          <p className="text-xs text-muted mt-1">
+            {error ?? "Accept a bid first, then open video or audio from the bounty."}
+          </p>
         </div>
       )}
 
@@ -56,7 +81,11 @@ export default function VideoPage() {
         className="bg-card rounded-3xl shadow-card overflow-hidden mb-4"
       >
         <div className="h-32 bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center">
-          <Video size={48} className="text-white/30" />
+          {mode === "audio" ? (
+            <Headphones size={48} className="text-white/30" />
+          ) : (
+            <Video size={48} className="text-white/30" />
+          )}
         </div>
         <div className="p-4 flex items-center gap-3">
           {helper ? (
@@ -78,27 +107,29 @@ export default function VideoPage() {
         </div>
       </motion.div>
 
-      <div className="space-y-3 mb-6">
-        {[
-          "📸 Helper sends live snapshots of ingredients for your approval",
-          "💬 Chat in real-time while they shop",
-          "✅ Confirm purchase before they check out",
-          "🔒 Funds held in escrow until you're satisfied",
-        ].map((f) => (
-          <div key={f} className="flex items-start gap-3 text-sm text-charcoal">
-            <span className="text-lg leading-tight">{f.slice(0, 2)}</span>
-            <span className="leading-relaxed">{f.slice(2)}</span>
-          </div>
-        ))}
-      </div>
-
       <motion.button
         whileTap={{ scale: 0.96 }} onClick={() => setActive(true)}
         disabled={!helper}
         className="w-full flex items-center justify-center gap-3 bg-primary text-white py-4 rounded-3xl font-bold text-lg shadow-primary"
       >
-        <Video size={22} /> Start Live Session
+        {mode === "audio" ? <Headphones size={22} /> : <Video size={22} />}
+        Start {mode === "audio" ? "Audio" : "Video"} Session
       </motion.button>
     </div>
+  );
+}
+
+export default function VideoPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="max-w-md mx-auto px-4 pt-6 pb-24">
+          <div className="h-8 w-32 bg-badge rounded-xl animate-pulse mb-4" />
+          <div className="h-64 bg-card rounded-3xl border border-card-border animate-pulse" />
+        </div>
+      }
+    >
+      <VideoPageContent />
+    </Suspense>
   );
 }

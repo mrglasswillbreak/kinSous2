@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { sql, initDb } from "@/lib/db";
+import {
+  sql,
+  initDb,
+  usingLocalDb,
+  findLocalUserByIdentifier,
+  upsertLocalUser,
+} from "@/lib/db";
 import { setSessionCookie } from "@/lib/auth";
 
 const GENDERS = new Set(["female", "male", "non_binary", "prefer_not_to_say"]);
@@ -121,7 +127,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (accountEmail) {
+    if (!usingLocalDb() && accountEmail) {
       const existingEmail = await sql`
         SELECT id FROM users WHERE lower(email) = ${accountEmail}
       `;
@@ -133,7 +139,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (accountPhone) {
+    if (!usingLocalDb() && accountPhone) {
       const existingPhone = await sql`
         SELECT id FROM users WHERE phone = ${accountPhone}
       `;
@@ -154,6 +160,65 @@ export async function POST(req: NextRequest) {
 
     const passwordHash = await bcrypt.hash(password, 12);
     const name = `${cleanFirstName} ${cleanLastName}`;
+
+    if (usingLocalDb()) {
+      if (accountEmail && (await findLocalUserByIdentifier(accountEmail))) {
+        return NextResponse.json(
+          { error: "An account with this email already exists" },
+          { status: 409 }
+        );
+      }
+      if (accountPhone && (await findLocalUserByIdentifier(accountPhone))) {
+        return NextResponse.json(
+          { error: "An account with this phone number already exists" },
+          { status: 409 }
+        );
+      }
+      const user = await upsertLocalUser({
+        id: `user-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+        email: accountEmail || null,
+        phone: accountPhone || null,
+        name,
+        first_name: cleanFirstName,
+        last_name: cleanLastName,
+        date_of_birth: birthDate,
+        gender: selectedGender,
+        password_hash: passwordHash,
+        role: "SEEKER",
+        avatar_url: `https://i.pravatar.cc/150?u=${encodeURIComponent(accountEmail || accountPhone)}`,
+        bio: null,
+        city: null,
+        country: null,
+        country_code: null,
+        created_at: new Date().toISOString(),
+      });
+
+      await setSessionCookie({
+        userId: user.id,
+        email: user.email ?? null,
+        phone: user.phone ?? null,
+        name: user.name,
+        role: user.role,
+        exp: Date.now() + 1000 * 60 * 60 * 24 * 30,
+      });
+
+      return NextResponse.json(
+        {
+          user: {
+            id: user.id,
+            email: user.email,
+            phone: user.phone,
+            name: user.name,
+            firstName: user.first_name,
+            lastName: user.last_name,
+            dateOfBirth: user.date_of_birth,
+            gender: user.gender,
+            role: user.role,
+          },
+        },
+        { status: 201 }
+      );
+    }
 
     const rows = await sql`
       INSERT INTO users (

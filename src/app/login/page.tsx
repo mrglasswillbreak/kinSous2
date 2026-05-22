@@ -475,6 +475,14 @@ export default function LoginPage() {
     setRegisterErrors({});
   };
 
+  const fillHelperDemo = () => {
+    setTab("login");
+    setIdentifier("amara@kinsous.com");
+    setLoginPassword("KinSous2024!");
+    setError("");
+    setRegisterErrors({});
+  };
+
   const changeTab = (nextTab: Tab) => {
     setTab(nextTab);
     setError("");
@@ -927,19 +935,31 @@ export default function LoginPage() {
           </p>
           <div className="space-y-1 text-center text-xs text-charcoal">
             <p>
-              <span className="text-muted">Email:</span> chioma@kinsous.com
+              <span className="text-muted">Poster:</span> chioma@kinsous.com
+            </p>
+            <p>
+              <span className="text-muted">Helper:</span> amara@kinsous.com
             </p>
             <p>
               <span className="text-muted">Password:</span> KinSous2024!
             </p>
           </div>
-          <button
-            type="button"
-            onClick={fillDemo}
-            className="mt-3 w-full rounded-xl border border-primary-200 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-50 dark:hover:bg-primary-900/20"
-          >
-            Use demo credentials
-          </button>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={fillDemo}
+              className="rounded-xl border border-primary-200 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary-50 dark:hover:bg-primary-900/20"
+            >
+              Use poster
+            </button>
+            <button
+              type="button"
+              onClick={fillHelperDemo}
+              className="rounded-xl border border-secondary-200 py-1.5 text-xs font-semibold text-secondary-700 transition hover:bg-secondary-50"
+            >
+              Use helper
+            </button>
+          </div>
         </motion.div>
 
         <p className="mt-6 text-center text-xs text-muted">

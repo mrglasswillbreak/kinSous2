@@ -130,7 +130,7 @@ export default function Feed() {
                 exit={{ opacity: 0, y: -10, scale: 0.97 }}
                 transition={{ duration: 0.25 }}
               >
-                <BountyCard bounty={bounty} />
+                <BountyCard bounty={bounty} onChanged={refetch} />
               </motion.div>
             ))
           )}

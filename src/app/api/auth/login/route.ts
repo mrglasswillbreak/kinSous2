@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { sql, initDb } from "@/lib/db";
+import { sql, initDb, usingLocalDb, findLocalUserByIdentifier } from "@/lib/db";
 import { setSessionCookie } from "@/lib/auth";
 
 function normalizePhone(value: string) {
@@ -28,6 +28,42 @@ export async function POST(req: NextRequest) {
         { error: "Email or phone number and password are required" },
         { status: 400 }
       );
+    }
+
+    if (usingLocalDb()) {
+      const user = await findLocalUserByIdentifier(loginIdentifier);
+      if (!user?.password_hash) {
+        return NextResponse.json(
+          { error: "Invalid email/phone or password" },
+          { status: 401 }
+        );
+      }
+      const valid = await bcrypt.compare(password, user.password_hash);
+      if (!valid) {
+        return NextResponse.json(
+          { error: "Invalid email/phone or password" },
+          { status: 401 }
+        );
+      }
+
+      await setSessionCookie({
+        userId: user.id,
+        email: user.email ?? null,
+        phone: user.phone ?? null,
+        name: user.name,
+        role: user.role,
+        exp: Date.now() + 1000 * 60 * 60 * 24 * 30,
+      });
+
+      return NextResponse.json({
+        user: {
+          id: user.id,
+          email: user.email,
+          phone: user.phone,
+          name: user.name,
+          role: user.role,
+        },
+      });
     }
 
     const rows = await sql`

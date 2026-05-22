@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Clock, Tag, Users, DollarSign, Video, Star } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, Tag, Users, DollarSign, Star } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Bounty } from "@/types";
@@ -19,12 +19,6 @@ const statusColors: Record<string, string> = {
   CANCELLED: "bg-red-50 text-red-700 border border-red-200",
 };
 
-const VIDEO_ASSIST_CATEGORIES = new Set(["COOKING", "RECIPE_HELP"]);
-
-function shouldShowVideoAssist(category: string): boolean {
-  return VIDEO_ASSIST_CATEGORIES.has(category);
-}
-
 export default function BountyDetailPage() {
   const routeParams = useParams<{ id: string }>();
   const { id } = routeParams;
@@ -34,7 +28,7 @@ export default function BountyDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
 
-  useEffect(() => {
+  const loadBounty = useCallback(() => {
     if (!id) return;
     setLoading(true);
     fetch(`/api/bounties/${id}`)
@@ -49,6 +43,10 @@ export default function BountyDetailPage() {
       })
       .catch(() => { setNotFound(true); setLoading(false); });
   }, [id]);
+
+  useEffect(() => {
+    loadBounty();
+  }, [loadBounty]);
 
   if (loading) {
     return (
@@ -193,26 +191,6 @@ export default function BountyDetailPage() {
           </div>
         </motion.div>
 
-        {/* Video assist prompt */}
-        {shouldShowVideoAssist(bounty.category) && (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Link href="/video">
-              <div className="bg-gradient-to-r from-primary-50 to-blue-50 rounded-2xl p-4 flex items-center gap-3 border border-primary-100">
-                <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center flex-shrink-0">
-                  <Video size={18} className="text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-charcoal">FaceTime Assist available</p>
-                  <p className="text-xs text-muted">Shop live with a helper via video call</p>
-                </div>
-              </div>
-            </Link>
-          </motion.div>
-        )}
-
         {/* Track order prompt for active deliveries */}
         {bounty.status === "IN_PROGRESS" && (
           <motion.div
@@ -239,7 +217,7 @@ export default function BountyDetailPage() {
           transition={{ delay: 0.25 }}
           className="bg-card rounded-3xl shadow-card p-5 border border-card-border"
         >
-          <BidSection bounty={bounty} />
+          <BidSection bounty={bounty} onChanged={loadBounty} />
         </motion.div>
 
         {/* Leave Review button for COMPLETED bounties */}

@@ -1,0 +1,315 @@
+
+> kinsous@0.1.0 dev
+> next dev --hostname 127.0.0.1 --port 3000
+
+   ▲ Next.js 15.5.15
+   - Local:        http://127.0.0.1:3000
+   - Network:      http://127.0.0.1:3000
+
+ ✓ Starting...
+ ✓ Ready in 4.1s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 1102ms (115 modules)
+ ○ Compiling /helpers ...
+ ✓ Compiled /helpers in 17.9s (1526 modules)
+ GET /helpers 200 in 19171ms
+ ✓ Compiled in 1244ms (692 modules)
+ ✓ Compiled in 196ms (678 modules)
+ ○ Compiling /api/helpers ...
+ ✓ Compiled /api/helpers in 4.3s (1518 modules)
+ GET /api/helpers? 200 in 4665ms
+ GET /api/helpers? 200 in 52ms
+ ○ Compiling /api/auth/seed ...
+ ✓ Compiled /api/auth/seed in 705ms (1522 modules)
+ POST /api/auth/seed 200 in 1321ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 1596ms (1551 modules)
+ GET /login 200 in 2184ms
+ ○ Compiling /bounties ...
+ ✓ Compiled /bounties in 1864ms (1611 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 1543ms (1608 modules)
+ GET / 200 in 2228ms
+ ○ Compiling /api/bounties ...
+ ✓ Compiled /api/bounties in 2.7s (1636 modules)
+ GET /api/messages/conversations 200 in 3271ms
+ GET /api/bounties 200 in 3191ms
+ GET /api/helpers 200 in 3201ms
+ GET /api/auth/me 200 in 3298ms
+ GET /api/messages/conversations 200 in 326ms
+ GET / 200 in 447ms
+ ○ Compiling /video ...
+ ✓ Compiled /video in 1167ms (1635 modules)
+ GET /video 200 in 2154ms
+ GET /api/messages/conversations 200 in 398ms
+ GET /api/auth/me 200 in 474ms
+ GET /api/helpers 200 in 498ms
+ GET /api/messages/conversations 200 in 189ms
+ GET /api/auth/me 200 in 213ms
+ GET /bounties 200 in 87ms
+ GET /api/bounties? 200 in 49ms
+ GET /api/auth/me 200 in 78ms
+ GET /api/auth/me 200 in 144ms
+ ○ Compiling /profile ...
+ ✓ Compiled /profile in 3.7s (1654 modules)
+ GET /profile 200 in 4247ms
+ GET /profile 200 in 93ms
+ GET /bounties 200 in 85ms
+ GET /api/bounties? 200 in 80ms
+ GET /api/auth/me 200 in 76ms
+ GET /api/auth/me 200 in 33ms
+ ○ Compiling /bounties/[id] ...
+ ✓ Compiled /bounties/[id] in 2s (1669 modules)
+ GET /bounties/bounty-5 200 in 3826ms
+ GET /bounties/bounty-5 200 in 130ms
+ ○ Compiling /api/bounties/[id] ...
+ ✓ Compiled /api/bounties/[id] in 1595ms (1671 modules)
+ GET /bounties/bounty-5 200 in 284ms
+ GET /api/bounties/bounty-5 200 in 3576ms
+ GET /api/bounties/bounty-5 200 in 79ms
+ GET /api/auth/me 200 in 113ms
+ GET /api/auth/me 200 in 55ms
+ GET /api/bounties? 200 in 52ms
+ GET /api/auth/me 200 in 101ms
+ GET /api/auth/me 200 in 90ms
+ GET /bounties/bounty-2 200 in 244ms
+ GET /api/bounties/bounty-2 200 in 80ms
+ GET /api/bounties/bounty-2 200 in 167ms
+ GET /api/auth/me 200 in 135ms
+ GET /api/auth/me 200 in 54ms
+ GET /api/bounties? 200 in 47ms
+ GET /api/auth/me 200 in 83ms
+ GET /api/auth/me 200 in 81ms
+ ○ Compiling /helpers ...
+ ✓ Compiled /helpers in 1565ms (927 modules)
+ GET /helpers 200 in 1785ms
+ ○ Compiling /api/helpers ...
+ ✓ Compiled /api/helpers in 1000ms (929 modules)
+ GET /api/helpers? 200 in 1188ms
+ GET /api/helpers? 200 in 42ms
+ GET /bounties 200 in 210ms
+ GET /api/bounties? 200 in 81ms
+ GET /api/auth/me 200 in 90ms
+ GET /api/auth/me 200 in 135ms
+ ○ Compiling /api/bounties/[id]/bids/[bidId]/accept ...
+ ✓ Compiled /api/bounties/[id]/bids/[bidId]/accept in 1781ms (1676 modules)
+ GET /bounties 200 in 282ms
+ POST /api/bounties/bounty-1/bids/bid-2/accept 200 in 3500ms
+ GET /api/bounties? 200 in 58ms
+ ○ Compiling /api/messages/conversations ...
+ ✓ Compiled /api/messages/conversations in 643ms (926 modules)
+ POST /api/messages/conversations 201 in 863ms
+ ○ Compiling /messages/[id] ...
+ ✓ Compiled /messages/[id] in 2.9s (1689 modules)
+ GET /messages/conv-mpcqad9f-c0h3fb 200 in 4696ms
+ GET /messages/conv-mpcqad9f-c0h3fb 200 in 134ms
+ GET /api/auth/me 200 in 234ms
+ ○ Compiling /api/messages/conversations/[id] ...
+ ✓ Compiled /api/messages/conversations/[id] in 2.6s (1691 modules)
+ GET /api/auth/me 200 in 2570ms
+ GET /messages/conv-mpcqad9f-c0h3fb 200 in 244ms
+ GET /api/messages/conversations/conv-mpcqad9f-c0h3fb 200 in 4589ms
+ GET /api/messages/conversations/conv-mpcqad9f-c0h3fb 200 in 59ms
+ GET /api/bounties? 200 in 54ms
+ GET /api/auth/me 200 in 105ms
+ GET /api/auth/me 200 in 85ms
+ GET /bounties/bounty-2 200 in 267ms
+ ○ Compiling /api/bounties/[id] ...
+ ✓ Compiled /api/bounties/[id] in 1533ms (917 modules)
+ GET /api/bounties/bounty-2 200 in 1893ms
+ GET /api/bounties/bounty-2 200 in 47ms
+ GET /api/auth/me 200 in 97ms
+ GET /api/auth/me 200 in 75ms
+ ○ Compiling /api/auth/logout ...
+ ✓ Compiled /api/auth/logout in 3.1s (1675 modules)
+ POST /api/auth/logout 200 in 3446ms
+ ✓ Compiled in 815ms (756 modules)
+ ○ Compiling /login ...
+ ✓ Compiled /login in 1883ms (929 modules)
+ GET /bounties/bounty-2 200 in 3095ms
+ GET /login 200 in 2884ms
+ GET /login 200 in 240ms
+ ○ Compiling /api/auth/seed ...
+ ✓ Compiled /api/auth/seed in 790ms (930 modules)
+ POST /api/auth/seed 200 in 1438ms
+ POST /api/auth/seed 200 in 2011ms
+ ○ Compiling /api/auth/login ...
+ ✓ Compiled /api/auth/login in 3.6s (1652 modules)
+ POST /api/auth/login 200 in 5261ms
+ ○ Compiling / ...
+ ✓ Compiled / in 2.7s (917 modules)
+ GET / 200 in 3200ms
+ GET / 200 in 121ms
+ ○ Compiling /api/auth/me ...
+ ✓ Compiled /api/helpers in 1093ms (919 modules)
+ ✓ Compiled /api/bounties in 1ms (923 modules)
+ ✓ Compiled in 1ms (925 modules)
+ ✓ Compiled in 0ms (925 modules)
+ GET /api/messages/conversations 200 in 4101ms
+ ✓ Compiled in 2ms (925 modules)
+ GET /api/helpers 200 in 5453ms
+ GET /api/auth/me 200 in 6326ms
+ ✓ Compiled in 1ms (925 modules)
+ GET /api/bounties 200 in 6733ms
+ ✓ Compiled in 0ms (925 modules)
+ ✓ Compiled in 8ms (925 modules)
+ GET /api/messages/conversations 200 in 6736ms
+ ✓ Compiled in 1ms (925 modules)
+ GET /api/helpers 200 in 6367ms
+ GET /api/auth/me 200 in 6522ms
+ ✓ Compiled (907 modules)
+ GET /api/bounties 200 in 6315ms
+ GET /api/messages/conversations 200 in 2923ms
+ GET /api/messages/conversations 200 in 42ms
+ GET /helpers 200 in 563ms
+ GET /api/helpers? 200 in 67ms
+ GET /api/helpers? 200 in 70ms
+ ○ Compiling /helpers/[id] ...
+ ✓ Compiled /helpers/[id] in 9.5s (1690 modules)
+ ✓ Compiled in 1833ms (763 modules)
+ GET /helpers/helper-4 200 in 15639ms
+ GET /helpers/helper-4 200 in 231ms
+ GET /helpers/helper-demo 200 in 199ms
+ GET /api/helpers? 200 in 187ms
+ GET /api/helpers? 200 in 122ms
+ ○ Compiling /messages ...
+ ✓ Compiled /messages in 7.4s (1668 modules)
+ GET /messages 200 in 8294ms
+ GET /messages 200 in 203ms
+ GET /messages 200 in 142ms
+ ○ Compiling /api/messages/conversations ...
+ ✓ Compiled /api/messages/conversations in 906ms (912 modules)
+ ✓ Compiled (914 modules)
+ GET /api/messages/conversations 200 in 2960ms
+ GET /api/auth/me 200 in 3099ms
+ GET /api/messages/conversations 200 in 66ms
+ GET /api/auth/me 200 in 194ms
+ ○ Compiling /bounties ...
+ ✓ Compiled /bounties in 4.1s (933 modules)
+ GET /bounties 200 in 4999ms
+ ○ Compiling /api/bounties ...
+ ✓ Compiled /api/bounties in 1312ms (935 modules)
+ GET /api/bounties? 200 in 1847ms
+ GET /api/auth/me 200 in 130ms
+ GET /api/auth/me 200 in 122ms
+ GET /api/auth/me 200 in 115ms
+ GET /api/auth/me 200 in 95ms
+ ○ Compiling /bounties/[id] ...
+ ✓ Compiled /bounties/[id] in 2.4s (925 modules)
+ GET /bounties/bounty-3 200 in 2945ms
+ ○ Compiling /api/bounties/[id] ...
+ ✓ Compiled /api/bounties/[id] in 1126ms (927 modules)
+ GET /api/bounties/bounty-3 200 in 1785ms
+ GET /api/bounties/bounty-3 200 in 127ms
+ GET /api/auth/me 200 in 317ms
+ GET /api/auth/me 200 in 48ms
+ ○ Compiling /profile ...
+ ✓ Compiled /profile in 2.8s (927 modules)
+ GET /profile 200 in 3964ms
+ GET /bounties 200 in 237ms
+ GET /api/bounties? 200 in 159ms
+ GET /api/auth/me 200 in 140ms
+ GET /api/auth/me 200 in 224ms
+ GET /api/auth/me 200 in 88ms
+ GET /api/auth/me 200 in 98ms
+ ○ Compiling /settings ...
+ ✓ Compiled /settings in 26.3s (1679 modules)
+ GET /settings 200 in 28049ms
+ GET /settings 200 in 439ms
+ ○ Compiling /api/auth/me ...
+ ✓ Compiled /api/auth/me in 3s (917 modules)
+ GET /api/auth/me 200 in 3736ms
+ GET /api/auth/me 200 in 57ms
+ ○ Compiling /settings ...
+ ✓ Compiled /settings in 3.8s (927 modules)
+ GET /settings 200 in 7043ms
+ GET /bounties 200 in 1701ms
+ GET /api/auth/me 200 in 341ms
+ ○ Compiling /api/bounties ...
+ ✓ Compiled /api/bounties in 2.2s (929 modules)
+ ✓ Compiled (931 modules)
+ GET /api/bounties? 200 in 8476ms
+ GET /api/messages/conversations 200 in 8645ms
+ GET /api/messages/conversations 200 in 1444ms
+ GET /settings 200 in 1543ms
+ GET /api/auth/me 200 in 330ms
+ GET /api/auth/me 200 in 104ms
+ ○ Compiling /api/auth/update-role ...
+ ✓ Compiled /api/auth/update-role in 3.8s (1677 modules)
+ POST /api/auth/update-role 200 in 4451ms
+ GET /api/auth/me 200 in 122ms
+ POST /api/auth/update-role 200 in 102ms
+ GET /api/auth/me 200 in 66ms
+ ○ Compiling /api/auth/logout ...
+ ✓ Compiled /api/auth/logout in 2.3s (918 modules)
+ POST /api/auth/logout 200 in 2529ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 3.4s (927 modules)
+ GET /login 200 in 3782ms
+ GET /login 200 in 77ms
+ ○ Compiling /api/auth/seed ...
+ ✓ Compiled /api/auth/seed in 1406ms (930 modules)
+ POST /api/auth/seed 200 in 3510ms
+ POST /api/auth/seed 200 in 3519ms
+ ○ Compiling /api/auth/register ...
+ ✓ Compiled /api/auth/register in 3.8s (1674 modules)
+ POST /api/auth/register 201 in 4728ms
+ ○ Compiling / ...
+ ✓ Compiled / in 2.6s (923 modules)
+ GET / 200 in 3105ms
+ GET / 200 in 114ms
+ ○ Compiling /api/messages/conversations ...
+ ✓ Compiled /api/helpers in 1602ms (925 modules)
+ ✓ Compiled (931 modules)
+ GET /api/bounties 200 in 2831ms
+ GET /api/auth/me 200 in 2924ms
+ GET /api/helpers 200 in 2850ms
+ GET /api/messages/conversations 200 in 3833ms
+ GET /api/bounties 200 in 82ms
+ GET /api/auth/me 200 in 229ms
+ GET /api/helpers 200 in 242ms
+ GET /api/messages/conversations 200 in 263ms
+ GET /api/messages/conversations 200 in 53ms
+ GET /api/messages/conversations 200 in 41ms
+ GET /bounties 200 in 276ms
+ GET /api/bounties? 200 in 32ms
+ GET /api/auth/me 200 in 360ms
+ GET /api/auth/me 200 in 89ms
+ GET /api/auth/me 200 in 34ms
+ GET /api/auth/me 200 in 57ms
+ GET /profile 200 in 158ms
+ GET /bounties 200 in 219ms
+ GET /api/bounties? 200 in 41ms
+ GET /api/auth/me 200 in 44ms
+ GET /api/auth/me 200 in 50ms
+ GET /settings 200 in 167ms
+ GET /api/auth/me 200 in 29ms
+ GET /api/auth/me 200 in 63ms
+ ○ Compiling /api/auth/update-role ...
+ ✓ Compiled /api/auth/update-role in 2.2s (917 modules)
+ POST /api/auth/update-role 200 in 2579ms
+ GET /api/auth/me 200 in 66ms
+ GET /bounties 200 in 254ms
+ GET /api/bounties? 200 in 51ms
+ GET /profile 200 in 133ms
+ GET /bounties 200 in 75ms
+ GET /api/bounties? 200 in 51ms
+ GET /api/auth/me 200 in 78ms
+ GET /api/auth/me 200 in 43ms
+ GET /profile 200 in 109ms
+ GET /bounties 200 in 94ms
+ GET /api/bounties? 200 in 105ms
+ GET /api/auth/me 200 in 48ms
+ GET /api/auth/me 200 in 39ms
+ GET /profile 200 in 125ms
+ ○ Compiling /api/auth/update-profile ...
+ ✓ Compiled /api/auth/update-profile in 3.2s (1684 modules)
+ POST /api/auth/update-profile 500 in 4161ms
+ ✓ Compiled in 1440ms (771 modules)
+ GET /profile 200 in 748ms
+ GET /profile 200 in 81ms
+ POST /api/auth/update-profile 500 in 362ms
+ GET /bounties 200 in 148ms
+ ○ Compiling /api/bounties ...
+ ✓ Compiled /api/bounties in 636ms (915 modules)
+ GET /api/bounties? 200 in 910ms

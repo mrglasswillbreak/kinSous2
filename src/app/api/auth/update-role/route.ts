@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { initDb, sql } from "@/lib/db";
+import { getUserById, initDb, sql, upsertLocalUser, usingLocalDb } from "@/lib/db";
 import { getSession, setSessionCookie } from "@/lib/auth";
 
 const ALLOWED_ROLES = new Set(["SEEKER", "HELPER"]);
@@ -17,6 +17,23 @@ export async function POST(req: NextRequest) {
 
     if (!role || !ALLOWED_ROLES.has(role)) {
       return NextResponse.json({ error: "Role must be SEEKER or HELPER" }, { status: 400 });
+    }
+
+    if (usingLocalDb()) {
+      const user = await getUserById(session.userId);
+      if (!user) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+      }
+      await upsertLocalUser({ ...user, role });
+      await setSessionCookie({
+        userId: session.userId,
+        email: user.email ?? session.email,
+        phone: user.phone ?? session.phone ?? null,
+        name: user.name,
+        role,
+        exp: Date.now() + 1000 * 60 * 60 * 24 * 30,
+      });
+      return NextResponse.json({ success: true, role });
     }
 
     const rows = await sql`

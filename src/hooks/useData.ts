@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Bounty, BountyCategory, Profile, Bid } from "@/types";
-import { dbBountyToAppBounty, dbUserToProfile } from "@/lib/mappers";
+import { dbBidToAppBid, dbBountyToAppBounty, dbUserToProfile } from "@/lib/mappers";
 
 async function fetchJson<T>(url: string): Promise<T | null> {
   try {
@@ -158,38 +158,16 @@ export function usePlaceBid() {
     setIsLoading(true);
     setError(null);
     try {
-      await new Promise<void>((r) => setTimeout(r, 900));
-      const [mePayload, bountyPayload] = await Promise.all([
-        fetchJson<{ user?: { userId: string; name: string; avatarUrl?: string | null; city?: string | null; country?: string | null } }>("/api/auth/me"),
-        fetchJson<{ bounty?: unknown }>(`/api/bounties/${encodeURIComponent(params.bountyId)}`),
-      ]);
-      const bounty = bountyPayload?.bounty ? dbBountyToAppBounty(bountyPayload.bounty as never) : null;
-      const me = mePayload?.user;
-      const helperProfile: Profile = {
-        id: me?.userId ?? "me",
-        name: me?.name ?? "You",
-        avatarUrl:
-          me?.avatarUrl ||
-          `https://i.pravatar.cc/150?u=${encodeURIComponent(me?.userId ?? "me")}`,
-        role: "HELPER",
-        location: {
-          city: me?.city || "Unknown",
-          country: me?.country || "Unknown",
-          countryCode: "XX",
-        },
-        createdAt: new Date().toISOString(),
-      };
-      const newBid: Bid = {
-        id: `bid-${Math.random().toString(36).slice(2, 7)}`,
-        bountyId: params.bountyId,
-        helper: helperProfile,
-        amount: params.amount,
-        currency: bounty?.currency ?? "USD",
-        message: params.message,
-        estimatedDeliveryMinutes: params.estimatedDeliveryMinutes,
-        status: "PENDING",
-        createdAt: new Date().toISOString(),
-      };
+      const res = await fetch(`/api/bounties/${encodeURIComponent(params.bountyId)}/bids`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(params),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(payload?.error ?? "Failed to place bid");
+      }
+      const newBid = dbBidToAppBid(payload.bid as never);
       setData(newBid);
       return newBid;
     } catch (err) {
