@@ -50,7 +50,7 @@ export default function BountyDetailPage() {
 
   if (loading) {
     return (
-      <div className="max-w-md mx-auto px-4 pt-12 pb-24 space-y-4">
+      <div className="mx-auto w-full max-w-5xl px-4 pt-12 pb-28 space-y-4 lg:px-8 lg:pb-10">
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="bg-card rounded-3xl h-24 animate-pulse border border-card-border" />
         ))}
@@ -60,7 +60,7 @@ export default function BountyDetailPage() {
 
   if (notFound || !bounty) {
     return (
-      <div className="max-w-md mx-auto px-4 pt-12 pb-24 text-center">
+      <div className="mx-auto w-full max-w-5xl px-4 pt-12 pb-28 text-center lg:px-8 lg:pb-10">
         <p className="text-4xl mb-3">🍽️</p>
         <p className="text-xl font-bold text-charcoal">Bounty not found</p>
         <p className="text-muted text-sm mt-2">This bounty may have been removed.</p>
@@ -77,7 +77,7 @@ export default function BountyDetailPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto pb-24">
+    <div className="mx-auto w-full max-w-6xl px-4 pb-28 lg:px-8 lg:pb-10">
       {/* Back button */}
       <div className="sticky top-0 z-10 bg-background px-4 pt-4 pb-2 flex items-center gap-3">
         <motion.button

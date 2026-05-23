@@ -161,7 +161,7 @@ export default function Tracker() {
 
   if (!loading && !tracking) {
     return (
-      <div className="max-w-md mx-auto px-4 py-6">
+      <div className="mx-auto w-full max-w-5xl px-4 py-6 lg:px-8">
         <div className="bg-card rounded-3xl shadow-card p-5 border border-card-border text-center">
           <p className="text-sm font-semibold text-charcoal">No active delivery</p>
           <p className="text-xs text-muted mt-1">Tracking will appear once a bounty is in progress.</p>
@@ -172,7 +172,7 @@ export default function Tracker() {
 
   if (!tracking) {
     return (
-      <div className="max-w-md mx-auto px-4 py-6">
+      <div className="mx-auto w-full max-w-5xl px-4 py-6 lg:px-8">
         <div className="bg-card rounded-3xl shadow-card p-5 border border-card-border text-center">
           <p className="text-sm text-muted">Loading tracking…</p>
         </div>
@@ -181,7 +181,7 @@ export default function Tracker() {
   }
 
   return (
-    <div className="max-w-md mx-auto px-4 py-6 space-y-6">
+    <div className="mx-auto w-full max-w-5xl px-4 py-6 lg:px-8 space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-charcoal">Live Tracking</h2>
         <p className="text-muted text-sm mt-0.5">Your order is on the way</p>

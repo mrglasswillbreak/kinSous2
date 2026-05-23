@@ -13,7 +13,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       {!isAuth && <TopBar />}
-      <main className="min-h-screen">{children}</main>
+      <main className="min-h-screen bg-gradient-to-b from-background to-subtle pb-20 md:pb-0">{children}</main>
       {!isAuth && <BottomNav />}
     </>
   );

@@ -263,7 +263,7 @@ export default function Settings() {
   const inputCls = "w-full px-3 py-2.5 rounded-xl bg-input-surface border border-card-border text-charcoal placeholder:text-muted text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 transition";
 
   return (
-    <div className="max-w-md mx-auto px-4 pb-24 pt-6 space-y-5">
+    <div className="mx-auto w-full max-w-6xl px-4 pb-28 lg:px-8 lg:pb-10 pt-6 space-y-5">
       <h1 className="text-2xl font-bold text-charcoal px-0">Settings</h1>
 
       {/* Profile */}
