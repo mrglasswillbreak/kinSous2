@@ -16,7 +16,6 @@ import {
   Save,
   Settings,
   ShieldCheck,
-  User,
   X,
 } from "lucide-react";
 import type { Bounty, Profile, UserRole } from "@/types";

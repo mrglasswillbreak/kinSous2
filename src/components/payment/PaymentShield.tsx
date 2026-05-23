@@ -90,7 +90,7 @@ export default function PaymentShield({
         <CheckCircle size={13} className="text-secondary-500 flex-shrink-0 mt-0.5" />
         <p>
           Funds are held in escrow and only released once you confirm delivery.
-          100% refund if the Helper doesn't deliver.
+          100% refund if the Helper doesn&apos;t deliver.
         </p>
       </div>
     </motion.div>

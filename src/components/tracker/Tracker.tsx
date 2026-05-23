@@ -105,6 +105,9 @@ function MapPlaceholder({ tracking }: { tracking: DeliveryTracking }) {
         </motion.div>
       </div>
 
+      <p className="absolute bottom-2 left-2 rounded-full bg-card/80 px-2 py-0.5 text-[10px] font-medium text-charcoal shadow-sm">
+        {tracking.currentStage.replace("_", " ")}
+      </p>
       <p className="absolute bottom-2 right-2 text-[10px] text-muted">Mapbox GL · Live</p>
     </div>
   );
