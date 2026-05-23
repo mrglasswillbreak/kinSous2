@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import ConversationList from "@/components/messages/ConversationList";
 import ChatThread from "@/components/messages/ChatThread";
 
@@ -14,7 +15,9 @@ export default function MessagesShell({ conversationId }: MessagesShellProps) {
     <div className="max-w-6xl mx-auto px-4 py-4">
       <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-160px)] lg:h-[calc(100vh-140px)]">
         <div className={`lg:w-[360px] w-full ${showListOnMobile ? "" : "hidden lg:block"}`}>
-          <ConversationList className="max-w-none mx-0 pb-6" />
+          <Suspense fallback={null}>
+            <ConversationList className="max-w-none mx-0 pb-6" />
+          </Suspense>
         </div>
         <div className={`flex-1 ${conversationId ? "block" : "hidden lg:flex"}`}>
           {conversationId ? (
