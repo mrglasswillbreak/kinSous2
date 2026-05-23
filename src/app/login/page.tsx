@@ -293,6 +293,7 @@ function ContactFields({
           <button
             key={method}
             type="button"
+            role="tab"
             aria-selected={form.contactMethod === method}
             onClick={() => onChange("contactMethod", method)}
             className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${

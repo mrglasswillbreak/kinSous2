@@ -90,8 +90,8 @@ export default function TopBar() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 border-b border-card-border bg-background/90 px-4 py-3 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-2xl items-center justify-between">
+      <header className="sticky top-0 z-30 border-b border-card-border bg-background/90 px-4 py-3 backdrop-blur-md lg:px-8">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between">
           <Link href="/" className="flex min-w-0 items-center gap-2">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary">
               <Flame size={16} className="text-white" />
@@ -106,19 +106,68 @@ export default function TopBar() {
             </div>
           </Link>
 
-          <motion.button
+          <nav className="hidden items-center gap-1 rounded-2xl border border-card-border bg-card p-1 md:flex">
+            {menuItems.map(({ href, icon: Icon, label, badge }) => {
+              const active = pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
+              const showMessageBadge = badge === "messages" && totalUnread > 0;
+              return (
+                <Link
+                  key={`desktop-${href}`}
+                  href={href}
+                  className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                    active ? "bg-primary-50 text-primary dark:bg-primary-900/20" : "text-muted hover:bg-subtle hover:text-charcoal"
+                  }`}
+                >
+                  <Icon size={14} />
+                  <span>{label}</span>
+                  {showMessageBadge && (
+                    <span className="flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white">
+                      {totalUnread > 9 ? "9+" : totalUnread}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={openNotifications}
+              className="relative hidden h-10 w-10 items-center justify-center rounded-full border border-card-border bg-card text-charcoal shadow-sm transition hover:bg-subtle md:flex"
+              aria-label="Open notifications"
+            >
+              <Bell size={18} />
+              {unreadCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={toggle}
+              className="hidden h-10 w-10 items-center justify-center rounded-full border border-card-border bg-card text-charcoal shadow-sm transition hover:bg-subtle md:flex"
+              aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {darkMode ? <Sun size={18} className="text-yellow-400" /> : <Moon size={18} />}
+            </button>
+
+            <motion.button
             whileTap={{ scale: 0.9 }}
             type="button"
             onClick={() => setMenuOpen(true)}
             aria-label="Open menu"
             aria-expanded={menuOpen}
-            className="relative flex h-10 w-10 items-center justify-center rounded-full border border-card-border bg-card shadow-sm"
+            className="relative flex h-10 w-10 items-center justify-center rounded-full border border-card-border bg-card shadow-sm md:hidden"
           >
             <Menu size={20} className="text-charcoal" />
             {(unreadCount > 0 || totalUnread > 0) && (
               <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-card bg-primary" />
             )}
           </motion.button>
+          </div>
         </div>
       </header>
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ChevronDown, MapPin, DollarSign, Image as ImageIcon, Loader2, CheckCircle } from "lucide-react";
+import { X, ChevronDown, MapPin, Image as ImageIcon, Loader2, CheckCircle } from "lucide-react";
 import type { BountyCategory } from "@/types";
 import { categoryLabels } from "@/lib/mock-data";
 

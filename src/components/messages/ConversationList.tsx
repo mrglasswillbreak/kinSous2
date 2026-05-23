@@ -119,7 +119,7 @@ export default function ConversationList({ className }: { className?: string }) 
   });
 
   return (
-    <div className={`max-w-md mx-auto pb-24 ${className ?? ""}`}>
+    <div className={`mx-auto w-full max-w-6xl px-4 pb-28 lg:px-8 lg:pb-10 ${className ?? ""}`}>
       <div className="sticky top-0 z-10 bg-background px-4 pt-6 pb-3 space-y-3">
         <div className="flex items-center gap-2">
           <MessageCircle size={22} className="text-primary" />

@@ -51,7 +51,7 @@ export default function HomePage() {
     : "N/A";
 
   return (
-    <div className="max-w-md mx-auto pb-24">
+    <div className="mx-auto w-full max-w-6xl px-4 pb-28 lg:px-8 lg:pb-10">
       {/* Hero */}
       <div className="relative px-5 pt-12 pb-8 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-background to-secondary-50 -z-10" />

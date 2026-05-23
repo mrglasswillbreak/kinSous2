@@ -19,7 +19,7 @@ export default function BottomNav() {
   const { totalUnread } = useConversations();
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-40 bg-[var(--nav-bg)] backdrop-blur-md border-t border-card-border">
+    <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-card-border bg-[var(--nav-bg)] backdrop-blur-md md:hidden">
       <div className="flex items-center justify-around max-w-md mx-auto px-2 py-2 pb-safe">
         {navItems.map(({ href, icon: Icon, label, badge }) => {
           const active = pathname === href || pathname.startsWith(href + "/") && href !== "/";

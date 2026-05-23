@@ -109,7 +109,7 @@ export default function HelpersPage() {
   useEffect(() => { loadHelpers(debouncedQuery); }, [debouncedQuery, loadHelpers]);
 
   return (
-    <div className="max-w-2xl mx-auto px-4 pb-24">
+    <div className="mx-auto w-full max-w-6xl px-4 pb-28 lg:px-8 lg:pb-10">
       <div className="sticky top-0 z-10 bg-background pt-4 pb-3 space-y-3">
         <div>
           <h1 className="text-2xl font-bold text-charcoal">Browse Helpers</h1>

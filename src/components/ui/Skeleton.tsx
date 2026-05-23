@@ -46,7 +46,7 @@ export function SkeletonHelperCard() {
 
 export function SkeletonProfileCard() {
   return (
-    <div className="max-w-md mx-auto space-y-4 px-4 py-6">
+    <div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-6 lg:px-8">
       <div className="bg-card rounded-3xl shadow-card overflow-hidden">
         <Shimmer className="h-24 rounded-none" />
         <div className="px-5 pb-5">
