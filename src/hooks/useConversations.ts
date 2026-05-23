@@ -29,6 +29,13 @@ export function useConversations() {
     refetch();
   }, [refetch]);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      refetch();
+    }, 8000);
+    return () => window.clearInterval(timer);
+  }, [refetch]);
+
   const totalUnread = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
 
   return { conversations, isLoading, totalUnread, refetch };
@@ -64,6 +71,14 @@ export function useConversation(id: string) {
   useEffect(() => {
     refetch();
   }, [refetch]);
+
+  useEffect(() => {
+    if (!id) return;
+    const timer = window.setInterval(() => {
+      refetch();
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [id, refetch]);
 
   const sendMessage = useCallback(
     async (content: string, type: DirectMessage["type"] = "TEXT") => {

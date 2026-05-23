@@ -21,6 +21,19 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     if (!content) {
       return NextResponse.json({ error: "Message content is required" }, { status: 400 });
     }
+    if (type === "TEXT" && content.length > 2000) {
+      return NextResponse.json({ error: "Message exceeds 2000 characters" }, { status: 400 });
+    }
+    if (type === "IMAGE") {
+      const isSafeDataImage = /^data:image\/(png|jpeg|jpg|webp|gif);base64,[a-z0-9+/=]+$/i.test(content);
+      const isHttpsUrl = /^https:\/\//i.test(content);
+      if (!isSafeDataImage && !isHttpsUrl) {
+        return NextResponse.json({ error: "Unsupported image payload" }, { status: 400 });
+      }
+      if (content.length > 4_000_000) {
+        return NextResponse.json({ error: "Image payload too large" }, { status: 400 });
+      }
+    }
 
     const message = await sendConversationMessage({
       conversationId: id,

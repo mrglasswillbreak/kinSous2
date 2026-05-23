@@ -11,6 +11,10 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 /** Only allow absolute https:// image URLs to prevent XSS via javascript: or data: URIs. */
 function safeImageUrl(url: string): string | undefined {
   try {
+    if (url.startsWith("data:image/")) {
+      if (url.length > 4_000_000) return undefined;
+      return url;
+    }
     const parsed = new URL(url);
     if (parsed.protocol !== "https:") return undefined;
     return parsed.href;
@@ -96,21 +100,37 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
   const { user } = useCurrentUser();
   const { conversation, messages, isLoading, sendMessage } = useConversation(conversationId);
   const [inputText, setInputText] = useState("");
+  const [pendingImage, setPendingImage] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const text = inputText.trim();
-    if (!text || isSending) return;
+    if ((!text && !pendingImage) || isSending) return;
     setIsSending(true);
+    setSendError(null);
+    const imageToSend = pendingImage;
     setInputText("");
-    sendMessage(text);
-    setTimeout(() => setIsSending(false), 400);
+    setPendingImage(null);
+    try {
+      if (text) {
+        await sendMessage(text);
+      }
+      if (imageToSend) {
+        await sendMessage(imageToSend, "IMAGE");
+      }
+    } catch (err) {
+      setSendError(err instanceof Error ? err.message : "Unable to send message.");
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -121,6 +141,32 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
   };
 
   const other = conversation?.participants.find((p) => p.id !== user?.userId);
+
+  const onPickImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setSendError("Only image files are supported.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setSendError("Image must be 2MB or smaller.");
+      return;
+    }
+    try {
+      const encoded = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result ?? ""));
+        reader.onerror = () => reject(new Error("Failed to read image."));
+        reader.readAsDataURL(file);
+      });
+      setPendingImage(encoded);
+      setSendError(null);
+    } catch (err) {
+      setSendError(err instanceof Error ? err.message : "Unable to attach image.");
+    }
+  };
 
   return (
     <div className="flex flex-col h-screen max-h-screen bg-background">
@@ -194,13 +240,28 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
 
       {/* Input */}
       <div className="flex-shrink-0 bg-card border-t border-card-border px-4 py-3 pb-safe">
+        {pendingImage && (
+          <div className="mb-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={pendingImage} alt="Pending upload" className="h-16 w-16 rounded-lg object-cover border border-card-border" />
+          </div>
+        )}
+        {sendError && <p className="mb-2 text-xs text-red-600">{sendError}</p>}
         <div className="flex items-center gap-2">
           <motion.button
             whileTap={{ scale: 0.9 }}
+            onClick={() => fileInputRef.current?.click()}
             className="w-9 h-9 flex items-center justify-center rounded-full bg-badge text-muted hover:bg-primary-50 hover:text-primary transition-colors flex-shrink-0"
           >
             <Camera size={17} />
           </motion.button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={onPickImage}
+          />
 
           <input
             ref={inputRef}
@@ -215,7 +276,7 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
           <motion.button
             whileTap={{ scale: 0.88 }}
             onClick={handleSend}
-            disabled={!inputText.trim() || isSending}
+            disabled={(!inputText.trim() && !pendingImage) || isSending}
             className="w-9 h-9 flex items-center justify-center rounded-full bg-primary text-white shadow-primary disabled:opacity-40 disabled:shadow-none flex-shrink-0 transition-opacity"
           >
             {isSending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
