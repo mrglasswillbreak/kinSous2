@@ -107,8 +107,9 @@ export default function TopBar() {
           </Link>
 
           <nav className="hidden items-center gap-1 rounded-2xl border border-card-border bg-card p-1 md:flex">
-            {menuItems.slice(0, 5).map(({ href, icon: Icon, label }) => {
+            {menuItems.map(({ href, icon: Icon, label, badge }) => {
               const active = pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
+              const showMessageBadge = badge === "messages" && totalUnread > 0;
               return (
                 <Link
                   key={`desktop-${href}`}
@@ -119,6 +120,11 @@ export default function TopBar() {
                 >
                   <Icon size={14} />
                   <span>{label}</span>
+                  {showMessageBadge && (
+                    <span className="flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white">
+                      {totalUnread > 9 ? "9+" : totalUnread}
+                    </span>
+                  )}
                 </Link>
               );
             })}
