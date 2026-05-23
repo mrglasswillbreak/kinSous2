@@ -65,6 +65,14 @@ export function useConversation(id: string) {
     refetch();
   }, [refetch]);
 
+  useEffect(() => {
+    if (!id) return;
+    const interval = setInterval(() => {
+      void refetch();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [id, refetch]);
+
   const sendMessage = useCallback(
     async (content: string, type: DirectMessage["type"] = "TEXT") => {
       const res = await fetch(`/api/messages/conversations/${id}/messages`, {
