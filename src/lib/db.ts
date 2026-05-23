@@ -2086,19 +2086,17 @@ export async function getBlockStatus(userId: string, otherUserId: string) {
     return { blockedByMe, blockedByOther };
   }
 
-  const rows = await sql`
+  const rows = (await sql`
     SELECT blocker_id, blocked_id
     FROM user_blocks
     WHERE (blocker_id = ${userId} AND blocked_id = ${otherUserId})
        OR (blocker_id = ${otherUserId} AND blocked_id = ${userId})
-  `;
+  `) as { blocker_id: string; blocked_id: string }[];
   const blockedByMe = rows.some(
-    (row: { blocker_id: string; blocked_id: string }) =>
-      row.blocker_id === userId && row.blocked_id === otherUserId
+    (row) => row.blocker_id === userId && row.blocked_id === otherUserId
   );
   const blockedByOther = rows.some(
-    (row: { blocker_id: string; blocked_id: string }) =>
-      row.blocker_id === otherUserId && row.blocked_id === userId
+    (row) => row.blocker_id === otherUserId && row.blocked_id === userId
   );
   return { blockedByMe, blockedByOther };
 }
