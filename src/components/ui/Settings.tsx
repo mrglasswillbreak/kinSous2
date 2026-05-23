@@ -9,6 +9,7 @@ import {
 import { useTheme } from "@/lib/theme-context";
 import { useRouter } from "next/navigation";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 interface ToggleProps { enabled: boolean; onChange: (v: boolean) => void }
 
@@ -61,6 +62,7 @@ function SectionItem({ icon, label, sublabel, right, onClick, danger }: SectionI
 export default function Settings() {
   const router = useRouter();
   const { user, refetch: refetchUser } = useCurrentUser();
+  const { isSupported, isSubscribed, subscribe, unsubscribe, permission } = usePushNotifications();
   const [notifications, setNotifications] = useState(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("kinsous-notification-settings");
@@ -500,6 +502,28 @@ export default function Settings() {
             />
           </div>
         ))}
+        <div className="flex items-center gap-3 px-4 py-3 border-t border-card-border">
+          <div className="w-8 h-8 bg-badge rounded-xl flex items-center justify-center">
+            <Smartphone size={15} className="text-primary" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm text-charcoal">Push notifications</p>
+            <p className="text-xs text-muted">
+              {isSupported
+                ? permission === "denied"
+                  ? "Blocked in browser settings"
+                  : "Get alerts even when you’re away"
+                : "Not supported on this device"}
+            </p>
+          </div>
+          <Toggle
+            enabled={isSubscribed}
+            onChange={(v) => {
+              if (!isSupported || permission === "denied") return;
+              return v ? subscribe() : unsubscribe();
+            }}
+          />
+        </div>
       </div>
 
       {/* Appearance */}

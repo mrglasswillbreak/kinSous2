@@ -1,6 +1,5 @@
-import ConversationList from "@/components/messages/ConversationList";
+import MessagesShell from "@/components/messages/MessagesShell";
 import type { Metadata } from "next";
-import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "Messages · KinSous",
@@ -10,9 +9,7 @@ export const metadata: Metadata = {
 export default function MessagesPage() {
   return (
     <div className="pt-4">
-      <Suspense fallback={null}>
-        <ConversationList />
-      </Suspense>
+      <MessagesShell />
     </div>
   );
 }

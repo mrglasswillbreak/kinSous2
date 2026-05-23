@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, X, CheckCheck, BellOff, Package, DollarSign, Truck, MessageCircle, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { AppNotification, NotificationType } from "@/hooks/useNotifications";
+import type { AppNotification, NotificationType } from "@/types";
 import { timeAgo } from "@/lib/mock-data";
 
 const typeConfig: Record<NotificationType, { icon: React.ReactNode; color: string }> = {
