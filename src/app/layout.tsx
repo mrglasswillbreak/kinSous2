@@ -20,7 +20,32 @@ export const metadata: Metadata = {
   title: "KinSous · Cultural Culinary Marketplace",
   description:
     "FolkProvidr – Connect with local culinary helpers for authentic food experiences across Nigeria and the US.",
+  applicationName: "KinSous",
+  manifest: "/site.webmanifest",
   keywords: ["Nigerian food", "culinary marketplace", "food delivery", "cooking help"],
+  icons: {
+    shortcut: [{ url: "/favicon.ico" }],
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-16x16.png", type: "image/png", sizes: "16x16" },
+      { url: "/favicon-32x32.png", type: "image/png", sizes: "32x32" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    other: [{ rel: "mask-icon", url: "/safari-pinned-tab.svg", color: "#E67E22" }],
+  },
+  appleWebApp: {
+    capable: true,
+    title: "KinSous",
+    statusBarStyle: "default",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  other: {
+    "msapplication-TileColor": "#E67E22",
+    "msapplication-TileImage": "/mstile-150x150.png",
+    "msapplication-config": "/browserconfig.xml",
+  },
   openGraph: {
     title: "KinSous",
     description: "Cultural Culinary Social Marketplace",
