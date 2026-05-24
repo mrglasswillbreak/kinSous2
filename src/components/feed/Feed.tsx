@@ -68,7 +68,9 @@ export default function Feed() {
           </div>
           <motion.button
             whileTap={{ scale: 0.92 }}
+            type="button"
             onClick={() => setPostModalOpen(true)}
+            aria-label="Post Bounty"
             className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-2xl text-sm font-semibold shadow-primary"
           >
             <Plus size={16} className="shrink-0" />
