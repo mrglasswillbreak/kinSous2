@@ -17,6 +17,9 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://kinsous.com"
+  ),
   title: "KinSous · Cultural Culinary Marketplace",
   description:
     "FolkProvidr – Connect with local culinary helpers for authentic food experiences across Nigeria and the US.",
@@ -47,9 +50,16 @@ export const metadata: Metadata = {
     "msapplication-config": "/browserconfig.xml",
   },
   openGraph: {
-    title: "KinSous",
-    description: "Cultural Culinary Social Marketplace",
+    title: "KinSous · Cultural Culinary Marketplace",
+    description: "FolkProvidr – Connect with local culinary helpers for authentic food experiences across Nigeria and the US.",
     type: "website",
+    images: [{ url: "/android-chrome-512x512.png", width: 512, height: 512 }],
+  },
+  twitter: {
+    card: "summary",
+    title: "KinSous · Cultural Culinary Marketplace",
+    description: "FolkProvidr – Connect with local culinary helpers for authentic food experiences across Nigeria and the US.",
+    images: ["/android-chrome-512x512.png"],
   },
 };
 
