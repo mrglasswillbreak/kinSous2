@@ -16,10 +16,23 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
+const getMetadataBase = (): URL => {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+
+  if (siteUrl) {
+    try {
+      const parsedUrl = new URL(siteUrl);
+      if (parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:") {
+        return parsedUrl;
+      }
+    } catch {}
+  }
+
+  return new URL("https://kinsous.com");
+};
+
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://kinsous.com"
-  ),
+  metadataBase: getMetadataBase(),
   title: "KinSous · Cultural Culinary Marketplace",
   description:
     "FolkProvidr – Connect with local culinary helpers for authentic food experiences across Nigeria and the US.",
