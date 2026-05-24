@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { MessageCircle, ChevronRight, Search } from "lucide-react";
+import { MessageCircle, ChevronRight, Search, Ban } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Conversation } from "@/types";
@@ -24,6 +24,7 @@ function ConversationRow({ conv, index, currentUserId }: { conv: Conversation; i
   const other = conv.participants.find((p) => p.id !== currentUserId) ?? conv.participants[0];
   const lastMsg = conv.lastMessage;
   const isMe = lastMsg.senderId === currentUserId;
+  const isBlocked = conv.blockedByMe || conv.blockedByOther;
 
   return (
     <motion.div
@@ -55,8 +56,14 @@ function ConversationRow({ conv, index, currentUserId }: { conv: Conversation; i
             {conv.bountyRef && (
               <p className="text-xs text-primary truncate font-medium">{conv.bountyRef.title}</p>
             )}
+            {isBlocked && (
+              <p className="text-xs text-red-500 flex items-center gap-1">
+                <Ban size={12} /> Blocked
+              </p>
+            )}
             <p className={`text-xs truncate mt-0.5 ${conv.unreadCount > 0 ? "text-charcoal font-medium" : "text-muted"}`}>
-              {isMe ? "You: " : ""}{lastMsg.type === "IMAGE" ? "📷 Photo" : lastMsg.content}
+              {isMe ? "You: " : ""}
+              {lastMsg.deletedAt ? "Message deleted" : lastMsg.type === "IMAGE" ? "📷 Photo" : lastMsg.content}
             </p>
           </div>
 
@@ -73,7 +80,7 @@ function ConversationRow({ conv, index, currentUserId }: { conv: Conversation; i
   );
 }
 
-export default function ConversationList() {
+export default function ConversationList({ className }: { className?: string }) {
   const { user } = useCurrentUser();
   const { conversations, isLoading, refetch } = useConversations();
   const router = useRouter();
@@ -112,7 +119,7 @@ export default function ConversationList() {
   });
 
   return (
-    <div className="max-w-md mx-auto pb-24">
+    <div className={`max-w-md mx-auto pb-24 ${className ?? ""}`}>
       <div className="sticky top-0 z-10 bg-background px-4 pt-6 pb-3 space-y-3">
         <div className="flex items-center gap-2">
           <MessageCircle size={22} className="text-primary" />

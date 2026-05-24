@@ -183,6 +183,9 @@ export interface DirectMessage {
   content: string;
   read: boolean;
   createdAt: string;
+  editedAt?: string | null;
+  deletedAt?: string | null;
+  deletedBy?: string | null;
 }
 
 export interface Conversation {
@@ -192,6 +195,41 @@ export interface Conversation {
   lastMessage: DirectMessage;
   unreadCount: number;
   updatedAt: string;
+  blockedByMe?: boolean;
+  blockedByOther?: boolean;
+}
+
+export type PresenceStatus = "ONLINE" | "AWAY" | "OFFLINE";
+
+export interface UserPresence {
+  userId: string;
+  status: PresenceStatus;
+  lastSeen: string;
+}
+
+export interface ConversationTyping {
+  userId: string;
+  isTyping: boolean;
+  updatedAt: string;
+}
+
+export type NotificationType =
+  | "NEW_BID"
+  | "BID_ACCEPTED"
+  | "PAYMENT_ESCROWED"
+  | "DELIVERY_UPDATE"
+  | "NEW_MESSAGE"
+  | "SYSTEM";
+
+export interface AppNotification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  avatarUrl?: string;
+  href?: string;
+  read: boolean;
+  createdAt: string;
 }
 
 // ─── Reviews ──────────────────────────────────────────────────────────────────

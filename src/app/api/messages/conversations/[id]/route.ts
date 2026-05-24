@@ -5,7 +5,10 @@ import {
   getConversationForUser,
   listMessagesForConversation,
   markConversationRead,
+  listTypingForConversation,
+  getPresenceForUsers,
 } from "@/lib/db";
+import { publishConversationEvent, publishUserEvent } from "@/lib/realtime";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -25,7 +28,14 @@ export async function GET(_req: Request, { params }: RouteContext) {
     }
 
     await markConversationRead(id, session.userId);
+    publishConversationEvent(id, {
+      type: "read",
+      payload: { readerId: session.userId },
+    });
+    publishUserEvent(session.userId, { type: "conversation_updated", payload: { conversationId: id } });
     const messages = await listMessagesForConversation(id, session.userId);
+    const typing = await listTypingForConversation(id);
+    const presence = await getPresenceForUsers(conversation.participants.map((p) => p.id));
 
     return NextResponse.json({
       conversation: {
@@ -37,6 +47,8 @@ export async function GET(_req: Request, { params }: RouteContext) {
             : undefined,
         unreadCount: 0,
         updatedAt: conversation.updated_at,
+        blockedByMe: conversation.blocked_by_me ?? false,
+        blockedByOther: conversation.blocked_by_other ?? false,
       },
       messages: messages.map((m) => ({
         id: m.id,
@@ -50,6 +62,19 @@ export async function GET(_req: Request, { params }: RouteContext) {
         content: m.content,
         read: m.read,
         createdAt: m.created_at,
+        editedAt: m.edited_at ?? null,
+        deletedAt: m.deleted_at ?? null,
+        deletedBy: m.deleted_by ?? null,
+      })),
+      typing: typing.map((t) => ({
+        userId: t.user_id,
+        isTyping: t.is_typing,
+        updatedAt: t.updated_at,
+      })),
+      presence: presence.map((p) => ({
+        userId: p.user_id,
+        status: p.status,
+        lastSeen: p.last_seen,
       })),
     });
   } catch (err) {

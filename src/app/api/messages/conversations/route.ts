@@ -7,7 +7,7 @@ import {
   getConversationForUser,
   getUserById,
   sendConversationMessage,
-  canContactAcceptedBidder,
+  getBlockStatus,
 } from "@/lib/db";
 
 export async function GET() {
@@ -36,6 +36,9 @@ export async function GET() {
             content: c.last_message.content,
             read: c.last_message.read,
             createdAt: c.last_message.created_at,
+            editedAt: c.last_message.edited_at ?? null,
+            deletedAt: c.last_message.deleted_at ?? null,
+            deletedBy: c.last_message.deleted_by ?? null,
           }
           : {
             id: `${c.id}-system`,
@@ -47,9 +50,14 @@ export async function GET() {
             content: "Conversation started",
             read: true,
             createdAt: c.updated_at,
+            editedAt: null,
+            deletedAt: null,
+            deletedBy: null,
           },
         unreadCount: c.unread_count,
         updatedAt: c.updated_at,
+        blockedByMe: c.blocked_by_me ?? false,
+        blockedByOther: c.blocked_by_other ?? false,
       })),
     });
   } catch (err) {
@@ -66,28 +74,29 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const helperId = typeof body?.helperId === "string" ? body.helperId : null;
+    const helperId =
+      typeof body?.helperId === "string"
+        ? body.helperId
+        : typeof body?.userId === "string"
+          ? body.userId
+          : typeof body?.recipientId === "string"
+            ? body.recipientId
+            : null;
     const bountyId = typeof body?.bountyId === "string" ? body.bountyId : null;
     if (!helperId) {
-      return NextResponse.json({ error: "helperId is required" }, { status: 400 });
+      return NextResponse.json({ error: "recipientId is required" }, { status: 400 });
+    }
+    if (helperId === session.userId) {
+      return NextResponse.json({ error: "Cannot message yourself" }, { status: 400 });
     }
 
     const target = await getUserById(helperId);
     if (!target) {
-      return NextResponse.json({ error: "Helper not found" }, { status: 404 });
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
-    if (bountyId) {
-      const allowed = await canContactAcceptedBidder({
-        bountyId,
-        seekerId: session.userId,
-        helperId,
-      });
-      if (!allowed) {
-        return NextResponse.json(
-          { error: "Only the bounty poster can contact the selected bidder" },
-          { status: 403 }
-        );
-      }
+    const blockStatus = await getBlockStatus(session.userId, helperId);
+    if (blockStatus.blockedByMe || blockStatus.blockedByOther) {
+      return NextResponse.json({ error: "Messaging is blocked" }, { status: 403 });
     }
 
     const conversationId = await getOrCreateDirectConversation({

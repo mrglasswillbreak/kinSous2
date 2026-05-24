@@ -116,6 +116,9 @@ export interface DbConversationMessage {
   content: string;
   read: boolean;
   created_at: string;
+  edited_at?: string | null;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
 }
 
 export interface DbConversation {
@@ -127,6 +130,51 @@ export interface DbConversation {
   participants: DbUser[];
   last_message: DbConversationMessage | null;
   unread_count: number;
+  created_at: string;
+  updated_at: string;
+  blocked_by_me?: boolean;
+  blocked_by_other?: boolean;
+}
+
+export interface DbNotification {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  body: string;
+  avatar_url: string | null;
+  href: string | null;
+  read: boolean;
+  created_at: string;
+}
+
+export interface DbUserBlock {
+  id: string;
+  blocker_id: string;
+  blocked_id: string;
+  created_at: string;
+}
+
+export interface DbUserPresence {
+  user_id: string;
+  status: string;
+  last_seen: string;
+  updated_at: string;
+}
+
+export interface DbConversationTyping {
+  conversation_id: string;
+  user_id: string;
+  is_typing: boolean;
+  updated_at: string;
+}
+
+export interface DbPushSubscription {
+  id: string;
+  user_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
   created_at: string;
   updated_at: string;
 }
@@ -184,6 +232,61 @@ interface LocalStore {
     type: "TEXT" | "IMAGE" | "SYSTEM";
     content: string;
     read: boolean;
+    created_at: string;
+    edited_at?: string | null;
+    deleted_at?: string | null;
+    deleted_by?: string | null;
+  }>;
+  conversation_deletions: Array<{
+    conversation_id: string;
+    user_id: string;
+    deleted_at: string;
+  }>;
+  user_blocks: Array<{
+    id: string;
+    blocker_id: string;
+    blocked_id: string;
+    created_at: string;
+  }>;
+  notifications: Array<{
+    id: string;
+    user_id: string;
+    type: string;
+    title: string;
+    body: string;
+    avatar_url: string | null;
+    href: string | null;
+    read: boolean;
+    created_at: string;
+  }>;
+  user_presence: Array<{
+    user_id: string;
+    status: string;
+    last_seen: string;
+    updated_at: string;
+  }>;
+  conversation_typing: Array<{
+    conversation_id: string;
+    user_id: string;
+    is_typing: boolean;
+    updated_at: string;
+  }>;
+  push_subscriptions: Array<{
+    id: string;
+    user_id: string;
+    endpoint: string;
+    p256dh: string;
+    auth: string;
+    created_at: string;
+    updated_at: string;
+  }>;
+  message_reports: Array<{
+    id: string;
+    conversation_id: string;
+    reporter_id: string;
+    reported_user_id: string;
+    message_id: string | null;
+    reason: string;
     created_at: string;
   }>;
 }
@@ -301,6 +404,13 @@ function makeSeedStore(): LocalStore {
     bids,
     conversations: [],
     conversation_messages: [],
+    conversation_deletions: [],
+    user_blocks: [],
+    notifications: [],
+    user_presence: [],
+    conversation_typing: [],
+    push_subscriptions: [],
+    message_reports: [],
   };
 }
 
@@ -308,7 +418,15 @@ async function readLocalStore(): Promise<LocalStore> {
   if (localStoreCache) return localStoreCache;
   try {
     const raw = await fs.readFile(LOCAL_DB_PATH, "utf8");
-    localStoreCache = JSON.parse(raw) as LocalStore;
+    const parsed = JSON.parse(raw) as LocalStore;
+    parsed.conversation_deletions ??= [];
+    parsed.user_blocks ??= [];
+    parsed.notifications ??= [];
+    parsed.user_presence ??= [];
+    parsed.conversation_typing ??= [];
+    parsed.push_subscriptions ??= [];
+    parsed.message_reports ??= [];
+    localStoreCache = parsed;
   } catch {
     localStoreCache = makeSeedStore();
     await writeLocalStore(localStoreCache);
@@ -557,10 +675,90 @@ export async function initDb() {
   await sql`ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS content TEXT`;
   await sql`ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS read BOOLEAN DEFAULT false`;
   await sql`ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()`;
+  await sql`ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ`;
+  await sql`ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ`;
+  await sql`ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS deleted_by TEXT`;
 
   await sql`
     CREATE INDEX IF NOT EXISTS conversation_messages_conversation_idx
     ON conversation_messages (conversation_id, created_at)
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS conversation_deletions (
+      conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+      user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      deleted_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+      PRIMARY KEY (conversation_id, user_id)
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS user_blocks (
+      id         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      blocker_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      blocked_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      UNIQUE (blocker_id, blocked_id)
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      type       TEXT NOT NULL,
+      title      TEXT NOT NULL,
+      body       TEXT NOT NULL,
+      avatar_url TEXT,
+      href       TEXT,
+      read       BOOLEAN NOT NULL DEFAULT false,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS user_presence (
+      user_id    TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      status     TEXT NOT NULL DEFAULT 'OFFLINE',
+      last_seen  TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS conversation_typing (
+      conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+      user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      is_typing       BOOLEAN NOT NULL DEFAULT false,
+      updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+      PRIMARY KEY (conversation_id, user_id)
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      endpoint   TEXT NOT NULL,
+      p256dh     TEXT NOT NULL,
+      auth       TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      UNIQUE (user_id, endpoint)
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS message_reports (
+      id               TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      conversation_id  TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+      reporter_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      reported_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      message_id       TEXT,
+      reason           TEXT NOT NULL,
+      created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
   `;
 }
 
@@ -651,9 +849,12 @@ function localConversationToDb(
           sender_name: sender?.name ?? "KinSous",
           sender_avatar_url: sender?.avatar_url ?? null,
           type: last.type,
-          content: last.content,
+          content: last.deleted_at ? "Message deleted" : last.content,
           read: last.read,
           created_at: last.created_at,
+          edited_at: last.edited_at ?? null,
+          deleted_at: last.deleted_at ?? null,
+          deleted_by: last.deleted_by ?? null,
         }
       : null,
     unread_count: store.conversation_messages.filter(
@@ -672,17 +873,41 @@ async function getLocalConversationRows(
   conversationId?: string
 ): Promise<DbConversation[]> {
   const store = await readLocalStore();
+  const deleted = new Set(
+    store.conversation_deletions
+      .filter((entry) => entry.user_id === currentUserId)
+      .map((entry) => entry.conversation_id)
+  );
+  const blockedByMe = new Set(
+    store.user_blocks
+      .filter((entry) => entry.blocker_id === currentUserId)
+      .map((entry) => entry.blocked_id)
+  );
+  const blockedByOther = new Set(
+    store.user_blocks
+      .filter((entry) => entry.blocked_id === currentUserId)
+      .map((entry) => entry.blocker_id)
+  );
   return store.conversations
     .filter((conversation) =>
       conversationId ? conversation.id === conversationId : true
     )
+    .filter((conversation) => !deleted.has(conversation.id))
     .filter(
       (conversation) =>
         conversation.user_one_id === currentUserId ||
         conversation.user_two_id === currentUserId
     )
     .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-    .map((conversation) => localConversationToDb(store, currentUserId, conversation));
+    .map((conversation) => {
+      const row = localConversationToDb(store, currentUserId, conversation);
+      const otherId = conversation.user_one_id === currentUserId ? conversation.user_two_id : conversation.user_one_id;
+      return {
+        ...row,
+        blocked_by_me: blockedByMe.has(otherId),
+        blocked_by_other: blockedByOther.has(otherId),
+      };
+    });
 }
 
 async function getConversationRows(
@@ -705,10 +930,27 @@ async function getConversationRows(
       c.updated_at::text AS updated_at
     FROM conversations c
     LEFT JOIN bounties b ON b.id = c.bounty_id
+    LEFT JOIN conversation_deletions cd
+      ON cd.conversation_id = c.id
+     AND cd.user_id = ${currentUserId}
     WHERE (${conversationId ?? null}::text IS NULL OR c.id = ${conversationId ?? null})
       AND (c.user_one_id = ${currentUserId} OR c.user_two_id = ${currentUserId})
+      AND cd.conversation_id IS NULL
     ORDER BY c.updated_at DESC
   `;
+
+  const blockedByMeRows = await sql`
+    SELECT blocked_id
+    FROM user_blocks
+    WHERE blocker_id = ${currentUserId}
+  `;
+  const blockedByOtherRows = await sql`
+    SELECT blocker_id
+    FROM user_blocks
+    WHERE blocked_id = ${currentUserId}
+  `;
+  const blockedByMe = new Set((blockedByMeRows as { blocked_id: string }[]).map((r) => r.blocked_id));
+  const blockedByOther = new Set((blockedByOtherRows as { blocker_id: string }[]).map((r) => r.blocker_id));
 
   return Promise.all(
     rows.map(async (row) => {
@@ -742,8 +984,11 @@ async function getConversationRows(
           u.name AS sender_name,
           u.avatar_url AS sender_avatar_url,
           m.type,
-          m.content,
+          CASE WHEN m.deleted_at IS NOT NULL THEN 'Message deleted' ELSE m.content END AS content,
           m.read,
+          m.edited_at::text AS edited_at,
+          m.deleted_at::text AS deleted_at,
+          m.deleted_by,
           m.created_at::text AS created_at
         FROM conversation_messages m
         JOIN users u ON u.id = m.sender_id
@@ -765,6 +1010,12 @@ async function getConversationRows(
         participants: participants as DbUser[],
         last_message: (messages[0] as DbConversationMessage | undefined) ?? null,
         unread_count: Number(unreadRows[0]?.count ?? 0),
+        blocked_by_me: blockedByMe.has(
+          row.user_one_id === currentUserId ? row.user_two_id : row.user_one_id
+        ),
+        blocked_by_other: blockedByOther.has(
+          row.user_one_id === currentUserId ? row.user_two_id : row.user_one_id
+        ),
       } as DbConversation;
     })
   );
@@ -1446,6 +1697,10 @@ export async function listMessagesForConversation(
           ...message,
           sender_name: sender?.name ?? "KinSous",
           sender_avatar_url: sender?.avatar_url ?? null,
+          content: message.deleted_at ? "Message deleted" : message.content,
+          edited_at: message.edited_at ?? null,
+          deleted_at: message.deleted_at ?? null,
+          deleted_by: message.deleted_by ?? null,
         };
       });
   }
@@ -1461,8 +1716,11 @@ export async function listMessagesForConversation(
       u.name AS sender_name,
       u.avatar_url AS sender_avatar_url,
       m.type,
-      m.content,
+      CASE WHEN m.deleted_at IS NOT NULL THEN 'Message deleted' ELSE m.content END AS content,
       m.read,
+      m.edited_at::text AS edited_at,
+      m.deleted_at::text AS deleted_at,
+      m.deleted_by,
       m.created_at::text AS created_at
     FROM conversation_messages m
     JOIN users u ON u.id = m.sender_id
@@ -1517,6 +1775,14 @@ export async function sendConversationMessage(input: {
         (candidate.user_one_id === input.senderId || candidate.user_two_id === input.senderId)
     );
     if (!conversation) return null;
+    const otherId =
+      conversation.user_one_id === input.senderId ? conversation.user_two_id : conversation.user_one_id;
+    const blocked = store.user_blocks.some(
+      (entry) =>
+        (entry.blocker_id === input.senderId && entry.blocked_id === otherId) ||
+        (entry.blocker_id === otherId && entry.blocked_id === input.senderId)
+    );
+    if (blocked) return null;
     const now = new Date().toISOString();
     const message = {
       id: uid("msg"),
@@ -1526,6 +1792,9 @@ export async function sendConversationMessage(input: {
       content: input.content,
       read: input.type === "SYSTEM",
       created_at: now,
+      edited_at: null,
+      deleted_at: null,
+      deleted_by: null,
     };
     store.conversation_messages.push(message);
     conversation.updated_at = now;
@@ -1543,6 +1812,7 @@ export async function sendConversationMessage(input: {
     input.senderId
   );
   if (!conversation) return null;
+  if (conversation.blocked_by_me || conversation.blocked_by_other) return null;
 
   const rows = await sql`
     INSERT INTO conversation_messages (
@@ -1578,6 +1848,9 @@ export async function sendConversationMessage(input: {
       m.type,
       m.content,
       m.read,
+      m.edited_at::text AS edited_at,
+      m.deleted_at::text AS deleted_at,
+      m.deleted_by,
       m.created_at::text AS created_at
     FROM conversation_messages m
     JOIN users u ON u.id = m.sender_id
@@ -1586,4 +1859,696 @@ export async function sendConversationMessage(input: {
   `;
 
   return (messages[0] as DbConversationMessage | undefined) ?? null;
+}
+
+export async function updateConversationMessage(input: {
+  conversationId: string;
+  messageId: string;
+  userId: string;
+  content: string;
+}): Promise<DbConversationMessage | null> {
+  await initDb();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    const message = store.conversation_messages.find(
+      (candidate) =>
+        candidate.id === input.messageId &&
+        candidate.conversation_id === input.conversationId &&
+        candidate.sender_id === input.userId
+    );
+    if (!message || message.deleted_at) return null;
+    const now = new Date().toISOString();
+    message.content = input.content;
+    message.edited_at = now;
+    const sender = store.users.find((user) => user.id === input.userId);
+    await writeLocalStore(store);
+    return {
+      ...message,
+      sender_name: sender?.name ?? "KinSous",
+      sender_avatar_url: sender?.avatar_url ?? null,
+      content: message.deleted_at ? "Message deleted" : message.content,
+      edited_at: message.edited_at ?? null,
+      deleted_at: message.deleted_at ?? null,
+      deleted_by: message.deleted_by ?? null,
+    };
+  }
+
+  const conversation = await getConversationForUser(input.conversationId, input.userId);
+  if (!conversation) return null;
+
+  const rows = await sql`
+    UPDATE conversation_messages
+    SET content = ${input.content},
+        edited_at = now()
+    WHERE id = ${input.messageId}
+      AND conversation_id = ${input.conversationId}
+      AND sender_id = ${input.userId}
+      AND deleted_at IS NULL
+    RETURNING id
+  `;
+  if (!rows[0]?.id) return null;
+
+  const messages = await sql`
+    SELECT
+      m.id,
+      m.conversation_id,
+      m.sender_id,
+      u.name AS sender_name,
+      u.avatar_url AS sender_avatar_url,
+      m.type,
+      m.content,
+      m.read,
+      m.edited_at::text AS edited_at,
+      m.deleted_at::text AS deleted_at,
+      m.deleted_by,
+      m.created_at::text AS created_at
+    FROM conversation_messages m
+    JOIN users u ON u.id = m.sender_id
+    WHERE m.id = ${rows[0].id}
+    LIMIT 1
+  `;
+
+  return (messages[0] as DbConversationMessage | undefined) ?? null;
+}
+
+export async function deleteConversationMessage(input: {
+  conversationId: string;
+  messageId: string;
+  userId: string;
+}): Promise<DbConversationMessage | null> {
+  await initDb();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    const message = store.conversation_messages.find(
+      (candidate) =>
+        candidate.id === input.messageId &&
+        candidate.conversation_id === input.conversationId &&
+        candidate.sender_id === input.userId
+    );
+    if (!message || message.deleted_at) return null;
+    const now = new Date().toISOString();
+    message.deleted_at = now;
+    message.deleted_by = input.userId;
+    const sender = store.users.find((user) => user.id === input.userId);
+    await writeLocalStore(store);
+    return {
+      ...message,
+      sender_name: sender?.name ?? "KinSous",
+      sender_avatar_url: sender?.avatar_url ?? null,
+      content: "Message deleted",
+      edited_at: message.edited_at ?? null,
+      deleted_at: message.deleted_at ?? null,
+      deleted_by: message.deleted_by ?? null,
+    };
+  }
+
+  const conversation = await getConversationForUser(input.conversationId, input.userId);
+  if (!conversation) return null;
+
+  const rows = await sql`
+    UPDATE conversation_messages
+    SET deleted_at = now(),
+        deleted_by = ${input.userId}
+    WHERE id = ${input.messageId}
+      AND conversation_id = ${input.conversationId}
+      AND sender_id = ${input.userId}
+      AND deleted_at IS NULL
+    RETURNING id
+  `;
+  if (!rows[0]?.id) return null;
+
+  const messages = await sql`
+    SELECT
+      m.id,
+      m.conversation_id,
+      m.sender_id,
+      u.name AS sender_name,
+      u.avatar_url AS sender_avatar_url,
+      m.type,
+      CASE WHEN m.deleted_at IS NOT NULL THEN 'Message deleted' ELSE m.content END AS content,
+      m.read,
+      m.edited_at::text AS edited_at,
+      m.deleted_at::text AS deleted_at,
+      m.deleted_by,
+      m.created_at::text AS created_at
+    FROM conversation_messages m
+    JOIN users u ON u.id = m.sender_id
+    WHERE m.id = ${rows[0].id}
+    LIMIT 1
+  `;
+
+  return (messages[0] as DbConversationMessage | undefined) ?? null;
+}
+
+export async function deleteConversationForUser(
+  conversationId: string,
+  userId: string
+) {
+  await initDb();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    const existing = store.conversation_deletions.find(
+      (entry) => entry.conversation_id === conversationId && entry.user_id === userId
+    );
+    if (!existing) {
+      store.conversation_deletions.push({
+        conversation_id: conversationId,
+        user_id: userId,
+        deleted_at: new Date().toISOString(),
+      });
+      await writeLocalStore(store);
+    }
+    return;
+  }
+
+  await sql`
+    INSERT INTO conversation_deletions (conversation_id, user_id)
+    VALUES (${conversationId}, ${userId})
+    ON CONFLICT (conversation_id, user_id) DO UPDATE
+      SET deleted_at = now()
+  `;
+}
+
+export async function blockUser(blockerId: string, blockedId: string) {
+  await initDb();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    const exists = store.user_blocks.some(
+      (entry) => entry.blocker_id === blockerId && entry.blocked_id === blockedId
+    );
+    if (!exists) {
+      store.user_blocks.push({
+        id: uid("block"),
+        blocker_id: blockerId,
+        blocked_id: blockedId,
+        created_at: new Date().toISOString(),
+      });
+      await writeLocalStore(store);
+    }
+    return;
+  }
+
+  await sql`
+    INSERT INTO user_blocks (blocker_id, blocked_id)
+    VALUES (${blockerId}, ${blockedId})
+    ON CONFLICT (blocker_id, blocked_id) DO NOTHING
+  `;
+}
+
+export async function unblockUser(blockerId: string, blockedId: string) {
+  await initDb();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    store.user_blocks = store.user_blocks.filter(
+      (entry) => !(entry.blocker_id === blockerId && entry.blocked_id === blockedId)
+    );
+    await writeLocalStore(store);
+    return;
+  }
+
+  await sql`
+    DELETE FROM user_blocks
+    WHERE blocker_id = ${blockerId}
+      AND blocked_id = ${blockedId}
+  `;
+}
+
+export async function getBlockStatus(userId: string, otherUserId: string) {
+  await initDb();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    const blockedByMe = store.user_blocks.some(
+      (entry) => entry.blocker_id === userId && entry.blocked_id === otherUserId
+    );
+    const blockedByOther = store.user_blocks.some(
+      (entry) => entry.blocker_id === otherUserId && entry.blocked_id === userId
+    );
+    return { blockedByMe, blockedByOther };
+  }
+
+  const rows = (await sql`
+    SELECT blocker_id, blocked_id
+    FROM user_blocks
+    WHERE (blocker_id = ${userId} AND blocked_id = ${otherUserId})
+       OR (blocker_id = ${otherUserId} AND blocked_id = ${userId})
+  `) as { blocker_id: string; blocked_id: string }[];
+  const blockedByMe = rows.some(
+    (row) => row.blocker_id === userId && row.blocked_id === otherUserId
+  );
+  const blockedByOther = rows.some(
+    (row) => row.blocker_id === otherUserId && row.blocked_id === userId
+  );
+  return { blockedByMe, blockedByOther };
+}
+
+export async function reportConversationMessage(input: {
+  conversationId: string;
+  reporterId: string;
+  reportedUserId: string;
+  messageId?: string | null;
+  reason: string;
+}) {
+  await initDb();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    store.message_reports.push({
+      id: uid("report"),
+      conversation_id: input.conversationId,
+      reporter_id: input.reporterId,
+      reported_user_id: input.reportedUserId,
+      message_id: input.messageId ?? null,
+      reason: input.reason,
+      created_at: new Date().toISOString(),
+    });
+    await writeLocalStore(store);
+    return;
+  }
+
+  await sql`
+    INSERT INTO message_reports (
+      conversation_id,
+      reporter_id,
+      reported_user_id,
+      message_id,
+      reason
+    )
+    VALUES (
+      ${input.conversationId},
+      ${input.reporterId},
+      ${input.reportedUserId},
+      ${input.messageId ?? null},
+      ${input.reason}
+    )
+  `;
+}
+
+export async function listConversationIdsForUser(userId: string): Promise<string[]> {
+  await initDb();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    const deleted = new Set(
+      store.conversation_deletions
+        .filter((entry) => entry.user_id === userId)
+        .map((entry) => entry.conversation_id)
+    );
+    return store.conversations
+      .filter((conversation) =>
+        conversation.user_one_id === userId || conversation.user_two_id === userId
+      )
+      .filter((conversation) => !deleted.has(conversation.id))
+      .map((conversation) => conversation.id);
+  }
+
+  const rows = await sql`
+    SELECT c.id
+    FROM conversations c
+    LEFT JOIN conversation_deletions cd
+      ON cd.conversation_id = c.id
+     AND cd.user_id = ${userId}
+    WHERE (c.user_one_id = ${userId} OR c.user_two_id = ${userId})
+      AND cd.conversation_id IS NULL
+  `;
+  return (rows as { id: string }[]).map((row) => row.id);
+}
+
+export async function createNotification(input: {
+  userId: string;
+  type: string;
+  title: string;
+  body: string;
+  avatarUrl?: string | null;
+  href?: string | null;
+}): Promise<DbNotification> {
+  await initDb();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    const notification = {
+      id: uid("notif"),
+      user_id: input.userId,
+      type: input.type,
+      title: input.title,
+      body: input.body,
+      avatar_url: input.avatarUrl ?? null,
+      href: input.href ?? null,
+      read: false,
+      created_at: new Date().toISOString(),
+    };
+    store.notifications.unshift(notification);
+    await writeLocalStore(store);
+    return notification;
+  }
+
+  const rows = await sql`
+    INSERT INTO notifications (
+      user_id,
+      type,
+      title,
+      body,
+      avatar_url,
+      href
+    )
+    VALUES (
+      ${input.userId},
+      ${input.type},
+      ${input.title},
+      ${input.body},
+      ${input.avatarUrl ?? null},
+      ${input.href ?? null}
+    )
+    RETURNING
+      id,
+      user_id,
+      type,
+      title,
+      body,
+      avatar_url,
+      href,
+      read,
+      created_at::text AS created_at
+  `;
+  return rows[0] as DbNotification;
+}
+
+export async function listNotificationsForUser(userId: string): Promise<DbNotification[]> {
+  await initDb();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    return store.notifications
+      .filter((notification) => notification.user_id === userId)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  const rows = await sql`
+    SELECT
+      id,
+      user_id,
+      type,
+      title,
+      body,
+      avatar_url,
+      href,
+      read,
+      created_at::text AS created_at
+    FROM notifications
+    WHERE user_id = ${userId}
+    ORDER BY created_at DESC
+    LIMIT 100
+  `;
+  return rows as DbNotification[];
+}
+
+export async function markNotificationRead(userId: string, notificationId: string) {
+  await initDb();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    const notification = store.notifications.find(
+      (entry) => entry.id === notificationId && entry.user_id === userId
+    );
+    if (notification) {
+      notification.read = true;
+      await writeLocalStore(store);
+    }
+    return;
+  }
+
+  await sql`
+    UPDATE notifications
+    SET read = true
+    WHERE id = ${notificationId}
+      AND user_id = ${userId}
+  `;
+}
+
+export async function markAllNotificationsRead(userId: string) {
+  await initDb();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    store.notifications = store.notifications.map((entry) =>
+      entry.user_id === userId ? { ...entry, read: true } : entry
+    );
+    await writeLocalStore(store);
+    return;
+  }
+
+  await sql`
+    UPDATE notifications
+    SET read = true
+    WHERE user_id = ${userId}
+  `;
+}
+
+export async function dismissNotification(userId: string, notificationId: string) {
+  await initDb();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    store.notifications = store.notifications.filter(
+      (entry) => !(entry.id === notificationId && entry.user_id === userId)
+    );
+    await writeLocalStore(store);
+    return;
+  }
+
+  await sql`
+    DELETE FROM notifications
+    WHERE id = ${notificationId}
+      AND user_id = ${userId}
+  `;
+}
+
+export async function upsertUserPresence(input: {
+  userId: string;
+  status: string;
+}): Promise<DbUserPresence> {
+  await initDb();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    const now = new Date().toISOString();
+    const existing = store.user_presence.find((entry) => entry.user_id === input.userId);
+    if (existing) {
+      existing.status = input.status;
+      existing.last_seen = now;
+      existing.updated_at = now;
+      await writeLocalStore(store);
+      return existing;
+    }
+    const presence = {
+      user_id: input.userId,
+      status: input.status,
+      last_seen: now,
+      updated_at: now,
+    };
+    store.user_presence.push(presence);
+    await writeLocalStore(store);
+    return presence;
+  }
+
+  const rows = await sql`
+    INSERT INTO user_presence (user_id, status, last_seen, updated_at)
+    VALUES (${input.userId}, ${input.status}, now(), now())
+    ON CONFLICT (user_id) DO UPDATE
+      SET status = EXCLUDED.status,
+          last_seen = now(),
+          updated_at = now()
+    RETURNING
+      user_id,
+      status,
+      last_seen::text AS last_seen,
+      updated_at::text AS updated_at
+  `;
+  return rows[0] as DbUserPresence;
+}
+
+export async function getPresenceForUsers(userIds: string[]): Promise<DbUserPresence[]> {
+  await initDb();
+  if (userIds.length === 0) return [];
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    return store.user_presence.filter((entry) => userIds.includes(entry.user_id));
+  }
+
+  const rows = await sql`
+    SELECT
+      user_id,
+      status,
+      last_seen::text AS last_seen,
+      updated_at::text AS updated_at
+    FROM user_presence
+    WHERE user_id = ANY(${userIds})
+  `;
+  return rows as DbUserPresence[];
+}
+
+export async function upsertConversationTyping(input: {
+  conversationId: string;
+  userId: string;
+  isTyping: boolean;
+}): Promise<DbConversationTyping> {
+  await initDb();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    const now = new Date().toISOString();
+    const existing = store.conversation_typing.find(
+      (entry) =>
+        entry.conversation_id === input.conversationId && entry.user_id === input.userId
+    );
+    if (existing) {
+      existing.is_typing = input.isTyping;
+      existing.updated_at = now;
+      await writeLocalStore(store);
+      return existing;
+    }
+    const typing = {
+      conversation_id: input.conversationId,
+      user_id: input.userId,
+      is_typing: input.isTyping,
+      updated_at: now,
+    };
+    store.conversation_typing.push(typing);
+    await writeLocalStore(store);
+    return typing;
+  }
+
+  const rows = await sql`
+    INSERT INTO conversation_typing (conversation_id, user_id, is_typing, updated_at)
+    VALUES (${input.conversationId}, ${input.userId}, ${input.isTyping}, now())
+    ON CONFLICT (conversation_id, user_id) DO UPDATE
+      SET is_typing = EXCLUDED.is_typing,
+          updated_at = now()
+    RETURNING
+      conversation_id,
+      user_id,
+      is_typing,
+      updated_at::text AS updated_at
+  `;
+  return rows[0] as DbConversationTyping;
+}
+
+export async function listTypingForConversation(conversationId: string): Promise<DbConversationTyping[]> {
+  await initDb();
+  const cutoff = new Date(Date.now() - 1000 * 8).toISOString();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    return store.conversation_typing.filter(
+      (entry) =>
+        entry.conversation_id === conversationId &&
+        entry.is_typing &&
+        entry.updated_at >= cutoff
+    );
+  }
+
+  const rows = await sql`
+    SELECT
+      conversation_id,
+      user_id,
+      is_typing,
+      updated_at::text AS updated_at
+    FROM conversation_typing
+    WHERE conversation_id = ${conversationId}
+      AND is_typing = true
+      AND updated_at >= ${cutoff}::timestamptz
+  `;
+  return rows as DbConversationTyping[];
+}
+
+export async function upsertPushSubscription(input: {
+  userId: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+}): Promise<DbPushSubscription> {
+  await initDb();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    const now = new Date().toISOString();
+    const existing = store.push_subscriptions.find(
+      (entry) => entry.user_id === input.userId && entry.endpoint === input.endpoint
+    );
+    if (existing) {
+      existing.p256dh = input.p256dh;
+      existing.auth = input.auth;
+      existing.updated_at = now;
+      await writeLocalStore(store);
+      return existing;
+    }
+    const subscription = {
+      id: uid("push"),
+      user_id: input.userId,
+      endpoint: input.endpoint,
+      p256dh: input.p256dh,
+      auth: input.auth,
+      created_at: now,
+      updated_at: now,
+    };
+    store.push_subscriptions.push(subscription);
+    await writeLocalStore(store);
+    return subscription;
+  }
+
+  const rows = await sql`
+    INSERT INTO push_subscriptions (
+      user_id,
+      endpoint,
+      p256dh,
+      auth
+    )
+    VALUES (
+      ${input.userId},
+      ${input.endpoint},
+      ${input.p256dh},
+      ${input.auth}
+    )
+    ON CONFLICT (user_id, endpoint) DO UPDATE
+      SET p256dh = EXCLUDED.p256dh,
+          auth = EXCLUDED.auth,
+          updated_at = now()
+    RETURNING
+      id,
+      user_id,
+      endpoint,
+      p256dh,
+      auth,
+      created_at::text AS created_at,
+      updated_at::text AS updated_at
+  `;
+  return rows[0] as DbPushSubscription;
+}
+
+export async function deletePushSubscription(userId: string, endpoint: string) {
+  await initDb();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    store.push_subscriptions = store.push_subscriptions.filter(
+      (entry) => !(entry.user_id === userId && entry.endpoint === endpoint)
+    );
+    await writeLocalStore(store);
+    return;
+  }
+
+  await sql`
+    DELETE FROM push_subscriptions
+    WHERE user_id = ${userId}
+      AND endpoint = ${endpoint}
+  `;
+}
+
+export async function listPushSubscriptions(userId: string): Promise<DbPushSubscription[]> {
+  await initDb();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    return store.push_subscriptions.filter((entry) => entry.user_id === userId);
+  }
+
+  const rows = await sql`
+    SELECT
+      id,
+      user_id,
+      endpoint,
+      p256dh,
+      auth,
+      created_at::text AS created_at,
+      updated_at::text AS updated_at
+    FROM push_subscriptions
+    WHERE user_id = ${userId}
+  `;
+  return rows as DbPushSubscription[];
 }
