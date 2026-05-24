@@ -78,7 +78,7 @@ export default function ProfileCard({ profile, isCurrentUser = false, liveBounti
   const inputCls = "w-full px-3 py-2.5 rounded-xl bg-input-surface border border-card-border text-charcoal placeholder:text-muted text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 transition";
 
   return (
-    <div className="max-w-md mx-auto space-y-4 px-4 py-6">
+    <div className="max-w-md lg:max-w-3xl mx-auto space-y-4 px-4 py-6 lg:pb-10">
       {/* Hero */}
       <motion.div
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}

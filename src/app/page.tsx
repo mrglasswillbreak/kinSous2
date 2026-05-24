@@ -51,55 +51,79 @@ export default function HomePage() {
     : "N/A";
 
   return (
-    <div className="max-w-md mx-auto pb-24">
+    <div className="max-w-md mx-auto lg:max-w-5xl pb-24 lg:pb-10">
       {/* Hero */}
-      <div className="relative px-5 pt-12 pb-8 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-background to-secondary-50 -z-10" />
+      <div className="relative px-5 pt-12 pb-8 overflow-hidden lg:rounded-3xl lg:mx-4 lg:mt-6 lg:pt-14 lg:pb-12">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-background to-secondary-50 -z-10 lg:rounded-3xl" />
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center shadow-primary">
-              <Flame size={22} className="text-white" />
+        <div className="lg:grid lg:grid-cols-2 lg:gap-10 lg:items-center">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center shadow-primary">
+                <Flame size={22} className="text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-charcoal leading-tight">KinSous</h1>
+                <p className="text-xs text-muted">FolkProvidr</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-charcoal leading-tight">KinSous</h1>
-              <p className="text-xs text-muted">FolkProvidr</p>
+
+            <h2 className="text-3xl lg:text-4xl font-bold text-charcoal leading-tight">
+              Taste Your <span className="text-primary">Heritage,</span>
+              <br />Wherever You Are
+            </h2>
+            <p className="text-muted mt-2 leading-relaxed lg:text-base">
+              Connect with local culinary helpers for authentic West African food experiences — from Lagos to Atlanta.
+            </p>
+
+            <div className="flex gap-3 mt-5">
+              <Link href="/bounties">
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-2xl text-sm font-semibold shadow-primary"
+                >
+                  Post a Bounty <ArrowRight size={16} />
+                </motion.button>
+              </Link>
+              <Link href="/profile">
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-2 bg-card text-charcoal px-5 py-2.5 rounded-2xl text-sm font-semibold border border-card-border shadow-card"
+                >
+                  Become a Helper
+                </motion.button>
+              </Link>
             </div>
-          </div>
+          </motion.div>
 
-          <h2 className="text-3xl font-bold text-charcoal leading-tight">
-            Taste Your <span className="text-primary">Heritage,</span>
-            <br />Wherever You Are
-          </h2>
-          <p className="text-muted mt-2 leading-relaxed">
-            Connect with local culinary helpers for authentic West African food experiences — from Lagos to Atlanta.
-          </p>
-
-          <div className="flex gap-3 mt-5">
-            <Link href="/bounties">
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-2xl text-sm font-semibold shadow-primary"
-              >
-                Post a Bounty <ArrowRight size={16} />
-              </motion.button>
-            </Link>
-            <Link href="/profile">
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-2 bg-card text-charcoal px-5 py-2.5 rounded-2xl text-sm font-semibold border border-card-border shadow-card"
-              >
-                Become a Helper
-              </motion.button>
-            </Link>
-          </div>
-        </motion.div>
+          {/* Stats panel — desktop right column */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+            className="hidden lg:block"
+          >
+            <div className="bg-card rounded-3xl shadow-card p-6 border border-card-border space-y-4">
+              {[
+                { value: `${recentBounties.length}`, label: "Recent Bounties", emoji: "🍽️" },
+                { value: `${topHelpers.length}`, label: "Active Helpers", emoji: "👨‍🍳" },
+                { value: avgHelperRating === "N/A" ? "N/A" : `${avgHelperRating}★`, label: "Avg Helper Rating", emoji: "⭐" },
+              ].map((s) => (
+                <div key={s.label} className="flex items-center gap-4 p-3 rounded-2xl bg-subtle border border-card-border">
+                  <span className="text-2xl">{s.emoji}</span>
+                  <div>
+                    <p className="text-2xl font-bold text-charcoal leading-none">{s.value}</p>
+                    <p className="text-xs text-muted mt-0.5">{s.label}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
       </div>
 
-      {/* Stats */}
+      {/* Stats (mobile only) */}
       <motion.div
         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-        className="mx-4 bg-card rounded-3xl shadow-card p-4 flex items-center justify-around border border-card-border"
+        className="mx-4 bg-card rounded-3xl shadow-card p-4 flex items-center justify-around border border-card-border lg:hidden mt-4"
       >
         {[
           { value: `${recentBounties.length}`, label: "Recent Bounties" },
@@ -116,13 +140,13 @@ export default function HomePage() {
       {/* Features */}
       <div className="px-4 mt-6">
         <h3 className="text-lg font-bold text-charcoal mb-3">How It Works</h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {features.map((feat, i) => (
             <Link key={feat.title} href={feat.href}>
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.1 + i * 0.05 }} whileTap={{ scale: 0.97 }}
-                className="bg-card rounded-3xl shadow-card p-4 h-full border border-card-border"
+                className="bg-card rounded-3xl shadow-card p-4 h-full border border-card-border hover:shadow-card-hover transition-shadow"
               >
                 <div className={`w-10 h-10 rounded-2xl ${feat.color} flex items-center justify-center mb-3`}>
                   <feat.icon size={20} />
@@ -135,85 +159,127 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Recent Bounties */}
-      <div className="px-4 mt-6">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-bold text-charcoal">Recent Bounties</h3>
-          <Link href="/bounties" className="text-primary text-sm font-semibold flex items-center gap-1">
-            See all <ChevronRight size={14} />
-          </Link>
-        </div>
-        <div className="space-y-3">
-          {recentBounties.length === 0 ? (
-            <div className="bg-card rounded-2xl shadow-card p-4 border border-card-border text-center">
-              <p className="text-sm font-semibold text-charcoal">No bounties yet</p>
-              <p className="text-xs text-muted mt-1">Be the first to post one.</p>
-            </div>
-          ) : recentBounties.map((b, i) => (
-            <Link key={b.id} href={`/bounties/${b.id}`}>
-              <motion.div
-                initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.15 + i * 0.05 }}
-                whileTap={{ scale: 0.98 }}
-                className="bg-card rounded-2xl shadow-card p-3 flex items-center gap-3 border border-card-border"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={b.seeker.avatarUrl} alt={b.seeker.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-charcoal truncate">{b.title}</p>
-                  <p className="text-xs text-muted">{b.location.city} · {timeAgo(b.createdAt)}</p>
-                </div>
-                <span className="text-sm font-bold text-secondary-700 flex-shrink-0">
-                  {formatCurrency(b.budget, b.currency)}
-                </span>
-              </motion.div>
+      {/* Recent Bounties + Top Helpers side-by-side on desktop */}
+      <div className="px-4 mt-6 lg:grid lg:grid-cols-2 lg:gap-6">
+        {/* Recent Bounties */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-bold text-charcoal">Recent Bounties</h3>
+            <Link href="/bounties" className="text-primary text-sm font-semibold flex items-center gap-1">
+              See all <ChevronRight size={14} />
             </Link>
-          ))}
+          </div>
+          <div className="space-y-3">
+            {recentBounties.length === 0 ? (
+              <div className="bg-card rounded-2xl shadow-card p-4 border border-card-border text-center">
+                <p className="text-sm font-semibold text-charcoal">No bounties yet</p>
+                <p className="text-xs text-muted mt-1">Be the first to post one.</p>
+              </div>
+            ) : recentBounties.map((b, i) => (
+              <Link key={b.id} href={`/bounties/${b.id}`}>
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.15 + i * 0.05 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="bg-card rounded-2xl shadow-card p-3 flex items-center gap-3 border border-card-border hover:shadow-card-hover transition-shadow"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={b.seeker.avatarUrl} alt={b.seeker.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-charcoal truncate">{b.title}</p>
+                    <p className="text-xs text-muted">{b.location.city} · {timeAgo(b.createdAt)}</p>
+                  </div>
+                  <span className="text-sm font-bold text-secondary-700 flex-shrink-0">
+                    {formatCurrency(b.budget, b.currency)}
+                  </span>
+                </motion.div>
+              </Link>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Top Helpers */}
-      <div className="px-4 mt-6">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-bold text-charcoal">Top Helpers</h3>
-          <Link href="/helpers" className="text-primary text-sm font-semibold flex items-center gap-1">
-            View all <ChevronRight size={14} />
-          </Link>
-        </div>
-        <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4" style={{ scrollbarWidth: "none" }}>
-          {topHelpers.length === 0 ? (
-            <div className="bg-card rounded-2xl shadow-card p-4 border border-card-border text-center min-w-full">
-              <p className="text-sm font-semibold text-charcoal">No helpers yet</p>
-              <p className="text-xs text-muted mt-1">New helpers will appear here.</p>
-            </div>
-          ) : topHelpers.map((h, i) => (
-            <Link key={h.id} href={`/helpers/${h.id}`}>
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.1 + i * 0.05 }} whileTap={{ scale: 0.95 }}
-                className="flex-shrink-0 bg-card rounded-3xl shadow-card p-4 w-44 text-center border border-card-border"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={h.avatarUrl} alt={h.name} className="w-14 h-14 rounded-full object-cover mx-auto ring-2 ring-primary-100" />
-                <p className="text-sm font-bold text-charcoal mt-2 truncate">{h.name}</p>
-                <p className="text-xs text-muted">{h.location.city}</p>
-                {h.helperStats ? (
-                  <div className="flex items-center justify-center gap-1 mt-1">
-                    <Star size={11} className="text-yellow-400 fill-yellow-400" />
-                    <span className="text-xs font-semibold text-charcoal">{h.helperStats.averageRating.toFixed(1)}</span>
-                    <span className="text-xs text-muted">({h.helperStats.completedOrders})</span>
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted mt-1">New Helper</p>
-                )}
-                {h.chefScore && (
-                  <div className="mt-2 bg-primary-50 rounded-full px-2 py-0.5 inline-block">
-                    <span className="text-xs font-bold text-primary">🔥 {h.chefScore}</span>
-                  </div>
-                )}
-              </motion.div>
+        {/* Top Helpers */}
+        <div className="mt-6 lg:mt-0">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-bold text-charcoal">Top Helpers</h3>
+            <Link href="/helpers" className="text-primary text-sm font-semibold flex items-center gap-1">
+              View all <ChevronRight size={14} />
             </Link>
-          ))}
+          </div>
+          {/* Mobile: horizontal scroll */}
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 lg:hidden" style={{ scrollbarWidth: "none" }}>
+            {topHelpers.length === 0 ? (
+              <div className="bg-card rounded-2xl shadow-card p-4 border border-card-border text-center min-w-full">
+                <p className="text-sm font-semibold text-charcoal">No helpers yet</p>
+                <p className="text-xs text-muted mt-1">New helpers will appear here.</p>
+              </div>
+            ) : topHelpers.map((h, i) => (
+              <Link key={h.id} href={`/helpers/${h.id}`}>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.1 + i * 0.05 }} whileTap={{ scale: 0.95 }}
+                  className="flex-shrink-0 bg-card rounded-3xl shadow-card p-4 w-44 text-center border border-card-border"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={h.avatarUrl} alt={h.name} className="w-14 h-14 rounded-full object-cover mx-auto ring-2 ring-primary-100" />
+                  <p className="text-sm font-bold text-charcoal mt-2 truncate">{h.name}</p>
+                  <p className="text-xs text-muted">{h.location.city}</p>
+                  {h.helperStats ? (
+                    <div className="flex items-center justify-center gap-1 mt-1">
+                      <Star size={11} className="text-yellow-400 fill-yellow-400" />
+                      <span className="text-xs font-semibold text-charcoal">{h.helperStats.averageRating.toFixed(1)}</span>
+                      <span className="text-xs text-muted">({h.helperStats.completedOrders})</span>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted mt-1">New Helper</p>
+                  )}
+                  {h.chefScore && (
+                    <div className="mt-2 bg-primary-50 rounded-full px-2 py-0.5 inline-block">
+                      <span className="text-xs font-bold text-primary">🔥 {h.chefScore}</span>
+                    </div>
+                  )}
+                </motion.div>
+              </Link>
+            ))}
+          </div>
+          {/* Desktop: grid */}
+          <div className="hidden lg:grid grid-cols-2 gap-3">
+            {topHelpers.length === 0 ? (
+              <div className="col-span-2 bg-card rounded-2xl shadow-card p-4 border border-card-border text-center">
+                <p className="text-sm font-semibold text-charcoal">No helpers yet</p>
+                <p className="text-xs text-muted mt-1">New helpers will appear here.</p>
+              </div>
+            ) : topHelpers.map((h, i) => (
+              <Link key={h.id} href={`/helpers/${h.id}`}>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.1 + i * 0.05 }} whileTap={{ scale: 0.95 }}
+                  className="bg-card rounded-3xl shadow-card p-4 flex items-center gap-3 border border-card-border hover:shadow-card-hover transition-shadow"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={h.avatarUrl} alt={h.name} className="w-12 h-12 rounded-full object-cover ring-2 ring-primary-100 flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-charcoal truncate">{h.name}</p>
+                    <p className="text-xs text-muted">{h.location.city}</p>
+                    {h.helperStats ? (
+                      <div className="flex items-center gap-1 mt-1">
+                        <Star size={11} className="text-yellow-400 fill-yellow-400" />
+                        <span className="text-xs font-semibold text-charcoal">{h.helperStats.averageRating.toFixed(1)}</span>
+                        <span className="text-xs text-muted">({h.helperStats.completedOrders})</span>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted mt-1">New Helper</p>
+                    )}
+                  </div>
+                  {h.chefScore && (
+                    <div className="bg-primary-50 rounded-full px-2 py-0.5">
+                      <span className="text-xs font-bold text-primary">🔥 {h.chefScore}</span>
+                    </div>
+                  )}
+                </motion.div>
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </div>

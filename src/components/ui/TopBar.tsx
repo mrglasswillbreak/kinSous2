@@ -90,7 +90,7 @@ export default function TopBar() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 border-b border-card-border bg-background/90 px-4 py-3 backdrop-blur-md">
+      <header className="sticky top-0 z-30 border-b border-card-border bg-background/90 px-4 py-3 backdrop-blur-md lg:hidden">
         <div className="mx-auto flex w-full max-w-2xl items-center justify-between">
           <Link href="/" className="flex min-w-0 items-center gap-2">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary">

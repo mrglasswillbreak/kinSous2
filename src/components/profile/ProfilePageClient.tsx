@@ -247,7 +247,7 @@ export default function ProfilePageClient({
     "w-full rounded-2xl border border-card-border bg-input-surface px-3 py-2.5 text-sm text-charcoal placeholder:text-muted transition focus:outline-none focus:ring-2 focus:ring-primary-300";
 
   return (
-    <div className="mx-auto max-w-5xl px-4 pb-24 pt-6">
+    <div className="mx-auto max-w-5xl px-4 pb-24 lg:pb-10 pt-6">
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
         <section className="overflow-hidden rounded-3xl border border-card-border bg-card shadow-card">
           <div className="h-28 bg-gradient-to-br from-primary-400 via-primary to-secondary-600" />

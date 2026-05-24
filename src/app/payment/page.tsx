@@ -40,7 +40,7 @@ export default function PaymentPage() {
   }, [user?.userId]);
 
   return (
-    <div className="max-w-md mx-auto px-4 pt-6 pb-24 space-y-6">
+    <div className="max-w-md lg:max-w-2xl mx-auto px-4 pt-6 pb-24 lg:pb-10 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-charcoal">Escrow Payment</h1>
         <p className="text-muted text-sm mt-1">Dual-market gateway: Stripe (US) · Flutterwave (NG)</p>

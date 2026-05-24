@@ -55,7 +55,7 @@ export default function Feed() {
   const displayed = bounties;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 pb-24">
+    <div className="max-w-2xl mx-auto lg:max-w-5xl px-4 pb-24 lg:pb-10">
       <div className="sticky top-0 z-10 bg-background pt-4 pb-3 space-y-3">
         <div className="flex items-center justify-between">
           <div>
@@ -69,9 +69,10 @@ export default function Feed() {
           <motion.button
             whileTap={{ scale: 0.92 }}
             onClick={() => setPostModalOpen(true)}
-            className="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-primary"
+            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-2xl text-sm font-semibold shadow-primary"
           >
-            <Plus size={20} className="text-white" />
+            <Plus size={16} className="shrink-0" />
+            <span className="hidden sm:inline">Post Bounty</span>
           </motion.button>
         </div>
 
@@ -102,10 +103,10 @@ export default function Feed() {
         </div>
       </div>
 
-      <motion.div layout className="space-y-4 mt-2">
+      <motion.div layout className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
         <AnimatePresence mode="popLayout">
           {loading ? (
-            Array.from({ length: 3 }).map((_, i) => (
+            Array.from({ length: 4 }).map((_, i) => (
               <motion.div
                 key={`skel-${i}`}
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }}
@@ -116,7 +117,7 @@ export default function Feed() {
             <motion.div
               key="empty"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="text-center py-16 text-muted"
+              className="col-span-full text-center py-16 text-muted"
             >
               <p className="text-4xl mb-3">🍽️</p>
               <p className="font-semibold text-charcoal">No bounties found</p>

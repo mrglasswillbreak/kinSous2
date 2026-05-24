@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function HelpersRoute() {
-  return <div className="pt-4"><HelpersPage /></div>;
+  return <div className="pt-4 lg:pt-6"><HelpersPage /></div>;
 }

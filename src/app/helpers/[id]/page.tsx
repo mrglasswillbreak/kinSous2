@@ -27,7 +27,7 @@ export default async function HelperProfilePage({ params }: Props) {
   const profile = dbUserToProfile(dbUser);
 
   return (
-    <div className="pt-4 pb-24">
+    <div className="pt-4 lg:pt-6 pb-24 lg:pb-10">
       <ProfileCard profile={profile} />
     </div>
   );

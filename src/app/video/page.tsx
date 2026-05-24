@@ -61,7 +61,7 @@ function VideoPageContent() {
   }
 
   return (
-    <div className="max-w-md mx-auto px-4 pt-6 pb-24">
+    <div className="max-w-md lg:max-w-2xl mx-auto px-4 pt-6 pb-24 lg:pb-10">
       <h1 className="text-2xl font-bold text-charcoal mb-2">Live Assist</h1>
       <p className="text-muted text-sm mb-6">
         Start a secure session with the selected bidder for this bounty.
@@ -123,7 +123,7 @@ export default function VideoPage() {
   return (
     <Suspense
       fallback={
-        <div className="max-w-md mx-auto px-4 pt-6 pb-24">
+        <div className="max-w-md lg:max-w-2xl mx-auto px-4 pt-6 pb-24 lg:pb-10">
           <div className="h-8 w-32 bg-badge rounded-xl animate-pulse mb-4" />
           <div className="h-64 bg-card rounded-3xl border border-card-border animate-pulse" />
         </div>

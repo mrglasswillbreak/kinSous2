@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function TrackerPage() {
-  return <div className="pt-4"><Tracker /></div>;
+  return <div className="pt-4 lg:pt-6"><Tracker /></div>;
 }
