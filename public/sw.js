@@ -3,7 +3,8 @@ self.addEventListener("push", (event) => {
   const title = data.title || "KinSous";
   const options = {
     body: data.body || "",
-    icon: "/favicon.ico",
+    icon: "/android-chrome-192x192.png",
+    badge: "/favicon-32x32.png",
     data: { url: data.url || "/" },
   };
   event.waitUntil(self.registration.showNotification(title, options));
