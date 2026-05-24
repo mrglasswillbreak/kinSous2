@@ -263,8 +263,12 @@ export default function Settings() {
   const inputCls = "w-full px-3 py-2.5 rounded-xl bg-input-surface border border-card-border text-charcoal placeholder:text-muted text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 transition";
 
   return (
-    <div className="max-w-md mx-auto px-4 pb-24 pt-6 space-y-5">
-      <h1 className="text-2xl font-bold text-charcoal px-0">Settings</h1>
+    <div className="max-w-md lg:max-w-4xl mx-auto px-4 pb-24 lg:pb-10 pt-6">
+      <h1 className="text-2xl font-bold text-charcoal px-0 mb-5">Settings</h1>
+
+      <div className="lg:grid lg:grid-cols-2 lg:gap-5 space-y-5 lg:space-y-0">
+        {/* Left column */}
+        <div className="space-y-5">
 
       {/* Profile */}
       <div className={sectionCard}>
@@ -453,6 +457,11 @@ export default function Settings() {
         </p>
       </div>
 
+        </div>{/* end left column */}
+
+        {/* Right column */}
+        <div className="space-y-5">
+
       {/* Payments */}
       <div className={sectionCard}>
         <div className={sectionHeader}>
@@ -581,7 +590,10 @@ export default function Settings() {
         <SectionItem icon={<LogOut size={16} className="text-red-500" />} label="Sign Out" danger onClick={handleLogout} />
       </div>
 
-      <p className="text-center text-xs text-muted pb-4">KinSous v0.1.0 · FolkProvidr</p>
+        </div>{/* end right column */}
+      </div>{/* end grid */}
+
+      <p className="text-center text-xs text-muted pb-4 mt-5">KinSous v0.1.0 · FolkProvidr</p>
     </div>
   );
 }

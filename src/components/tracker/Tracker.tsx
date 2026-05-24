@@ -161,7 +161,7 @@ export default function Tracker() {
 
   if (!loading && !tracking) {
     return (
-      <div className="max-w-md mx-auto px-4 py-6">
+      <div className="max-w-md lg:max-w-2xl mx-auto px-4 py-6">
         <div className="bg-card rounded-3xl shadow-card p-5 border border-card-border text-center">
           <p className="text-sm font-semibold text-charcoal">No active delivery</p>
           <p className="text-xs text-muted mt-1">Tracking will appear once a bounty is in progress.</p>
@@ -172,7 +172,7 @@ export default function Tracker() {
 
   if (!tracking) {
     return (
-      <div className="max-w-md mx-auto px-4 py-6">
+      <div className="max-w-md lg:max-w-2xl mx-auto px-4 py-6">
         <div className="bg-card rounded-3xl shadow-card p-5 border border-card-border text-center">
           <p className="text-sm text-muted">Loading tracking…</p>
         </div>
@@ -181,60 +181,68 @@ export default function Tracker() {
   }
 
   return (
-    <div className="max-w-md mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-md lg:max-w-4xl mx-auto px-4 py-6 lg:pb-10">
       <div>
         <h2 className="text-2xl font-bold text-charcoal">Live Tracking</h2>
         <p className="text-muted text-sm mt-0.5">Your order is on the way</p>
       </div>
 
-      {/* Helper info */}
-      <div className="flex items-center gap-3 bg-card rounded-3xl p-4 shadow-card">
-        <div className="relative">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={tracking.helper.avatarUrl} alt={tracking.helper.name}
-            className="w-14 h-14 rounded-full object-cover ring-2 ring-primary-100"
-          />
-          <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-secondary-500 rounded-full border-2 border-white" />
-        </div>
-        <div className="flex-1">
-          <p className="font-bold text-charcoal">{tracking.helper.name}</p>
-          <p className="text-xs text-muted">Your Helper · ⭐ {tracking.helper.chefScore}</p>
-        </div>
-        {tracking.estimatedArrivalMinutes && (
-          <div className="text-right">
-            <p className="text-2xl font-bold text-primary">{tracking.estimatedArrivalMinutes}</p>
-            <p className="text-xs text-muted flex items-center gap-1 justify-end">
-              <Clock size={10} /> min away
-            </p>
-          </div>
-        )}
-      </div>
-
-      <MapPlaceholder tracking={tracking} />
-
-      <div className="bg-card rounded-3xl p-5 shadow-card space-y-4">
-        <h3 className="font-bold text-charcoal">Delivery Progress</h3>
-        <Stepper tracking={tracking} />
-      </div>
-
-      {tracking.helperLocation && (
-        <div className="bg-card rounded-3xl p-4 shadow-card">
-          <h4 className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Helper Status</h4>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-primary-50 rounded-2xl p-3">
-              <p className="text-xs text-muted">Speed</p>
-              <p className="text-lg font-bold text-charcoal">
-                {tracking.helperLocation.speed ?? "--"} <span className="text-sm font-normal">km/h</span>
-              </p>
+      <div className="mt-6 lg:grid lg:grid-cols-2 lg:gap-6 space-y-6 lg:space-y-0">
+        {/* Left: map + stepper */}
+        <div className="space-y-6">
+          {/* Helper info */}
+          <div className="flex items-center gap-3 bg-card rounded-3xl p-4 shadow-card">
+            <div className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={tracking.helper.avatarUrl} alt={tracking.helper.name}
+                className="w-14 h-14 rounded-full object-cover ring-2 ring-primary-100"
+              />
+              <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-secondary-500 rounded-full border-2 border-white" />
             </div>
-            <div className="bg-secondary-50 rounded-2xl p-3">
-              <p className="text-xs text-muted">Location updated</p>
-              <p className="text-sm font-bold text-charcoal">{elapsed}s ago</p>
+            <div className="flex-1">
+              <p className="font-bold text-charcoal">{tracking.helper.name}</p>
+              <p className="text-xs text-muted">Your Helper · ⭐ {tracking.helper.chefScore}</p>
             </div>
+            {tracking.estimatedArrivalMinutes && (
+              <div className="text-right">
+                <p className="text-2xl font-bold text-primary">{tracking.estimatedArrivalMinutes}</p>
+                <p className="text-xs text-muted flex items-center gap-1 justify-end">
+                  <Clock size={10} /> min away
+                </p>
+              </div>
+            )}
           </div>
+
+          <MapPlaceholder tracking={tracking} />
         </div>
-      )}
+
+        {/* Right: progress + status */}
+        <div className="space-y-6">
+          <div className="bg-card rounded-3xl p-5 shadow-card space-y-4">
+            <h3 className="font-bold text-charcoal">Delivery Progress</h3>
+            <Stepper tracking={tracking} />
+          </div>
+
+          {tracking.helperLocation && (
+            <div className="bg-card rounded-3xl p-4 shadow-card">
+              <h4 className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Helper Status</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-primary-50 rounded-2xl p-3">
+                  <p className="text-xs text-muted">Speed</p>
+                  <p className="text-lg font-bold text-charcoal">
+                    {tracking.helperLocation.speed ?? "--"} <span className="text-sm font-normal">km/h</span>
+                  </p>
+                </div>
+                <div className="bg-secondary-50 rounded-2xl p-3">
+                  <p className="text-xs text-muted">Location updated</p>
+                  <p className="text-sm font-bold text-charcoal">{elapsed}s ago</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

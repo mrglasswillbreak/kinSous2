@@ -109,7 +109,7 @@ export default function HelpersPage() {
   useEffect(() => { loadHelpers(debouncedQuery); }, [debouncedQuery, loadHelpers]);
 
   return (
-    <div className="max-w-2xl mx-auto px-4 pb-24">
+    <div className="max-w-2xl mx-auto lg:max-w-5xl px-4 pb-24 lg:pb-10">
       <div className="sticky top-0 z-10 bg-background pt-4 pb-3 space-y-3">
         <div>
           <h1 className="text-2xl font-bold text-charcoal">Browse Helpers</h1>
@@ -128,7 +128,7 @@ export default function HelpersPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 mt-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="bg-card rounded-3xl shadow-card p-4 space-y-3">
