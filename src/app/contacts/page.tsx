@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: "Your contacts and active conversations",
 };
 
-export default function MessagesPage() {
+export default function ContactsPage() {
   return (
     <div className="pt-4">
       <MessagesShell />

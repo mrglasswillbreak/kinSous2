@@ -78,7 +78,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
         avatarUrl:
           message.sender_avatar_url ||
           `https://i.pravatar.cc/150?u=${encodeURIComponent(message.sender_id)}`,
-        href: `/messages/${id}`,
+        href: `/contacts/${id}`,
       });
 
       publishUserEvent(other.id, {

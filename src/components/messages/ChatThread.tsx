@@ -10,10 +10,12 @@ import {
   CheckCheck,
   Loader2,
   MoreVertical,
+  Phone,
   Trash2,
   Pencil,
   Ban,
   Flag,
+  Video,
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -355,7 +357,18 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
     const confirmDelete = window.confirm("Delete this conversation?");
     if (!confirmDelete) return;
     await deleteConversation();
-    router.push("/messages");
+    router.push("/contacts");
+  };
+
+  const startCall = (mode: "audio" | "video") => {
+    if (!other) return;
+    const helper = conversation?.participants.find((participant) => participant.role === "HELPER");
+    if (!helper) return;
+    const params = new URLSearchParams({ helperId: helper.id, mode });
+    if (conversation?.bountyRef?.id) {
+      params.set("bountyId", conversation.bountyRef.id);
+    }
+    router.push(`/video?${params.toString()}`);
   };
 
   const other = conversation?.participants.find((p) => p.id !== user?.userId);
@@ -409,6 +422,28 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
         )}
 
         <div className="ml-auto flex items-center gap-2">
+          {other && (
+            <>
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => startCall("audio")}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-badge transition-colors"
+                title="Start audio call"
+                aria-label="Start audio call"
+              >
+                <Phone size={15} className="text-charcoal" />
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => startCall("video")}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-badge transition-colors"
+                title="Start video call"
+                aria-label="Start video call"
+              >
+                <Video size={15} className="text-charcoal" />
+              </motion.button>
+            </>
+          )}
           {conversation?.bountyRef && (
             <div className="flex items-center gap-1 text-xs text-primary bg-primary-50 px-2.5 py-1 rounded-full border border-primary-100">
               <MapPin size={11} />

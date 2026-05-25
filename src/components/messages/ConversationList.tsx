@@ -32,7 +32,7 @@ function ConversationRow({ conv, index, currentUserId }: { conv: Conversation; i
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.06 }}
     >
-      <Link href={`/messages/${conv.id}`}>
+      <Link href={`/contacts/${conv.id}`}>
         <div className={`flex items-center gap-3 px-4 py-3.5 hover:bg-subtle transition-colors ${conv.unreadCount > 0 ? "bg-primary-50/30" : ""}`}>
           <div className="relative flex-shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -99,7 +99,7 @@ export default function ConversationList({ className }: { className?: string }) 
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data?.conversationId) {
-          router.replace(`/messages/${data.conversationId}`);
+          router.replace(`/contacts/${data.conversationId}`);
           return;
         }
         refetch();
@@ -123,13 +123,13 @@ export default function ConversationList({ className }: { className?: string }) 
       <div className="sticky top-0 z-10 bg-background px-4 pt-6 pb-3 space-y-3">
         <div className="flex items-center gap-2">
           <MessageCircle size={22} className="text-primary" />
-          <h1 className="text-2xl font-bold text-charcoal">Messages</h1>
+          <h1 className="text-2xl font-bold text-charcoal">Contacts</h1>
         </div>
         <div className="relative">
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
           <input
             type="text"
-            placeholder="Search conversations…"
+            placeholder="Search contacts…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-input-surface border border-card-border rounded-2xl text-sm text-charcoal placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-200 shadow-sm"

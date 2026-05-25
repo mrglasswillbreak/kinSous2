@@ -13,7 +13,7 @@ const features = [
   { icon: Video, title: "Live Calls", description: "Message, audio, or video chat after a bidder is selected", href: "/bounties", color: "bg-blue-50 text-blue-600" },
   { icon: Shield, title: "Secure Escrow", description: "Funds held safely until you confirm your order", href: "/payment", color: "bg-secondary-50 text-secondary-500" },
   { icon: MapPin, title: "Live Tracking", description: "Follow your helper's real-time location", href: "/tracker", color: "bg-purple-50 text-purple-600" },
-  { icon: MessageCircle, title: "Messages", description: "Chat with helpers and manage your orders", href: "/messages", color: "bg-indigo-50 text-indigo-600" },
+  { icon: MessageCircle, title: "Contacts", description: "Chat with helpers and manage your orders", href: "/contacts", color: "bg-indigo-50 text-indigo-600" },
   { icon: Map, title: "Tracker", description: "Real-time delivery tracking with live map", href: "/tracker", color: "bg-teal-50 text-teal-600" },
 ].slice(0, 4);
 

@@ -33,6 +33,7 @@ export default function BidSection({ bounty, onChanged }: BidSectionProps) {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [contacting, setContacting] = useState(false);
+  const [markingComplete, setMarkingComplete] = useState(false);
 
   const bids = bounty.bids ?? [];
   const isPoster = user?.userId === bounty.seeker.id;
@@ -40,6 +41,9 @@ export default function BidSection({ bounty, onChanged }: BidSectionProps) {
   const myBid = bids.find((bid) => bid.helper.id === user?.userId);
   const canBid = bounty.status === "OPEN" && user?.role === "HELPER" && !isPoster;
   const canManageAccepted = Boolean(isPoster && acceptedBid);
+  const canMarkComplete =
+    Boolean(isPoster && acceptedBid) &&
+    (bounty.status === "IN_PROGRESS" || bounty.status === "AWAITING_APPROVAL");
 
   const handleSubmit = async () => {
     if (!msg.trim() || !amt || placingBid) return;
@@ -91,11 +95,30 @@ export default function BidSection({ bounty, onChanged }: BidSectionProps) {
         body: JSON.stringify({ helperId: acceptedBid.helper.id, bountyId: bounty.id }),
       });
       const payload = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(payload?.error ?? "Unable to open messages.");
-      router.push(`/messages/${payload.conversationId}`);
+      if (!res.ok) throw new Error(payload?.error ?? "Unable to open contacts.");
+      router.push(`/contacts/${payload.conversationId}`);
     } catch (err) {
-      setFeedback(err instanceof Error ? err.message : "Unable to open messages.");
+      setFeedback(err instanceof Error ? err.message : "Unable to open contacts.");
       setContacting(false);
+    }
+  };
+
+  const handleMarkComplete = async () => {
+    if (!canMarkComplete || markingComplete) return;
+    setMarkingComplete(true);
+    setFeedback(null);
+    try {
+      const res = await fetch(`/api/bounties/${encodeURIComponent(bounty.id)}/complete`, {
+        method: "POST",
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error ?? "Unable to mark bounty as complete.");
+      setFeedback("Bounty marked as complete.");
+      onChanged?.();
+    } catch (err) {
+      setFeedback(err instanceof Error ? err.message : "Unable to mark bounty as complete.");
+    } finally {
+      setMarkingComplete(false);
     }
   };
 
@@ -195,6 +218,23 @@ export default function BidSection({ bounty, onChanged }: BidSectionProps) {
               <Headphones size={14} /> Audio
             </motion.button>
           </div>
+          {canMarkComplete && (
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={handleMarkComplete}
+              disabled={markingComplete}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-secondary text-white py-2.5 text-sm font-semibold disabled:opacity-60"
+            >
+              {markingComplete ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+              Mark bounty complete
+            </motion.button>
+          )}
+        </div>
+      )}
+
+      {!isPoster && myBid?.status === "ACCEPTED" && bounty.status === "IN_PROGRESS" && (
+        <div className="rounded-2xl border border-secondary-200 bg-secondary-50 p-3 text-sm text-charcoal">
+          Your bid was accepted. Coordinate delivery with the poster from Contacts.
         </div>
       )}
 

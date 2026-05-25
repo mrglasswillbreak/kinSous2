@@ -37,7 +37,7 @@ const menuItems: Array<{
   { href: "/", icon: Home, label: "Home" },
   { href: "/bounties", icon: Scroll, label: "Bounties" },
   { href: "/helpers", icon: Users, label: "Helpers" },
-  { href: "/messages", icon: MessageCircle, label: "Messages", badge: "messages" },
+  { href: "/contacts", icon: MessageCircle, label: "Contacts", badge: "messages" },
   { href: "/tracker", icon: Map, label: "Tracker" },
   { href: "/payment", icon: CreditCard, label: "Payments" },
   { href: "/profile", icon: User, label: "Profile" },

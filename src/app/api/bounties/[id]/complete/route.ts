@@ -1,17 +1,16 @@
 import { NextResponse } from "next/server";
+import { getSession } from "@/lib/auth";
 import {
-  acceptBid,
+  completeBounty,
   createNotification,
-  getBidById,
   getBountyById,
   getOrCreateDirectConversation,
   sendConversationMessage,
 } from "@/lib/db";
-import { getSession } from "@/lib/auth";
 import { publishUserEvent } from "@/lib/realtime";
 
 interface RouteContext {
-  params: Promise<{ id: string; bidId: string }>;
+  params: Promise<{ id: string }>;
 }
 
 export async function POST(_req: Request, { params }: RouteContext) {
@@ -21,31 +20,29 @@ export async function POST(_req: Request, { params }: RouteContext) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const { id, bidId } = await params;
+    const { id } = await params;
     const bounty = await getBountyById(id);
     if (!bounty) {
       return NextResponse.json({ error: "Bounty not found" }, { status: 404 });
     }
     if (bounty.seeker_id !== session.userId) {
-      return NextResponse.json({ error: "Only the bounty poster can accept bids" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Only the bounty poster can complete this bounty" },
+        { status: 403 }
+      );
     }
 
-    const existingBid = await getBidById(bidId);
-    if (!existingBid || existingBid.bounty_id !== id) {
-      return NextResponse.json({ error: "Bid not found" }, { status: 404 });
-    }
-    if (bounty.status !== "OPEN") {
-      return NextResponse.json({ error: "This bounty already has a selected bidder" }, { status: 409 });
-    }
-
-    const bid = await acceptBid({ bountyId: id, bidId, seekerId: session.userId });
-    if (!bid) {
-      return NextResponse.json({ error: "Bid could not be accepted" }, { status: 409 });
+    const completed = await completeBounty({ bountyId: id, seekerId: session.userId });
+    if (!completed) {
+      return NextResponse.json(
+        { error: "This bounty cannot be completed yet" },
+        { status: 409 }
+      );
     }
 
     const conversationId = await getOrCreateDirectConversation({
       userId: session.userId,
-      otherUserId: bid.helper_id,
+      otherUserId: completed.acceptedBid.helper_id,
       bountyId: id,
     });
 
@@ -53,17 +50,17 @@ export async function POST(_req: Request, { params }: RouteContext) {
       conversationId,
       senderId: session.userId,
       type: "SYSTEM",
-      content: `Bid accepted for ${bounty.title}. You can now coordinate details here.`,
+      content: `Bounty marked as complete for ${completed.bounty.title}.`,
     });
 
     const notification = await createNotification({
-      userId: bid.helper_id,
-      type: "BID_ACCEPTED",
-      title: "Your bid was accepted",
-      body: `Your bid on “${bounty.title}” has been accepted.`,
+      userId: completed.acceptedBid.helper_id,
+      type: "SYSTEM",
+      title: "Bounty completed",
+      body: `The poster marked “${completed.bounty.title}” as complete.`,
       href: `/bounties/${id}`,
     });
-    publishUserEvent(bid.helper_id, {
+    publishUserEvent(completed.acceptedBid.helper_id, {
       type: "notification",
       payload: {
         id: notification.id,
@@ -76,14 +73,21 @@ export async function POST(_req: Request, { params }: RouteContext) {
         createdAt: notification.created_at,
       },
     });
-    publishUserEvent(bid.helper_id, {
+    publishUserEvent(completed.acceptedBid.helper_id, {
       type: "conversation_updated",
       payload: { conversationId },
     });
 
-    return NextResponse.json({ bid, conversationId }, { status: 200 });
+    return NextResponse.json(
+      {
+        bounty: completed.bounty,
+        acceptedBid: completed.acceptedBid,
+        conversationId,
+      },
+      { status: 200 }
+    );
   } catch (err) {
-    console.error("POST /api/bounties/[id]/bids/[bidId]/accept error:", err);
+    console.error("POST /api/bounties/[id]/complete error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
