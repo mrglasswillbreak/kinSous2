@@ -1,5 +1,5 @@
-import type { Bid, Bounty, Profile } from "@/types";
-import type { DbBid, DbBounty, DbUser } from "@/lib/db";
+import type { Bid, Bounty, HelperInteractionHistoryItem, Profile } from "@/types";
+import type { DbBid, DbBounty, DbHelperInteractionHistoryRow, DbUser } from "@/lib/db";
 
 /** Convert a DbBounty row (with joined seeker fields) to the app Bounty type */
 export function dbBountyToAppBounty(b: DbBounty): Bounty {
@@ -76,6 +76,22 @@ export function dbBidToAppBid(bid: DbBid): Bid {
 
 /** Convert a DbUser row to the app Profile type */
 export function dbUserToProfile(u: DbUser): Profile {
+  const completedOrders = Number(u.completed_orders ?? 0);
+  const averageRating = Number(u.average_rating ?? 0);
+  const totalReviews = Number(u.total_reviews ?? 0);
+  const ratingPercentage = Number(
+    u.rating_percentage ?? (averageRating > 0 ? (averageRating / 5) * 100 : 0)
+  );
+  const totalEarningsNgn = Number(
+    u.total_earnings_ngn ?? (u.earnings_currency === "NGN" ? u.total_earnings ?? 0 : 0)
+  );
+  const totalEarningsUsd = Number(
+    u.total_earnings_usd ?? (u.earnings_currency === "USD" ? u.total_earnings ?? 0 : 0)
+  );
+  const earningsCurrency = u.earnings_currency === "USD" ? "USD" : "NGN";
+  const totalEarnings = earningsCurrency === "USD" ? totalEarningsUsd : totalEarningsNgn;
+  const hasStats = u.role === "HELPER";
+
   return {
     id: u.id,
     email: u.email,
@@ -95,6 +111,43 @@ export function dbUserToProfile(u: DbUser): Profile {
       countryCode: u.country_code || "XX",
     },
     bio: u.bio ?? undefined,
+    helperStats: hasStats
+      ? {
+          completedOrders,
+          averageRating,
+          ratingPercentage,
+          totalReviews,
+          totalEarnings,
+          currency: earningsCurrency,
+          earningsByCurrency: {
+            NGN: totalEarningsNgn,
+            USD: totalEarningsUsd,
+          },
+        }
+      : undefined,
+    chefScore:
+      u.role === "HELPER" && ratingPercentage > 0
+        ? Math.min(100, Math.round(ratingPercentage))
+        : undefined,
     createdAt: u.created_at,
+  };
+}
+
+export function dbHelperHistoryToAppHistory(
+  row: DbHelperInteractionHistoryRow
+): HelperInteractionHistoryItem {
+  return {
+    bountyId: row.bounty_id,
+    bountyTitle: row.bounty_title,
+    bountyStatus: row.bounty_status as Bounty["status"],
+    city: row.city || "Unknown",
+    country: row.country || "Unknown",
+    acceptedAmount: Number(row.accepted_amount),
+    currency: (row.currency === "USD" ? "USD" : "NGN") as HelperInteractionHistoryItem["currency"],
+    interactedAt: row.interacted_at,
+    reviewCompleted: Boolean(row.review_id),
+    reviewRating: row.review_rating ?? undefined,
+    reviewComment: row.review_comment ?? undefined,
+    reviewCreatedAt: row.review_created_at ?? undefined,
   };
 }

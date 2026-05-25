@@ -10,12 +10,14 @@ import { formatCurrency, timeAgo, categoryLabels, categoryColors } from "@/lib/m
 import { dbBountyToAppBounty } from "@/lib/mappers";
 import BidSection from "@/components/feed/BidSection";
 import LeaveReviewModal from "@/components/feed/LeaveReviewModal";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 const statusColors: Record<string, string> = {
   OPEN: "bg-secondary-50 text-secondary-700 border border-secondary-200",
   IN_PROGRESS: "bg-primary-50 text-primary-700 border border-primary-200",
   AWAITING_APPROVAL: "bg-yellow-50 text-yellow-700 border border-yellow-200",
   COMPLETED: "bg-badge text-muted border border-card-border",
+  INCOMPLETE: "bg-orange-50 text-orange-700 border border-orange-200",
   CANCELLED: "bg-red-50 text-red-700 border border-red-200",
 };
 
@@ -27,6 +29,8 @@ export default function BountyDetailPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewExists, setReviewExists] = useState(false);
+  const { user } = useCurrentUser();
 
   const loadBounty = useCallback(() => {
     if (!id) return;
@@ -47,6 +51,14 @@ export default function BountyDetailPage() {
   useEffect(() => {
     loadBounty();
   }, [loadBounty]);
+
+  useEffect(() => {
+    if (!id) return;
+    fetch(`/api/bounties/${encodeURIComponent(id)}/review`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setReviewExists(Boolean(data?.review)))
+      .catch(() => setReviewExists(false));
+  }, [id, bounty?.status]);
 
   if (loading) {
     return (
@@ -75,6 +87,13 @@ export default function BountyDetailPage() {
       </div>
     );
   }
+
+  const acceptedBid = bounty.bids?.find((bid) => bid.status === "ACCEPTED");
+  const canReview =
+    bounty.status === "COMPLETED" &&
+    Boolean(acceptedBid) &&
+    user?.userId === bounty.seeker.id &&
+    !reviewExists;
 
   return (
     <div className="max-w-md lg:max-w-2xl mx-auto pb-24 lg:pb-10">
@@ -221,7 +240,7 @@ export default function BountyDetailPage() {
         </motion.div>
 
         {/* Leave Review button for COMPLETED bounties */}
-        {bounty.status === "COMPLETED" && bounty.bids && bounty.bids.length > 0 && (
+        {canReview && acceptedBid && (
           <motion.div
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
@@ -237,8 +256,10 @@ export default function BountyDetailPage() {
             <LeaveReviewModal
               open={reviewOpen}
               onClose={() => setReviewOpen(false)}
-              helperName={bounty.bids[0].helper.name}
-              helperAvatarUrl={bounty.bids[0].helper.avatarUrl}
+              bountyId={bounty.id}
+              helperName={acceptedBid.helper.name}
+              helperAvatarUrl={acceptedBid.helper.avatarUrl}
+              onSubmitted={() => setReviewExists(true)}
             />
           </motion.div>
         )}

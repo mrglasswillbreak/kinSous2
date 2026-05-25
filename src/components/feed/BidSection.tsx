@@ -34,6 +34,8 @@ export default function BidSection({ bounty, onChanged }: BidSectionProps) {
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [contacting, setContacting] = useState(false);
   const [markingComplete, setMarkingComplete] = useState(false);
+  const [markingIncomplete, setMarkingIncomplete] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   const bids = bounty.bids ?? [];
   const isPoster = user?.userId === bounty.seeker.id;
@@ -41,9 +43,17 @@ export default function BidSection({ bounty, onChanged }: BidSectionProps) {
   const myBid = bids.find((bid) => bid.helper.id === user?.userId);
   const canBid = bounty.status === "OPEN" && user?.role === "HELPER" && !isPoster;
   const canManageAccepted = Boolean(isPoster && acceptedBid);
+  const canCancelBounty = Boolean(isPoster && bounty.status === "OPEN" && !acceptedBid);
   const canMarkComplete =
     Boolean(isPoster && acceptedBid) &&
-    (bounty.status === "IN_PROGRESS" || bounty.status === "AWAITING_APPROVAL");
+    (bounty.status === "IN_PROGRESS" ||
+      bounty.status === "AWAITING_APPROVAL" ||
+      bounty.status === "INCOMPLETE");
+  const canMarkIncomplete =
+    Boolean(isPoster && acceptedBid) &&
+    (bounty.status === "IN_PROGRESS" ||
+      bounty.status === "AWAITING_APPROVAL" ||
+      bounty.status === "COMPLETED");
 
   const handleSubmit = async () => {
     if (!msg.trim() || !amt || placingBid) return;
@@ -119,6 +129,44 @@ export default function BidSection({ bounty, onChanged }: BidSectionProps) {
       setFeedback(err instanceof Error ? err.message : "Unable to mark bounty as complete.");
     } finally {
       setMarkingComplete(false);
+    }
+  };
+
+  const handleMarkIncomplete = async () => {
+    if (!canMarkIncomplete || markingIncomplete) return;
+    setMarkingIncomplete(true);
+    setFeedback(null);
+    try {
+      const res = await fetch(`/api/bounties/${encodeURIComponent(bounty.id)}/incomplete`, {
+        method: "POST",
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error ?? "Unable to mark bounty as incomplete.");
+      setFeedback("Bounty marked as incomplete. The selected helper has been notified.");
+      onChanged?.();
+    } catch (err) {
+      setFeedback(err instanceof Error ? err.message : "Unable to mark bounty as incomplete.");
+    } finally {
+      setMarkingIncomplete(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!canCancelBounty || cancelling) return;
+    setCancelling(true);
+    setFeedback(null);
+    try {
+      const res = await fetch(`/api/bounties/${encodeURIComponent(bounty.id)}/cancel`, {
+        method: "POST",
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error ?? "Unable to cancel bounty.");
+      setFeedback("Bounty cancelled. Bidders were notified.");
+      onChanged?.();
+    } catch (err) {
+      setFeedback(err instanceof Error ? err.message : "Unable to cancel bounty.");
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -218,21 +266,38 @@ export default function BidSection({ bounty, onChanged }: BidSectionProps) {
               <Headphones size={14} /> Audio
             </motion.button>
           </div>
-          {canMarkComplete && (
-            <motion.button
-              whileTap={{ scale: 0.97 }}
-              onClick={handleMarkComplete}
-              disabled={markingComplete}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-secondary text-white py-2.5 text-sm font-semibold disabled:opacity-60"
-            >
-              {markingComplete ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-              Mark bounty complete
-            </motion.button>
+          {(canMarkComplete || canMarkIncomplete) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {canMarkComplete && (
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleMarkComplete}
+                  disabled={markingComplete}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-secondary text-white py-2.5 text-sm font-semibold disabled:opacity-60"
+                >
+                  {markingComplete ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                  Mark complete
+                </motion.button>
+              )}
+              {canMarkIncomplete && (
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleMarkIncomplete}
+                  disabled={markingIncomplete}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-orange-500 text-white py-2.5 text-sm font-semibold disabled:opacity-60"
+                >
+                  {markingIncomplete ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                  Mark incomplete
+                </motion.button>
+              )}
+            </div>
           )}
         </div>
       )}
 
-      {!isPoster && myBid?.status === "ACCEPTED" && bounty.status === "IN_PROGRESS" && (
+      {!isPoster &&
+        myBid?.status === "ACCEPTED" &&
+        ["IN_PROGRESS", "INCOMPLETE"].includes(bounty.status) && (
         <div className="rounded-2xl border border-secondary-200 bg-secondary-50 p-3 text-sm text-charcoal">
           Your bid was accepted. Coordinate delivery with the poster from Contacts.
         </div>
@@ -285,6 +350,18 @@ export default function BidSection({ bounty, onChanged }: BidSectionProps) {
             {myBid ? "Update Bid" : "Submit Bid"}
           </motion.button>
         </div>
+      )}
+
+      {canCancelBounty && (
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={handleCancel}
+          disabled={cancelling}
+          className="w-full flex items-center justify-center gap-2 rounded-xl bg-red-500 text-white py-2.5 text-sm font-semibold disabled:opacity-60"
+        >
+          {cancelling ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+          Cancel bounty
+        </motion.button>
       )}
 
       {isPoster && bounty.status === "OPEN" && bids.length === 0 && (

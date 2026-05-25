@@ -63,7 +63,7 @@ function HelperCard({ helper, index }: { helper: Profile; index: number }) {
                 {helper.chefScore && (
                   <div className="flex items-center gap-1 text-xs text-primary font-semibold ml-auto">
                     <Flame size={12} />
-                    {helper.chefScore}
+                    {(helper.helperStats.ratingPercentage ?? 0).toFixed(0)}%
                   </div>
                 )}
               </div>

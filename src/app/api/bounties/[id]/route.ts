@@ -33,6 +33,7 @@ const ALLOWED_STATUSES = new Set([
   "IN_PROGRESS",
   "AWAITING_APPROVAL",
   "COMPLETED",
+  "INCOMPLETE",
   "CANCELLED",
 ]);
 const ALLOWED_CURRENCIES = new Set(["NGN", "USD"]);
