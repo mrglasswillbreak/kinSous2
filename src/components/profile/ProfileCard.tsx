@@ -361,12 +361,12 @@ export default function ProfileCard({ profile, isCurrentUser = false, liveBounti
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35 }}
         >
-          <Link href={`/messages?helperId=${encodeURIComponent(profile.id)}`}>
+          <Link href={`/contacts?helperId=${encodeURIComponent(profile.id)}`}>
             <motion.button
               whileTap={{ scale: 0.97 }}
               className="w-full flex items-center justify-center gap-2 bg-primary text-white py-3.5 rounded-2xl font-bold shadow-primary"
             >
-              <MessageCircle size={18} /> Message {profile.name.split(" ")[0]}
+              <MessageCircle size={18} /> Contact {profile.name.split(" ")[0]}
             </motion.button>
           </Link>
         </motion.div>

@@ -9,7 +9,7 @@ import { useConversations } from "@/hooks/useConversations";
 const navItems = [
   { href: "/", icon: Flame, label: "Home" },
   { href: "/bounties", icon: Scroll, label: "Bounties" },
-  { href: "/messages", icon: MessageCircle, label: "Messages", badge: true },
+  { href: "/contacts", icon: MessageCircle, label: "Contacts", badge: true },
   { href: "/helpers", icon: Users, label: "Helpers" },
   { href: "/profile", icon: User, label: "Profile" },
 ];

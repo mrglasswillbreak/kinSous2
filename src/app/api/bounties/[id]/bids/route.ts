@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createBid, getBountyById, getUserById } from "@/lib/db";
+import { createBid, createNotification, getBountyById, getUserById } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { publishUserEvent } from "@/lib/realtime";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -56,6 +57,30 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     if (!bid) {
       return NextResponse.json({ error: "Bid could not be placed" }, { status: 409 });
     }
+
+    const notification = await createNotification({
+      userId: bounty.seeker_id,
+      type: "NEW_BID",
+      title: "New bid received",
+      body: `${user.name} placed a bid on “${bounty.title}”.`,
+      avatarUrl:
+        user.avatar_url ||
+        `https://i.pravatar.cc/150?u=${encodeURIComponent(user.id)}`,
+      href: `/bounties/${id}`,
+    });
+    publishUserEvent(bounty.seeker_id, {
+      type: "notification",
+      payload: {
+        id: notification.id,
+        type: notification.type,
+        title: notification.title,
+        body: notification.body,
+        avatarUrl: notification.avatar_url ?? undefined,
+        href: notification.href ?? undefined,
+        read: notification.read,
+        createdAt: notification.created_at,
+      },
+    });
 
     return NextResponse.json({ bid }, { status: 201 });
   } catch (err) {

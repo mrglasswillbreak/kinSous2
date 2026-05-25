@@ -1572,6 +1572,80 @@ export async function acceptBid(input: {
   return getBidById(input.bidId);
 }
 
+export async function completeBounty(input: {
+  bountyId: string;
+  seekerId: string;
+}): Promise<{ bounty: DbBounty; acceptedBid: DbBid } | null> {
+  await initDb();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    const bounty = store.bounties.find((candidate) => candidate.id === input.bountyId);
+    if (
+      !bounty ||
+      bounty.seeker_id !== input.seekerId ||
+      !["IN_PROGRESS", "AWAITING_APPROVAL"].includes(bounty.status)
+    ) {
+      return null;
+    }
+
+    const acceptedBid = store.bids.find(
+      (candidate) =>
+        candidate.bounty_id === input.bountyId &&
+        candidate.status === "ACCEPTED"
+    );
+    if (!acceptedBid) {
+      return null;
+    }
+
+    const now = new Date().toISOString();
+    bounty.status = "COMPLETED";
+    bounty.updated_at = now;
+    await writeLocalStore(store);
+
+    return {
+      bounty: localJoinBounty(store, bounty),
+      acceptedBid: localBidWithHelper(store, acceptedBid),
+    };
+  }
+
+  const bounty = await getBountyById(input.bountyId);
+  if (
+    !bounty ||
+    bounty.seeker_id !== input.seekerId ||
+    !["IN_PROGRESS", "AWAITING_APPROVAL"].includes(bounty.status)
+  ) {
+    return null;
+  }
+
+  const acceptedBidRows = await sql`
+    SELECT id
+    FROM bids
+    WHERE bounty_id = ${input.bountyId}
+      AND status = 'ACCEPTED'
+    LIMIT 1
+  `;
+  const acceptedBidId = (acceptedBidRows[0] as { id: string } | undefined)?.id;
+  if (!acceptedBidId) {
+    return null;
+  }
+
+  await sql`
+    UPDATE bounties
+    SET status = 'COMPLETED', updated_at = now()
+    WHERE id = ${input.bountyId}
+      AND seeker_id = ${input.seekerId}
+      AND status IN ('IN_PROGRESS', 'AWAITING_APPROVAL')
+  `;
+
+  const updatedBounty = await getBountyById(input.bountyId);
+  const acceptedBid = await getBidById(acceptedBidId);
+  if (!updatedBounty || !acceptedBid) {
+    return null;
+  }
+
+  return { bounty: updatedBounty, acceptedBid };
+}
+
 export async function canContactAcceptedBidder(input: {
   bountyId: string;
   seekerId: string;
