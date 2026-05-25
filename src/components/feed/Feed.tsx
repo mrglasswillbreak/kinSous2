@@ -32,6 +32,11 @@ function useLiveBounties(
   const [loading, setLoading] = useState(true);
 
   const fetchBounties = useCallback(async (cat: string, q: string, nextScope: BountyScope, nextUserId?: string) => {
+    if (nextScope !== "ALL" && !nextUserId) {
+      setBounties([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const params = new URLSearchParams();
