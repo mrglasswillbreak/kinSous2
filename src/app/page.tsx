@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ChevronRight, Flame, Map, MapPin, MessageCircle, Shield, Star, Video } from "lucide-react";
 import { formatCurrency, timeAgo } from "@/lib/mock-data";
-import { getHomePageData, HOME_PAGE_REVALIDATE_SECONDS } from "@/lib/server-data";
+import { getHomePageData } from "@/lib/server-data";
 
 const features = [
   { icon: Flame, title: "Bounty Board", description: "Post food requests and get bids from local culinary helpers", href: "/bounties", color: "bg-primary-50 text-primary-500" },
@@ -13,7 +13,7 @@ const features = [
   { icon: Map, title: "Tracker", description: "Real-time delivery tracking with live map", href: "/tracker", color: "bg-teal-50 text-teal-600" },
 ].slice(0, 4);
 
-export const revalidate = HOME_PAGE_REVALIDATE_SECONDS;
+export const revalidate = 60;
 
 export default async function HomePage() {
   const { recentBounties, topHelpers } = await getHomePageData();
