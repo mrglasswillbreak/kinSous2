@@ -139,6 +139,7 @@ export default function Feed() {
               key={scope}
               whileTap={{ scale: 0.94 }}
               onClick={() => setActiveScope(scope)}
+              aria-pressed={activeScope === scope}
               className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
                 activeScope === scope
                   ? "bg-charcoal text-white"

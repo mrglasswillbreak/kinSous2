@@ -1330,13 +1330,20 @@ export async function getBounties(filters: {
     const seekerId = normaliseNullable(filters.seekerId);
     const helperId = normaliseNullable(filters.helperId);
     const search = filters.query?.trim().toLowerCase();
+    const helperBountyIds = helperId
+      ? new Set(
+          store.bids
+            .filter((bid) => bid.helper_id === helperId)
+            .map((bid) => bid.bounty_id)
+        )
+      : null;
     return store.bounties
       .filter((bounty) => !category || bounty.category === category)
       .filter((bounty) => !status || bounty.status === status)
       .filter((bounty) => !seekerId || bounty.seeker_id === seekerId)
       .filter((bounty) => {
         if (!helperId) return true;
-        return store.bids.some((bid) => bid.bounty_id === bounty.id && bid.helper_id === helperId);
+        return helperBountyIds?.has(bounty.id) ?? false;
       })
       .filter((bounty) => {
         if (!search) return true;
@@ -2231,12 +2238,15 @@ export async function getConversationsForUser(
         : `${row.user_two_id}:${row.user_one_id}`;
     const existing = latestByPair.get(key);
     if (!existing) {
-      latestByPair.set(key, row);
+      latestByPair.set(key, { ...row });
       continue;
     }
+    const unreadCount = existing.unread_count + row.unread_count;
     if (new Date(row.updated_at).getTime() > new Date(existing.updated_at).getTime()) {
-      latestByPair.set(key, row);
+      latestByPair.set(key, { ...row, unread_count: unreadCount });
+      continue;
     }
+    existing.unread_count = unreadCount;
   }
 
   return Array.from(latestByPair.values()).sort(
@@ -2264,11 +2274,13 @@ export async function getOrCreateDirectConversation(input: {
       input.userId < input.otherUserId
         ? [input.userId, input.otherUserId]
         : [input.otherUserId, input.userId];
-    const existing = store.conversations.find(
-      (conversation) =>
-        conversation.user_one_id === userOneId &&
-        conversation.user_two_id === userTwoId
-    );
+    const existing = store.conversations
+      .filter(
+        (conversation) =>
+          conversation.user_one_id === userOneId &&
+          conversation.user_two_id === userTwoId
+      )
+      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
     if (existing) return existing.id;
     const now = new Date().toISOString();
     const conversation = {
@@ -2288,21 +2300,28 @@ export async function getOrCreateDirectConversation(input: {
     input.userId < input.otherUserId
       ? [input.userId, input.otherUserId]
       : [input.otherUserId, input.userId];
-  const existing = await sql`
-    SELECT id
-    FROM conversations
-    WHERE user_one_id = ${userOneId}
-      AND user_two_id = ${userTwoId}
-    ORDER BY updated_at DESC
-    LIMIT 1
-  `;
-
-  if (existing[0]?.id) return existing[0].id;
-
   const rows = await sql`
-    INSERT INTO conversations (user_one_id, user_two_id, bounty_id)
-    VALUES (${userOneId}, ${userTwoId}, NULL)
-    RETURNING id
+    WITH pair_lock AS (
+      SELECT pg_advisory_xact_lock(hashtext(${userOneId}), hashtext(${userTwoId}))
+    ),
+    existing AS (
+      SELECT id
+      FROM conversations
+      WHERE user_one_id = ${userOneId}
+        AND user_two_id = ${userTwoId}
+      ORDER BY updated_at DESC
+      LIMIT 1
+    ),
+    inserted AS (
+      INSERT INTO conversations (user_one_id, user_two_id, bounty_id)
+      SELECT ${userOneId}, ${userTwoId}, NULL
+      WHERE NOT EXISTS (SELECT 1 FROM existing)
+      RETURNING id
+    )
+    SELECT id FROM inserted
+    UNION ALL
+    SELECT id FROM existing
+    LIMIT 1
   `;
 
   return rows[0].id;
