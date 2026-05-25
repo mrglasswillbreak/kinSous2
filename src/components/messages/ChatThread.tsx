@@ -362,7 +362,9 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
 
   const startCall = (mode: "audio" | "video") => {
     if (!other) return;
-    const params = new URLSearchParams({ helperId: other.id, mode });
+    const helper = conversation?.participants.find((participant) => participant.role === "HELPER");
+    if (!helper) return;
+    const params = new URLSearchParams({ helperId: helper.id, mode });
     if (conversation?.bountyRef?.id) {
       params.set("bountyId", conversation.bountyRef.id);
     }

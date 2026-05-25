@@ -1629,13 +1629,17 @@ export async function completeBounty(input: {
     return null;
   }
 
-  await sql`
+  const updateRows = await sql`
     UPDATE bounties
     SET status = 'COMPLETED', updated_at = now()
     WHERE id = ${input.bountyId}
       AND seeker_id = ${input.seekerId}
       AND status IN ('IN_PROGRESS', 'AWAITING_APPROVAL')
+    RETURNING id
   `;
+  if (!updateRows[0]?.id) {
+    return null;
+  }
 
   const updatedBounty = await getBountyById(input.bountyId);
   const acceptedBid = await getBidById(acceptedBidId);
