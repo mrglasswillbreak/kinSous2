@@ -7,15 +7,19 @@ import { Star, X, Send, CheckCircle } from "lucide-react";
 interface LeaveReviewModalProps {
   open: boolean;
   onClose: () => void;
+  bountyId: string;
   helperName: string;
   helperAvatarUrl: string;
+  onSubmitted?: () => void;
 }
 
 export default function LeaveReviewModal({
   open,
   onClose,
+  bountyId,
   helperName,
   helperAvatarUrl,
+  onSubmitted,
 }: LeaveReviewModalProps) {
   const [rating, setRating] = useState(0);
   const [hovered, setHovered] = useState(0);
@@ -23,19 +27,36 @@ export default function LeaveReviewModal({
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
 
-  const handleSubmit = () => {
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async () => {
     if (rating === 0 || !comment.trim()) return;
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
+    setError(null);
+    try {
+      const res = await fetch(`/api/bounties/${encodeURIComponent(bountyId)}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rating,
+          comment: comment.trim(),
+        }),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.error ?? "Failed to submit review");
       setDone(true);
+      onSubmitted?.();
       setTimeout(() => {
         setDone(false);
         setRating(0);
         setComment("");
         onClose();
       }, 2000);
-    }, 1000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to submit review");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const stars = hovered || rating;
@@ -145,6 +166,9 @@ export default function LeaveReviewModal({
                     <Send size={16} />
                     {submitting ? "Submitting…" : "Submit Review"}
                   </motion.button>
+                  {error && (
+                    <p className="text-xs text-red-500">{error}</p>
+                  )}
                 </>
               )}
             </div>

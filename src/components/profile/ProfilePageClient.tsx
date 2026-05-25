@@ -124,7 +124,10 @@ export default function ProfilePageClient({
 
   const previewAvatar = form.avatarUrl || profile.avatarUrl || fallbackAvatar(profile.id);
   const activeBounties = liveBounties.filter(
-    (bounty) => bounty.status === "OPEN" || bounty.status === "IN_PROGRESS"
+    (bounty) =>
+      bounty.status === "OPEN" ||
+      bounty.status === "IN_PROGRESS" ||
+      bounty.status === "INCOMPLETE"
   ).length;
   const completedBounties = liveBounties.filter(
     (bounty) => bounty.status === "COMPLETED"

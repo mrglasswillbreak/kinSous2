@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, Star, Package, DollarSign, ShieldCheck, Edit3, Scroll, MessageCircle, Loader2, Check, X, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { Profile, Bounty } from "@/types";
+import type { Profile, Bounty, HelperInteractionHistoryItem } from "@/types";
 import { formatCurrency } from "@/lib/mock-data";
 import ChefScore from "./ChefScore";
 import CertificationBadge from "./CertificationBadge";
@@ -15,11 +15,26 @@ interface ProfileCardProps {
   isCurrentUser?: boolean;
   /** Real bounties from the DB, passed by a server parent. When provided, replaces mock data. */
   liveBounties?: Bounty[];
+  helperHistory?: HelperInteractionHistoryItem[];
 }
 
 const COUNTRIES = ["Nigeria", "United States", "United Kingdom", "Canada", "Ghana", "Other"];
 
-export default function ProfileCard({ profile, isCurrentUser = false, liveBounties }: ProfileCardProps) {
+const historyStatusColor: Record<string, string> = {
+  OPEN: "bg-secondary-50 text-secondary-700 border-secondary-200",
+  IN_PROGRESS: "bg-primary-50 text-primary-700 border-primary-200",
+  AWAITING_APPROVAL: "bg-yellow-50 text-yellow-700 border-yellow-200",
+  COMPLETED: "bg-badge text-muted border-card-border",
+  INCOMPLETE: "bg-orange-50 text-orange-700 border-orange-200",
+  CANCELLED: "bg-red-50 text-red-700 border-red-200",
+};
+
+export default function ProfileCard({
+  profile,
+  isCurrentUser = false,
+  liveBounties,
+  helperHistory,
+}: ProfileCardProps) {
   const router = useRouter();
   const isHelper = profile.role === "HELPER";
 
@@ -256,6 +271,15 @@ export default function ProfileCard({ profile, isCurrentUser = false, liveBounti
               <p className="text-xs text-muted">Earned</p>
             </div>
           </div>
+          <div className="mt-3 flex items-center justify-between text-xs text-muted">
+            <span>
+              {profile.helperStats.totalReviews ?? 0} review
+              {(profile.helperStats.totalReviews ?? 0) !== 1 ? "s" : ""}
+            </span>
+            <span className="font-semibold text-charcoal">
+              Rating score: {(profile.helperStats.ratingPercentage ?? 0).toFixed(0)}%
+            </span>
+          </div>
         </motion.div>
       )}
 
@@ -298,6 +322,54 @@ export default function ProfileCard({ profile, isCurrentUser = false, liveBounti
         </motion.div>
       )}
 
+      {isHelper && helperHistory !== undefined && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="bg-card rounded-3xl shadow-card p-5"
+        >
+          <h3 className="font-bold text-charcoal mb-3">Bounty Interaction History</h3>
+          <div className="space-y-2">
+            {helperHistory.length === 0 ? (
+              <p className="text-sm text-muted bg-subtle border border-card-border rounded-2xl p-3">
+                No accepted bounty interactions yet.
+              </p>
+            ) : (
+              helperHistory.map((item) => (
+                <Link key={`${item.bountyId}-${item.interactedAt}`} href={`/bounties/${item.bountyId}`} className="block">
+                  <div className="rounded-2xl border border-card-border bg-subtle p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-semibold text-charcoal">{item.bountyTitle}</p>
+                        <p className="text-xs text-muted">{item.city}, {item.country}</p>
+                      </div>
+                      <span className={`text-[11px] px-2 py-0.5 rounded-full border font-semibold ${historyStatusColor[item.bountyStatus] ?? "bg-badge text-muted border-card-border"}`}>
+                        {item.bountyStatus.replace("_", " ")}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-secondary-700">
+                        {formatCurrency(item.acceptedAmount, item.currency)}
+                      </span>
+                      {item.reviewCompleted ? (
+                        <span className="text-charcoal font-medium">
+                          Review: {item.reviewRating?.toFixed(1)}★
+                        </span>
+                      ) : (
+                        <span className="text-muted">Review pending</span>
+                      )}
+                    </div>
+                    {item.reviewCompleted && item.reviewComment && (
+                      <p className="text-xs text-muted line-clamp-2">{item.reviewComment}</p>
+                    )}
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
+        </motion.div>
+      )}
+
       {/* My Bounties (seeker view or current user) */}
       {isCurrentUser && myBounties.length > 0 && (
         <motion.div
@@ -318,7 +390,8 @@ export default function ProfileCard({ profile, isCurrentUser = false, liveBounti
                   <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                     bounty.status === "OPEN" ? "bg-secondary-500" :
                     bounty.status === "IN_PROGRESS" ? "bg-primary" :
-                     bounty.status === "COMPLETED" ? "bg-muted" : "bg-red-400"
+                    bounty.status === "COMPLETED" ? "bg-muted" :
+                    bounty.status === "INCOMPLETE" ? "bg-orange-400" : "bg-red-400"
                    }`} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-charcoal truncate">{bounty.title}</p>

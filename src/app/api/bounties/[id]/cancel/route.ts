@@ -1,0 +1,72 @@
+import { NextResponse } from "next/server";
+import { getSession } from "@/lib/auth";
+import {
+  cancelBounty,
+  createNotification,
+  getBountyById,
+} from "@/lib/db";
+import { publishUserEvent } from "@/lib/realtime";
+
+interface RouteContext {
+  params: Promise<{ id: string }>;
+}
+
+export async function POST(_req: Request, { params }: RouteContext) {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const bounty = await getBountyById(id);
+    if (!bounty) {
+      return NextResponse.json({ error: "Bounty not found" }, { status: 404 });
+    }
+    if (bounty.seeker_id !== session.userId) {
+      return NextResponse.json(
+        { error: "Only the bounty poster can cancel this bounty" },
+        { status: 403 }
+      );
+    }
+
+    const cancelled = await cancelBounty({ bountyId: id, seekerId: session.userId });
+    if (!cancelled) {
+      return NextResponse.json(
+        { error: "This bounty can only be cancelled before any bid is accepted" },
+        { status: 409 }
+      );
+    }
+
+    for (const helperId of cancelled.notifiedHelperIds) {
+      const notification = await createNotification({
+        userId: helperId,
+        type: "SYSTEM",
+        title: "Bounty cancelled",
+        body: `“${cancelled.bounty.title}” was cancelled by the poster.`,
+        href: `/bounties/${id}`,
+      });
+      publishUserEvent(helperId, {
+        type: "notification",
+        payload: {
+          id: notification.id,
+          type: notification.type,
+          title: notification.title,
+          body: notification.body,
+          avatarUrl: notification.avatar_url ?? undefined,
+          href: notification.href ?? undefined,
+          read: notification.read,
+          createdAt: notification.created_at,
+        },
+      });
+    }
+
+    return NextResponse.json(
+      { bounty: cancelled.bounty, notifiedHelpers: cancelled.notifiedHelperIds.length },
+      { status: 200 }
+    );
+  } catch (err) {
+    console.error("POST /api/bounties/[id]/cancel error:", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
+}

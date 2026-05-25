@@ -18,6 +18,7 @@ const statusColors: Record<string, string> = {
   IN_PROGRESS: "bg-primary-50 text-primary-700 border border-primary-200",
   AWAITING_APPROVAL: "bg-yellow-50 text-yellow-700 border border-yellow-200",
   COMPLETED: "bg-badge text-muted border border-card-border",
+  INCOMPLETE: "bg-orange-50 text-orange-700 border border-orange-200",
   CANCELLED: "bg-red-50 text-red-700 border border-red-200",
 };
 

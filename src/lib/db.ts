@@ -1,7 +1,7 @@
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 import { promises as fs } from "fs";
 import path from "path";
-import { mockBounties, mockHelpers, mockSeekers } from "@/lib/mock-data";
+import { mockBounties, mockHelpers, mockReviews, mockSeekers } from "@/lib/mock-data";
 
 let _client: NeonQueryFunction<false, false> | null = null;
 
@@ -54,6 +54,12 @@ export interface DbUser {
   city: string | null;
   country: string | null;
   country_code: string | null;
+  completed_orders?: number;
+  average_rating?: number | string | null;
+  rating_percentage?: number | string | null;
+  total_reviews?: number;
+  total_earnings?: number | string;
+  earnings_currency?: string | null;
   created_at: string;
 }
 
@@ -146,6 +152,34 @@ export interface DbNotification {
   href: string | null;
   read: boolean;
   created_at: string;
+}
+
+export interface DbReview {
+  id: string;
+  bounty_id: string;
+  author_id: string;
+  target_id: string;
+  rating: number;
+  comment: string;
+  created_at: string;
+  updated_at: string;
+  author_name?: string;
+  author_avatar_url?: string | null;
+}
+
+export interface DbHelperInteractionHistoryRow {
+  bounty_id: string;
+  bounty_title: string;
+  bounty_status: string;
+  city: string | null;
+  country: string | null;
+  accepted_amount: number | string;
+  currency: string;
+  interacted_at: string;
+  review_id: string | null;
+  review_rating: number | null;
+  review_comment: string | null;
+  review_created_at: string | null;
 }
 
 export interface DbUserBlock {
@@ -258,6 +292,16 @@ interface LocalStore {
     href: string | null;
     read: boolean;
     created_at: string;
+  }>;
+  reviews: Array<{
+    id: string;
+    bounty_id: string;
+    author_id: string;
+    target_id: string;
+    rating: number;
+    comment: string;
+    created_at: string;
+    updated_at: string;
   }>;
   user_presence: Array<{
     user_id: string;
@@ -398,6 +442,16 @@ function makeSeedStore(): LocalStore {
   });
 
   const bids = mockBounties.flatMap((bounty) => bounty.bids ?? []).map(localBidFromAppBid);
+  const reviews = mockReviews.map((review) => ({
+    id: review.id,
+    bounty_id: review.bountyId,
+    author_id: review.authorId,
+    target_id: review.targetId,
+    rating: review.rating,
+    comment: review.comment,
+    created_at: review.createdAt,
+    updated_at: review.createdAt,
+  }));
   return {
     users: Array.from(new Map(users.map((user) => [user.id, user])).values()),
     bounties: mockBounties.map(localBountyBase),
@@ -407,6 +461,7 @@ function makeSeedStore(): LocalStore {
     conversation_deletions: [],
     user_blocks: [],
     notifications: [],
+    reviews,
     user_presence: [],
     conversation_typing: [],
     push_subscriptions: [],
@@ -422,6 +477,7 @@ async function readLocalStore(): Promise<LocalStore> {
     parsed.conversation_deletions ??= [];
     parsed.user_blocks ??= [];
     parsed.notifications ??= [];
+    parsed.reviews ??= [];
     parsed.user_presence ??= [];
     parsed.conversation_typing ??= [];
     parsed.push_subscriptions ??= [];
@@ -475,6 +531,45 @@ function localBidWithHelper(store: LocalStore, bid: DbBid): DbBid {
     helper_country: helper.country,
     helper_country_code: helper.country_code,
     helper_created_at: helper.created_at,
+  };
+}
+
+function localGetAcceptedBid(
+  store: LocalStore,
+  bountyId: string
+): DbBid | null {
+  const acceptedBid = store.bids.find(
+    (candidate) => candidate.bounty_id === bountyId && candidate.status === "ACCEPTED"
+  );
+  return acceptedBid ? localBidWithHelper(store, acceptedBid) : null;
+}
+
+function localWithHelperMetrics(store: LocalStore, user: DbUser): DbUser {
+  if (user.role !== "HELPER") return user;
+  const completedAcceptedBids = store.bids.filter((bid) => {
+    if (bid.helper_id !== user.id || bid.status !== "ACCEPTED") return false;
+    const bounty = store.bounties.find((candidate) => candidate.id === bid.bounty_id);
+    return bounty?.status === "COMPLETED";
+  });
+  const helperReviews = store.reviews.filter((review) => review.target_id === user.id);
+  const totalReviews = helperReviews.length;
+  const averageRating = totalReviews
+    ? helperReviews.reduce((sum, review) => sum + Number(review.rating), 0) / totalReviews
+    : 0;
+  const ratingPercentage = averageRating > 0 ? (averageRating / 5) * 100 : 0;
+  const totalEarnings = completedAcceptedBids.reduce(
+    (sum, bid) => sum + Number(bid.amount),
+    0
+  );
+
+  return {
+    ...user,
+    completed_orders: completedAcceptedBids.length,
+    average_rating: averageRating,
+    rating_percentage: ratingPercentage,
+    total_reviews: totalReviews,
+    total_earnings: totalEarnings,
+    earnings_currency: completedAcceptedBids[0]?.currency ?? "NGN",
   };
 }
 
@@ -715,6 +810,40 @@ export async function initDb() {
       read       BOOLEAN NOT NULL DEFAULT false,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS reviews (
+      id         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      bounty_id  TEXT NOT NULL REFERENCES bounties(id) ON DELETE CASCADE,
+      author_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      target_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      rating     INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+      comment    TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      UNIQUE (bounty_id, author_id)
+    )
+  `;
+
+  await sql`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS id TEXT DEFAULT gen_random_uuid()::text`;
+  await sql`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS bounty_id TEXT`;
+  await sql`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS author_id TEXT`;
+  await sql`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS target_id TEXT`;
+  await sql`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS rating INTEGER`;
+  await sql`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS comment TEXT`;
+  await sql`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()`;
+  await sql`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now()`;
+  await sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS reviews_bounty_author_unique_idx
+    ON reviews (bounty_id, author_id)
+    WHERE bounty_id IS NOT NULL
+      AND author_id IS NOT NULL
+  `;
+  await sql`
+    CREATE INDEX IF NOT EXISTS reviews_target_created_idx
+    ON reviews (target_id, created_at DESC)
+    WHERE target_id IS NOT NULL
   `;
 
   await sql`
@@ -1025,28 +1154,55 @@ export async function getUserById(id: string): Promise<DbUser | null> {
   await initDb();
   if (usingLocalDb()) {
     const store = await readLocalStore();
-    return store.users.find((user) => user.id === id) ?? null;
+    const user = store.users.find((candidate) => candidate.id === id);
+    return user ? localWithHelperMetrics(store, user) : null;
   }
 
   const rows = await sql`
     SELECT
-      id,
-      email,
-      phone,
-      name,
-      first_name,
-      last_name,
-      date_of_birth::text AS date_of_birth,
-      gender,
-      avatar_url,
-      role,
-      bio,
-      city,
-      country,
-      country_code,
-      created_at::text AS created_at
-    FROM users
-    WHERE id = ${id}
+      u.id,
+      u.email,
+      u.phone,
+      u.name,
+      u.first_name,
+      u.last_name,
+      u.date_of_birth::text AS date_of_birth,
+      u.gender,
+      u.avatar_url,
+      u.role,
+      u.bio,
+      u.city,
+      u.country,
+      u.country_code,
+      COALESCE(completed.completed_orders, 0) AS completed_orders,
+      reviews.average_rating,
+      reviews.rating_percentage,
+      COALESCE(reviews.total_reviews, 0) AS total_reviews,
+      COALESCE(completed.total_earnings, 0) AS total_earnings,
+      COALESCE(completed.earnings_currency, 'NGN') AS earnings_currency,
+      u.created_at::text AS created_at
+    FROM users u
+    LEFT JOIN (
+      SELECT
+        bid.helper_id,
+        COUNT(*) FILTER (WHERE b.status = 'COMPLETED') AS completed_orders,
+        SUM(CASE WHEN b.status = 'COMPLETED' THEN bid.amount ELSE 0 END)::numeric AS total_earnings,
+        MAX(CASE WHEN b.status = 'COMPLETED' THEN bid.currency ELSE NULL END) AS earnings_currency
+      FROM bids bid
+      JOIN bounties b ON b.id = bid.bounty_id
+      WHERE bid.status = 'ACCEPTED'
+      GROUP BY bid.helper_id
+    ) completed ON completed.helper_id = u.id
+    LEFT JOIN (
+      SELECT
+        target_id AS helper_id,
+        AVG(rating)::numeric(10,2) AS average_rating,
+        (AVG(rating) * 20)::numeric(10,2) AS rating_percentage,
+        COUNT(*) AS total_reviews
+      FROM reviews
+      GROUP BY target_id
+    ) reviews ON reviews.helper_id = u.id
+    WHERE u.id = ${id}
     LIMIT 1
   `;
 
@@ -1066,6 +1222,7 @@ export async function getHelpers(query?: string): Promise<DbUser[]> {
           .filter(Boolean)
           .some((value) => String(value).toLowerCase().includes(search));
       })
+      .map((user) => localWithHelperMetrics(store, user))
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 50);
   }
@@ -1073,31 +1230,57 @@ export async function getHelpers(query?: string): Promise<DbUser[]> {
   const search = query?.trim() ? `%${query.trim()}%` : null;
   const rows = await sql`
     SELECT
-      id,
-      email,
-      phone,
-      name,
-      first_name,
-      last_name,
-      date_of_birth::text AS date_of_birth,
-      gender,
-      avatar_url,
-      role,
-      bio,
-      city,
-      country,
-      country_code,
-      created_at::text AS created_at
-    FROM users
-    WHERE role = 'HELPER'
+      u.id,
+      u.email,
+      u.phone,
+      u.name,
+      u.first_name,
+      u.last_name,
+      u.date_of_birth::text AS date_of_birth,
+      u.gender,
+      u.avatar_url,
+      u.role,
+      u.bio,
+      u.city,
+      u.country,
+      u.country_code,
+      COALESCE(completed.completed_orders, 0) AS completed_orders,
+      reviews.average_rating,
+      reviews.rating_percentage,
+      COALESCE(reviews.total_reviews, 0) AS total_reviews,
+      COALESCE(completed.total_earnings, 0) AS total_earnings,
+      COALESCE(completed.earnings_currency, 'NGN') AS earnings_currency,
+      u.created_at::text AS created_at
+    FROM users u
+    LEFT JOIN (
+      SELECT
+        bid.helper_id,
+        COUNT(*) FILTER (WHERE b.status = 'COMPLETED') AS completed_orders,
+        SUM(CASE WHEN b.status = 'COMPLETED' THEN bid.amount ELSE 0 END)::numeric AS total_earnings,
+        MAX(CASE WHEN b.status = 'COMPLETED' THEN bid.currency ELSE NULL END) AS earnings_currency
+      FROM bids bid
+      JOIN bounties b ON b.id = bid.bounty_id
+      WHERE bid.status = 'ACCEPTED'
+      GROUP BY bid.helper_id
+    ) completed ON completed.helper_id = u.id
+    LEFT JOIN (
+      SELECT
+        target_id AS helper_id,
+        AVG(rating)::numeric(10,2) AS average_rating,
+        (AVG(rating) * 20)::numeric(10,2) AS rating_percentage,
+        COUNT(*) AS total_reviews
+      FROM reviews
+      GROUP BY target_id
+    ) reviews ON reviews.helper_id = u.id
+    WHERE u.role = 'HELPER'
       AND (
         ${search}::text IS NULL
-        OR name ILIKE ${search}
-        OR city ILIKE ${search}
-        OR country ILIKE ${search}
-        OR bio ILIKE ${search}
+        OR u.name ILIKE ${search}
+        OR u.city ILIKE ${search}
+        OR u.country ILIKE ${search}
+        OR u.bio ILIKE ${search}
       )
-    ORDER BY created_at DESC
+    ORDER BY u.created_at DESC
     LIMIT 50
   `;
 
@@ -1583,7 +1766,7 @@ export async function completeBounty(input: {
     if (
       !bounty ||
       bounty.seeker_id !== input.seekerId ||
-      !["IN_PROGRESS", "AWAITING_APPROVAL"].includes(bounty.status)
+      !["IN_PROGRESS", "AWAITING_APPROVAL", "INCOMPLETE"].includes(bounty.status)
     ) {
       return null;
     }
@@ -1612,7 +1795,7 @@ export async function completeBounty(input: {
   if (
     !bounty ||
     bounty.seeker_id !== input.seekerId ||
-    !["IN_PROGRESS", "AWAITING_APPROVAL"].includes(bounty.status)
+    !["IN_PROGRESS", "AWAITING_APPROVAL", "INCOMPLETE"].includes(bounty.status)
   ) {
     return null;
   }
@@ -1634,7 +1817,7 @@ export async function completeBounty(input: {
     SET status = 'COMPLETED', updated_at = now()
     WHERE id = ${input.bountyId}
       AND seeker_id = ${input.seekerId}
-      AND status IN ('IN_PROGRESS', 'AWAITING_APPROVAL')
+      AND status IN ('IN_PROGRESS', 'AWAITING_APPROVAL', 'INCOMPLETE')
     RETURNING id
   `;
   if (!updateRows[0]?.id) {
@@ -1648,6 +1831,314 @@ export async function completeBounty(input: {
   }
 
   return { bounty: updatedBounty, acceptedBid };
+}
+
+export async function cancelBounty(input: {
+  bountyId: string;
+  seekerId: string;
+}): Promise<{ bounty: DbBounty; notifiedHelperIds: string[] } | null> {
+  await initDb();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    const bounty = store.bounties.find((candidate) => candidate.id === input.bountyId);
+    if (!bounty || bounty.seeker_id !== input.seekerId || bounty.status !== "OPEN") {
+      return null;
+    }
+    const acceptedBid = store.bids.find(
+      (candidate) =>
+        candidate.bounty_id === input.bountyId && candidate.status === "ACCEPTED"
+    );
+    if (acceptedBid) return null;
+
+    const now = new Date().toISOString();
+    bounty.status = "CANCELLED";
+    bounty.updated_at = now;
+    const notifiedHelperIds = Array.from(
+      new Set(
+        store.bids
+          .filter((candidate) => candidate.bounty_id === input.bountyId)
+          .map((candidate) => candidate.helper_id)
+      )
+    );
+    store.bids.forEach((candidate) => {
+      if (candidate.bounty_id === input.bountyId && candidate.status === "PENDING") {
+        candidate.status = "WITHDRAWN";
+        candidate.updated_at = now;
+      }
+    });
+    await writeLocalStore(store);
+    return { bounty: localJoinBounty(store, bounty), notifiedHelperIds };
+  }
+
+  const bounty = await getBountyById(input.bountyId);
+  if (!bounty || bounty.seeker_id !== input.seekerId || bounty.status !== "OPEN") {
+    return null;
+  }
+  const acceptedBidRows = await sql`
+    SELECT id
+    FROM bids
+    WHERE bounty_id = ${input.bountyId}
+      AND status = 'ACCEPTED'
+    LIMIT 1
+  `;
+  if (acceptedBidRows[0]?.id) return null;
+
+  const helperRows = (await sql`
+    SELECT DISTINCT helper_id
+    FROM bids
+    WHERE bounty_id = ${input.bountyId}
+  `) as { helper_id: string }[];
+  const notifiedHelperIds = helperRows.map((row) => row.helper_id);
+
+  await sql`
+    UPDATE bids
+    SET status = 'WITHDRAWN', updated_at = now()
+    WHERE bounty_id = ${input.bountyId}
+      AND status = 'PENDING'
+  `;
+
+  const rows = await sql`
+    UPDATE bounties
+    SET status = 'CANCELLED', updated_at = now()
+    WHERE id = ${input.bountyId}
+      AND seeker_id = ${input.seekerId}
+      AND status = 'OPEN'
+    RETURNING id
+  `;
+  if (!rows[0]?.id) return null;
+
+  const updatedBounty = await getBountyById(input.bountyId);
+  if (!updatedBounty) return null;
+  return { bounty: updatedBounty, notifiedHelperIds };
+}
+
+export async function markBountyIncomplete(input: {
+  bountyId: string;
+  seekerId: string;
+}): Promise<{ bounty: DbBounty; acceptedBid: DbBid } | null> {
+  await initDb();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    const bounty = store.bounties.find((candidate) => candidate.id === input.bountyId);
+    if (
+      !bounty ||
+      bounty.seeker_id !== input.seekerId ||
+      !["IN_PROGRESS", "AWAITING_APPROVAL", "COMPLETED"].includes(bounty.status)
+    ) {
+      return null;
+    }
+    const acceptedBid = localGetAcceptedBid(store, input.bountyId);
+    if (!acceptedBid) return null;
+    bounty.status = "INCOMPLETE";
+    bounty.updated_at = new Date().toISOString();
+    await writeLocalStore(store);
+    return {
+      bounty: localJoinBounty(store, bounty),
+      acceptedBid,
+    };
+  }
+
+  const bounty = await getBountyById(input.bountyId);
+  if (
+    !bounty ||
+    bounty.seeker_id !== input.seekerId ||
+    !["IN_PROGRESS", "AWAITING_APPROVAL", "COMPLETED"].includes(bounty.status)
+  ) {
+    return null;
+  }
+
+  const acceptedBidRows = await sql`
+    SELECT id
+    FROM bids
+    WHERE bounty_id = ${input.bountyId}
+      AND status = 'ACCEPTED'
+    LIMIT 1
+  `;
+  const acceptedBidId = (acceptedBidRows[0] as { id: string } | undefined)?.id;
+  if (!acceptedBidId) return null;
+
+  const rows = await sql`
+    UPDATE bounties
+    SET status = 'INCOMPLETE', updated_at = now()
+    WHERE id = ${input.bountyId}
+      AND seeker_id = ${input.seekerId}
+      AND status IN ('IN_PROGRESS', 'AWAITING_APPROVAL', 'COMPLETED')
+    RETURNING id
+  `;
+  if (!rows[0]?.id) return null;
+
+  const updatedBounty = await getBountyById(input.bountyId);
+  const acceptedBid = await getBidById(acceptedBidId);
+  if (!updatedBounty || !acceptedBid) return null;
+  return { bounty: updatedBounty, acceptedBid };
+}
+
+export async function getReviewByBountyAndAuthor(
+  bountyId: string,
+  authorId: string
+): Promise<DbReview | null> {
+  await initDb();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    const review = store.reviews.find(
+      (candidate) =>
+        candidate.bounty_id === bountyId && candidate.author_id === authorId
+    );
+    if (!review) return null;
+    const author = store.users.find((candidate) => candidate.id === authorId);
+    return {
+      ...review,
+      author_name: author?.name ?? "KinSous user",
+      author_avatar_url: author?.avatar_url ?? null,
+    };
+  }
+
+  const rows = await sql`
+    SELECT
+      review.id,
+      review.bounty_id,
+      review.author_id,
+      review.target_id,
+      review.rating,
+      review.comment,
+      review.created_at::text AS created_at,
+      review.updated_at::text AS updated_at,
+      author.name AS author_name,
+      author.avatar_url AS author_avatar_url
+    FROM reviews review
+    JOIN users author ON author.id = review.author_id
+    WHERE review.bounty_id = ${bountyId}
+      AND review.author_id = ${authorId}
+    LIMIT 1
+  `;
+  return (rows[0] as DbReview | undefined) ?? null;
+}
+
+export async function createOrUpdateBountyReview(input: {
+  bountyId: string;
+  authorId: string;
+  targetId: string;
+  rating: number;
+  comment: string;
+}): Promise<DbReview | null> {
+  await initDb();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    const now = new Date().toISOString();
+    const existing = store.reviews.find(
+      (candidate) =>
+        candidate.bounty_id === input.bountyId && candidate.author_id === input.authorId
+    );
+    if (existing) {
+      existing.target_id = input.targetId;
+      existing.rating = input.rating;
+      existing.comment = input.comment;
+      existing.updated_at = now;
+      await writeLocalStore(store);
+      return getReviewByBountyAndAuthor(input.bountyId, input.authorId);
+    }
+    store.reviews.push({
+      id: uid("review"),
+      bounty_id: input.bountyId,
+      author_id: input.authorId,
+      target_id: input.targetId,
+      rating: input.rating,
+      comment: input.comment,
+      created_at: now,
+      updated_at: now,
+    });
+    await writeLocalStore(store);
+    return getReviewByBountyAndAuthor(input.bountyId, input.authorId);
+  }
+
+  const rows = await sql`
+    INSERT INTO reviews (bounty_id, author_id, target_id, rating, comment)
+    VALUES (
+      ${input.bountyId},
+      ${input.authorId},
+      ${input.targetId},
+      ${input.rating},
+      ${input.comment}
+    )
+    ON CONFLICT (bounty_id, author_id) DO UPDATE
+      SET
+        target_id = EXCLUDED.target_id,
+        rating = EXCLUDED.rating,
+        comment = EXCLUDED.comment,
+        updated_at = now()
+    RETURNING id
+  `;
+  if (!rows[0]?.id) return null;
+  return getReviewByBountyAndAuthor(input.bountyId, input.authorId);
+}
+
+export async function listHelperInteractionHistory(
+  helperId: string,
+  limit = 25
+): Promise<DbHelperInteractionHistoryRow[]> {
+  await initDb();
+  if (usingLocalDb()) {
+    const store = await readLocalStore();
+    return store.bids
+      .filter((bid) => bid.helper_id === helperId && bid.status === "ACCEPTED")
+      .map((bid) => {
+        const bounty = store.bounties.find((candidate) => candidate.id === bid.bounty_id);
+        if (!bounty) return null;
+        const review = store.reviews.find(
+          (candidate) =>
+            candidate.bounty_id === bid.bounty_id &&
+            candidate.target_id === helperId &&
+            candidate.author_id === bounty.seeker_id
+        );
+        return {
+          bounty_id: bounty.id,
+          bounty_title: bounty.title,
+          bounty_status: bounty.status,
+          city: bounty.city,
+          country: bounty.country,
+          accepted_amount: bid.amount,
+          currency: bid.currency,
+          interacted_at: bounty.updated_at,
+          review_id: review?.id ?? null,
+          review_rating: review?.rating ?? null,
+          review_comment: review?.comment ?? null,
+          review_created_at: review?.created_at ?? null,
+        } satisfies DbHelperInteractionHistoryRow;
+      })
+      .filter((row): row is DbHelperInteractionHistoryRow => Boolean(row))
+      .sort(
+        (a, b) =>
+          new Date(b.interacted_at).getTime() - new Date(a.interacted_at).getTime()
+      )
+      .slice(0, limit);
+  }
+
+  const rows = await sql`
+    SELECT
+      b.id AS bounty_id,
+      b.title AS bounty_title,
+      b.status AS bounty_status,
+      b.city,
+      b.country,
+      bid.amount AS accepted_amount,
+      bid.currency,
+      b.updated_at::text AS interacted_at,
+      review.id AS review_id,
+      review.rating AS review_rating,
+      review.comment AS review_comment,
+      review.created_at::text AS review_created_at
+    FROM bids bid
+    JOIN bounties b ON b.id = bid.bounty_id
+    LEFT JOIN reviews review
+      ON review.bounty_id = b.id
+     AND review.target_id = ${helperId}
+     AND review.author_id = b.seeker_id
+    WHERE bid.helper_id = ${helperId}
+      AND bid.status = 'ACCEPTED'
+    ORDER BY b.updated_at DESC
+    LIMIT ${limit}
+  `;
+  return rows as DbHelperInteractionHistoryRow[];
 }
 
 export async function canContactAcceptedBidder(input: {

@@ -13,8 +13,25 @@ export interface CertificationBadge {
 export interface HelperStats {
   completedOrders: number;
   averageRating: number;
+  ratingPercentage?: number;
+  totalReviews?: number;
   totalEarnings: number;
   currency: "USD" | "NGN";
+}
+
+export interface HelperInteractionHistoryItem {
+  bountyId: string;
+  bountyTitle: string;
+  bountyStatus: BountyStatus;
+  city: string;
+  country: string;
+  acceptedAmount: number;
+  currency: "USD" | "NGN";
+  interactedAt: string;
+  reviewCompleted: boolean;
+  reviewRating?: number;
+  reviewComment?: string;
+  reviewCreatedAt?: string;
 }
 
 export interface Profile {
@@ -41,6 +58,7 @@ export type BountyStatus =
   | "IN_PROGRESS"
   | "AWAITING_APPROVAL"
   | "COMPLETED"
+  | "INCOMPLETE"
   | "CANCELLED";
 
 export type BountyCategory =
