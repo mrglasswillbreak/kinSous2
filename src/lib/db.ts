@@ -1320,6 +1320,7 @@ export async function getBounties(filters: {
   status?: string;
   query?: string;
   seekerId?: string;
+  helperId?: string;
 } = {}): Promise<DbBounty[]> {
   await initDb();
   if (usingLocalDb()) {
@@ -1327,11 +1328,23 @@ export async function getBounties(filters: {
     const category = normaliseNullable(filters.category);
     const status = normaliseNullable(filters.status);
     const seekerId = normaliseNullable(filters.seekerId);
+    const helperId = normaliseNullable(filters.helperId);
     const search = filters.query?.trim().toLowerCase();
+    const helperBountyIds = helperId
+      ? new Set(
+          store.bids
+            .filter((bid) => bid.helper_id === helperId)
+            .map((bid) => bid.bounty_id)
+        )
+      : null;
     return store.bounties
       .filter((bounty) => !category || bounty.category === category)
       .filter((bounty) => !status || bounty.status === status)
       .filter((bounty) => !seekerId || bounty.seeker_id === seekerId)
+      .filter((bounty) => {
+        if (!helperId) return true;
+        return helperBountyIds?.has(bounty.id) ?? false;
+      })
       .filter((bounty) => {
         if (!search) return true;
         return [bounty.title, bounty.description, bounty.city]
@@ -1345,6 +1358,7 @@ export async function getBounties(filters: {
   const category = normaliseNullable(filters.category);
   const status = normaliseNullable(filters.status);
   const seekerId = normaliseNullable(filters.seekerId);
+  const helperId = normaliseNullable(filters.helperId);
   const search = filters.query?.trim() ? `%${filters.query.trim()}%` : null;
 
   const rows = await sql`
@@ -1372,6 +1386,15 @@ export async function getBounties(filters: {
     WHERE (${category}::text IS NULL OR b.category = ${category})
       AND (${status}::text IS NULL OR b.status = ${status})
       AND (${seekerId}::text IS NULL OR b.seeker_id = ${seekerId})
+      AND (
+        ${helperId}::text IS NULL
+        OR EXISTS (
+          SELECT 1
+          FROM bids bid
+          WHERE bid.bounty_id = b.id
+            AND bid.helper_id = ${helperId}
+        )
+      )
       AND (
         ${search}::text IS NULL
         OR b.title ILIKE ${search}
@@ -2205,7 +2228,30 @@ export async function canContactAcceptedBidder(input: {
 export async function getConversationsForUser(
   userId: string
 ): Promise<DbConversation[]> {
-  return getConversationRows(userId);
+  const rows = await getConversationRows(userId);
+  const latestByPair = new Map<string, DbConversation>();
+
+  for (const row of rows) {
+    const key =
+      row.user_one_id < row.user_two_id
+        ? `${row.user_one_id}:${row.user_two_id}`
+        : `${row.user_two_id}:${row.user_one_id}`;
+    const existing = latestByPair.get(key);
+    if (!existing) {
+      latestByPair.set(key, { ...row });
+      continue;
+    }
+    const unreadCount = existing.unread_count + row.unread_count;
+    if (new Date(row.updated_at).getTime() > new Date(existing.updated_at).getTime()) {
+      latestByPair.set(key, { ...row, unread_count: unreadCount });
+      continue;
+    }
+    existing.unread_count = unreadCount;
+  }
+
+  return Array.from(latestByPair.values()).sort(
+    (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+  );
 }
 
 export async function getConversationForUser(
@@ -2228,20 +2274,20 @@ export async function getOrCreateDirectConversation(input: {
       input.userId < input.otherUserId
         ? [input.userId, input.otherUserId]
         : [input.otherUserId, input.userId];
-    const bountyId = input.bountyId ?? null;
-    const existing = store.conversations.find(
-      (conversation) =>
-        conversation.user_one_id === userOneId &&
-        conversation.user_two_id === userTwoId &&
-        (conversation.bounty_id ?? null) === bountyId
-    );
+    const existing = store.conversations
+      .filter(
+        (conversation) =>
+          conversation.user_one_id === userOneId &&
+          conversation.user_two_id === userTwoId
+      )
+      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
     if (existing) return existing.id;
     const now = new Date().toISOString();
     const conversation = {
       id: uid("conv"),
       user_one_id: userOneId,
       user_two_id: userTwoId,
-      bounty_id: bountyId,
+      bounty_id: null,
       created_at: now,
       updated_at: now,
     };
@@ -2254,23 +2300,28 @@ export async function getOrCreateDirectConversation(input: {
     input.userId < input.otherUserId
       ? [input.userId, input.otherUserId]
       : [input.otherUserId, input.userId];
-  const bountyId = input.bountyId ?? null;
-
-  const existing = await sql`
-    SELECT id
-    FROM conversations
-    WHERE user_one_id = ${userOneId}
-      AND user_two_id = ${userTwoId}
-      AND COALESCE(bounty_id, '') = COALESCE(${bountyId}::text, '')
-    LIMIT 1
-  `;
-
-  if (existing[0]?.id) return existing[0].id;
-
   const rows = await sql`
-    INSERT INTO conversations (user_one_id, user_two_id, bounty_id)
-    VALUES (${userOneId}, ${userTwoId}, ${bountyId})
-    RETURNING id
+    WITH pair_lock AS (
+      SELECT pg_advisory_xact_lock(hashtext(${userOneId}), hashtext(${userTwoId}))
+    ),
+    existing AS (
+      SELECT id
+      FROM conversations
+      WHERE user_one_id = ${userOneId}
+        AND user_two_id = ${userTwoId}
+      ORDER BY updated_at DESC
+      LIMIT 1
+    ),
+    inserted AS (
+      INSERT INTO conversations (user_one_id, user_two_id, bounty_id)
+      SELECT ${userOneId}, ${userTwoId}, NULL
+      WHERE NOT EXISTS (SELECT 1 FROM existing)
+      RETURNING id
+    )
+    SELECT id FROM inserted
+    UNION ALL
+    SELECT id FROM existing
+    LIMIT 1
   `;
 
   return rows[0].id;
