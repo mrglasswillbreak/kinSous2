@@ -6,6 +6,7 @@ import { Search, SlidersHorizontal, Plus, Flame } from "lucide-react";
 import type { BountyCategory, Bounty } from "@/types";
 import { categoryLabels } from "@/lib/mock-data";
 import { dbBountyToAppBounty } from "@/lib/mappers";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import BountyCard from "./BountyCard";
 import PostBountyModal from "./PostBountyModal";
 
@@ -14,17 +15,30 @@ const categories: Array<BountyCategory | "ALL"> = [
 ];
 
 const tabLabel: Record<string, string> = { ALL: "All", ...categoryLabels };
+type BountyScope = "ALL" | "MY_BOUNTIES" | "MY_BIDS";
+const scopeLabel: Record<BountyScope, string> = {
+  ALL: "All",
+  MY_BOUNTIES: "My bounties",
+  MY_BIDS: "My bids",
+};
 
-function useLiveBounties(category: BountyCategory | "ALL", query: string) {
+function useLiveBounties(
+  category: BountyCategory | "ALL",
+  query: string,
+  scope: BountyScope,
+  userId?: string
+) {
   const [bounties, setBounties] = useState<Bounty[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchBounties = useCallback(async (cat: string, q: string) => {
+  const fetchBounties = useCallback(async (cat: string, q: string, nextScope: BountyScope, nextUserId?: string) => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (cat && cat !== "ALL") params.set("category", cat);
       if (q) params.set("q", q);
+      if (nextScope === "MY_BOUNTIES" && nextUserId) params.set("seekerId", nextUserId);
+      if (nextScope === "MY_BIDS" && nextUserId) params.set("helperId", nextUserId);
       const res = await fetch(`/api/bounties?${params}`);
       if (res.ok) {
         const data = await res.json();
@@ -38,19 +52,29 @@ function useLiveBounties(category: BountyCategory | "ALL", query: string) {
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => fetchBounties(category, query), query ? 400 : 0);
+    const timer = setTimeout(
+      () => fetchBounties(category, query, scope, userId),
+      query ? 400 : 0
+    );
     return () => clearTimeout(timer);
-  }, [category, query, fetchBounties]);
+  }, [category, query, scope, userId, fetchBounties]);
 
-  return { bounties, loading, refetch: () => fetchBounties(category, query) };
+  return { bounties, loading, refetch: () => fetchBounties(category, query, scope, userId) };
 }
 
 export default function Feed() {
+  const { user } = useCurrentUser();
   const [activeCategory, setActiveCategory] = useState<BountyCategory | "ALL">("ALL");
+  const [activeScope, setActiveScope] = useState<BountyScope>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [postModalOpen, setPostModalOpen] = useState(false);
 
-  const { bounties, loading, refetch } = useLiveBounties(activeCategory, searchQuery);
+  const { bounties, loading, refetch } = useLiveBounties(
+    activeCategory,
+    searchQuery,
+    activeScope,
+    user?.userId
+  );
 
   const displayed = bounties;
 
@@ -100,6 +124,23 @@ export default function Feed() {
               }`}
             >
               {tabLabel[cat]}
+            </motion.button>
+          ))}
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4" style={{ scrollbarWidth: "none" }}>
+          {(Object.keys(scopeLabel) as BountyScope[]).map((scope) => (
+            <motion.button
+              key={scope}
+              whileTap={{ scale: 0.94 }}
+              onClick={() => setActiveScope(scope)}
+              className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                activeScope === scope
+                  ? "bg-charcoal text-white"
+                  : "bg-card text-muted border border-card-border"
+              }`}
+            >
+              {scopeLabel[scope]}
             </motion.button>
           ))}
         </div>

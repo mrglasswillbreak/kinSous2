@@ -9,8 +9,9 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status") ?? undefined;
     const query = searchParams.get("q") ?? undefined;
     const seekerId = searchParams.get("seekerId") ?? undefined;
+    const helperId = searchParams.get("helperId") ?? undefined;
 
-    const bounties = await getBounties({ category, status, query, seekerId });
+    const bounties = await getBounties({ category, status, query, seekerId, helperId });
     return NextResponse.json({ bounties });
   } catch (err) {
     console.error("GET /api/bounties error:", err);
