@@ -113,30 +113,30 @@ export function dbUserToProfile(u: DbUser): Profile {
           totalEarnings,
           currency: u.earnings_currency === "USD" ? "USD" : "NGN",
         }
-
-        export function dbHelperHistoryToAppHistory(
-          row: DbHelperInteractionHistoryRow
-        ): HelperInteractionHistoryItem {
-          return {
-            bountyId: row.bounty_id,
-            bountyTitle: row.bounty_title,
-            bountyStatus: row.bounty_status as Bounty["status"],
-            city: row.city || "Unknown",
-            country: row.country || "Unknown",
-            acceptedAmount: Number(row.accepted_amount),
-            currency: (row.currency === "USD" ? "USD" : "NGN") as HelperInteractionHistoryItem["currency"],
-            interactedAt: row.interacted_at,
-            reviewCompleted: Boolean(row.review_id),
-            reviewRating: row.review_rating ?? undefined,
-            reviewComment: row.review_comment ?? undefined,
-            reviewCreatedAt: row.review_created_at ?? undefined,
-          };
-        }
       : undefined,
     chefScore:
       u.role === "HELPER" && ratingPercentage > 0
         ? Math.min(100, Math.round(ratingPercentage))
         : undefined,
     createdAt: u.created_at,
+  };
+}
+
+export function dbHelperHistoryToAppHistory(
+  row: DbHelperInteractionHistoryRow
+): HelperInteractionHistoryItem {
+  return {
+    bountyId: row.bounty_id,
+    bountyTitle: row.bounty_title,
+    bountyStatus: row.bounty_status as Bounty["status"],
+    city: row.city || "Unknown",
+    country: row.country || "Unknown",
+    acceptedAmount: Number(row.accepted_amount),
+    currency: (row.currency === "USD" ? "USD" : "NGN") as HelperInteractionHistoryItem["currency"],
+    interactedAt: row.interacted_at,
+    reviewCompleted: Boolean(row.review_id),
+    reviewRating: row.review_rating ?? undefined,
+    reviewComment: row.review_comment ?? undefined,
+    reviewCreatedAt: row.review_created_at ?? undefined,
   };
 }

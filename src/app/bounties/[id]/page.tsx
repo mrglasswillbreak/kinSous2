@@ -88,6 +88,13 @@ export default function BountyDetailPage() {
     );
   }
 
+  const acceptedBid = bounty.bids?.find((bid) => bid.status === "ACCEPTED");
+  const canReview =
+    bounty.status === "COMPLETED" &&
+    Boolean(acceptedBid) &&
+    user?.userId === bounty.seeker.id &&
+    !reviewExists;
+
   return (
     <div className="max-w-md lg:max-w-2xl mx-auto pb-24 lg:pb-10">
       {/* Back button */}
@@ -260,9 +267,3 @@ export default function BountyDetailPage() {
     </div>
   );
 }
-  const acceptedBid = bounty.bids?.find((bid) => bid.status === "ACCEPTED");
-  const canReview =
-    bounty.status === "COMPLETED" &&
-    Boolean(acceptedBid) &&
-    user?.userId === bounty.seeker.id &&
-    !reviewExists;
