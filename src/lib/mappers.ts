@@ -82,7 +82,14 @@ export function dbUserToProfile(u: DbUser): Profile {
   const ratingPercentage = Number(
     u.rating_percentage ?? (averageRating > 0 ? (averageRating / 5) * 100 : 0)
   );
-  const totalEarnings = Number(u.total_earnings ?? 0);
+  const totalEarningsNgn = Number(
+    u.total_earnings_ngn ?? (u.earnings_currency === "NGN" ? u.total_earnings ?? 0 : 0)
+  );
+  const totalEarningsUsd = Number(
+    u.total_earnings_usd ?? (u.earnings_currency === "USD" ? u.total_earnings ?? 0 : 0)
+  );
+  const earningsCurrency = u.earnings_currency === "USD" ? "USD" : "NGN";
+  const totalEarnings = earningsCurrency === "USD" ? totalEarningsUsd : totalEarningsNgn;
   const hasStats = u.role === "HELPER";
 
   return {
@@ -111,7 +118,11 @@ export function dbUserToProfile(u: DbUser): Profile {
           ratingPercentage,
           totalReviews,
           totalEarnings,
-          currency: u.earnings_currency === "USD" ? "USD" : "NGN",
+          currency: earningsCurrency,
+          earningsByCurrency: {
+            NGN: totalEarningsNgn,
+            USD: totalEarningsUsd,
+          },
         }
       : undefined,
     chefScore:

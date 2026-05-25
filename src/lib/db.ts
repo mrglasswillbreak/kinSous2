@@ -60,6 +60,8 @@ export interface DbUser {
   total_reviews?: number;
   total_earnings?: number | string;
   earnings_currency?: string | null;
+  total_earnings_ngn?: number | string;
+  total_earnings_usd?: number | string;
   created_at: string;
 }
 
@@ -557,10 +559,16 @@ function localWithHelperMetrics(store: LocalStore, user: DbUser): DbUser {
     ? helperReviews.reduce((sum, review) => sum + Number(review.rating), 0) / totalReviews
     : 0;
   const ratingPercentage = averageRating > 0 ? (averageRating / 5) * 100 : 0;
-  const totalEarnings = completedAcceptedBids.reduce(
-    (sum, bid) => sum + Number(bid.amount),
+  const totalEarningsNgn = completedAcceptedBids.reduce(
+    (sum, bid) => sum + (bid.currency === "NGN" ? Number(bid.amount) : 0),
     0
   );
+  const totalEarningsUsd = completedAcceptedBids.reduce(
+    (sum, bid) => sum + (bid.currency === "USD" ? Number(bid.amount) : 0),
+    0
+  );
+  const earningsCurrency = totalEarningsNgn > 0 ? "NGN" : totalEarningsUsd > 0 ? "USD" : "NGN";
+  const totalEarnings = earningsCurrency === "USD" ? totalEarningsUsd : totalEarningsNgn;
 
   return {
     ...user,
@@ -569,7 +577,9 @@ function localWithHelperMetrics(store: LocalStore, user: DbUser): DbUser {
     rating_percentage: ratingPercentage,
     total_reviews: totalReviews,
     total_earnings: totalEarnings,
-    earnings_currency: completedAcceptedBids[0]?.currency ?? "NGN",
+    earnings_currency: earningsCurrency,
+    total_earnings_ngn: totalEarningsNgn,
+    total_earnings_usd: totalEarningsUsd,
   };
 }
 
@@ -1178,16 +1188,25 @@ export async function getUserById(id: string): Promise<DbUser | null> {
       reviews.average_rating,
       reviews.rating_percentage,
       COALESCE(reviews.total_reviews, 0) AS total_reviews,
-      COALESCE(completed.total_earnings, 0) AS total_earnings,
-      COALESCE(completed.earnings_currency, 'NGN') AS earnings_currency,
+      CASE
+        WHEN COALESCE(completed.total_earnings_ngn, 0) > 0 THEN completed.total_earnings_ngn
+        ELSE COALESCE(completed.total_earnings_usd, 0)
+      END AS total_earnings,
+      CASE
+        WHEN COALESCE(completed.total_earnings_ngn, 0) > 0 THEN 'NGN'
+        WHEN COALESCE(completed.total_earnings_usd, 0) > 0 THEN 'USD'
+        ELSE 'NGN'
+      END AS earnings_currency,
+      COALESCE(completed.total_earnings_ngn, 0) AS total_earnings_ngn,
+      COALESCE(completed.total_earnings_usd, 0) AS total_earnings_usd,
       u.created_at::text AS created_at
     FROM users u
     LEFT JOIN (
       SELECT
         bid.helper_id,
         COUNT(*) FILTER (WHERE b.status = 'COMPLETED') AS completed_orders,
-        SUM(CASE WHEN b.status = 'COMPLETED' THEN bid.amount ELSE 0 END)::numeric AS total_earnings,
-        MAX(CASE WHEN b.status = 'COMPLETED' THEN bid.currency ELSE NULL END) AS earnings_currency
+        SUM(CASE WHEN b.status = 'COMPLETED' AND bid.currency = 'NGN' THEN bid.amount ELSE 0 END)::numeric AS total_earnings_ngn,
+        SUM(CASE WHEN b.status = 'COMPLETED' AND bid.currency = 'USD' THEN bid.amount ELSE 0 END)::numeric AS total_earnings_usd
       FROM bids bid
       JOIN bounties b ON b.id = bid.bounty_id
       WHERE bid.status = 'ACCEPTED'
@@ -1248,16 +1267,25 @@ export async function getHelpers(query?: string): Promise<DbUser[]> {
       reviews.average_rating,
       reviews.rating_percentage,
       COALESCE(reviews.total_reviews, 0) AS total_reviews,
-      COALESCE(completed.total_earnings, 0) AS total_earnings,
-      COALESCE(completed.earnings_currency, 'NGN') AS earnings_currency,
+      CASE
+        WHEN COALESCE(completed.total_earnings_ngn, 0) > 0 THEN completed.total_earnings_ngn
+        ELSE COALESCE(completed.total_earnings_usd, 0)
+      END AS total_earnings,
+      CASE
+        WHEN COALESCE(completed.total_earnings_ngn, 0) > 0 THEN 'NGN'
+        WHEN COALESCE(completed.total_earnings_usd, 0) > 0 THEN 'USD'
+        ELSE 'NGN'
+      END AS earnings_currency,
+      COALESCE(completed.total_earnings_ngn, 0) AS total_earnings_ngn,
+      COALESCE(completed.total_earnings_usd, 0) AS total_earnings_usd,
       u.created_at::text AS created_at
     FROM users u
     LEFT JOIN (
       SELECT
         bid.helper_id,
         COUNT(*) FILTER (WHERE b.status = 'COMPLETED') AS completed_orders,
-        SUM(CASE WHEN b.status = 'COMPLETED' THEN bid.amount ELSE 0 END)::numeric AS total_earnings,
-        MAX(CASE WHEN b.status = 'COMPLETED' THEN bid.currency ELSE NULL END) AS earnings_currency
+        SUM(CASE WHEN b.status = 'COMPLETED' AND bid.currency = 'NGN' THEN bid.amount ELSE 0 END)::numeric AS total_earnings_ngn,
+        SUM(CASE WHEN b.status = 'COMPLETED' AND bid.currency = 'USD' THEN bid.amount ELSE 0 END)::numeric AS total_earnings_usd
       FROM bids bid
       JOIN bounties b ON b.id = bid.bounty_id
       WHERE bid.status = 'ACCEPTED'

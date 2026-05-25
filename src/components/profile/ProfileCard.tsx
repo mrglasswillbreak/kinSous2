@@ -37,6 +37,11 @@ export default function ProfileCard({
 }: ProfileCardProps) {
   const router = useRouter();
   const isHelper = profile.role === "HELPER";
+  const helperEarningsByCurrency = profile.helperStats?.earningsByCurrency;
+  const hasMixedCurrencyEarnings =
+    Boolean(helperEarningsByCurrency) &&
+    (helperEarningsByCurrency?.NGN ?? 0) > 0 &&
+    (helperEarningsByCurrency?.USD ?? 0) > 0;
 
   // Determine bounties to show
   const myBounties = (liveBounties ?? []).slice(0, 5);
@@ -266,7 +271,9 @@ export default function ProfileCard({
             <div className="text-center bg-primary-50 rounded-2xl p-3">
               <DollarSign size={18} className="text-primary mx-auto mb-1" />
               <p className="text-xl font-bold text-charcoal">
-                {formatCurrency(profile.helperStats.totalEarnings, profile.helperStats.currency)}
+                {hasMixedCurrencyEarnings
+                  ? `${formatCurrency(helperEarningsByCurrency?.NGN ?? 0, "NGN")} + ${formatCurrency(helperEarningsByCurrency?.USD ?? 0, "USD")}`
+                  : formatCurrency(profile.helperStats.totalEarnings, profile.helperStats.currency)}
               </p>
               <p className="text-xs text-muted">Earned</p>
             </div>

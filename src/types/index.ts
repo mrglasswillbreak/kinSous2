@@ -17,6 +17,10 @@ export interface HelperStats {
   totalReviews?: number;
   totalEarnings: number;
   currency: "USD" | "NGN";
+  earningsByCurrency?: {
+    NGN: number;
+    USD: number;
+  };
 }
 
 export interface HelperInteractionHistoryItem {
