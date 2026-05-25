@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -276,8 +277,14 @@ export default function Settings() {
           <p className="text-xs font-semibold text-muted uppercase tracking-wider">Account</p>
         </div>
         <div className="flex items-center gap-3 px-4 py-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={avatarUrl} alt={displayName} className="w-12 h-12 rounded-2xl object-cover ring-2 ring-primary-100" />
+          <Image
+            src={avatarUrl}
+            alt={displayName}
+            width={48}
+            height={48}
+            unoptimized={avatarUrl.startsWith("data:")}
+            className="h-12 w-12 rounded-2xl object-cover ring-2 ring-primary-100"
+          />
           <div className="min-w-0">
             <p className="font-bold text-charcoal truncate">{displayName}</p>
             <p className="text-xs text-muted truncate">

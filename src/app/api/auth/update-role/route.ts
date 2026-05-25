@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { getUserById, initDb, sql, upsertLocalUser, usingLocalDb } from "@/lib/db";
 import { getSession, setSessionCookie } from "@/lib/auth";
+import { CACHE_TAGS } from "@/lib/server-data";
 
 const ALLOWED_ROLES = new Set(["SEEKER", "HELPER"]);
 
@@ -33,6 +35,7 @@ export async function POST(req: NextRequest) {
         role,
         exp: Date.now() + 1000 * 60 * 60 * 24 * 30,
       });
+      revalidateTag(CACHE_TAGS.helpers);
       return NextResponse.json({ success: true, role });
     }
 
@@ -54,6 +57,7 @@ export async function POST(req: NextRequest) {
       exp: Date.now() + 1000 * 60 * 60 * 24 * 30,
     });
 
+    revalidateTag(CACHE_TAGS.helpers);
     return NextResponse.json({ success: true, role });
   } catch (err) {
     console.error("Update role error:", err);

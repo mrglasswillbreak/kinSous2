@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ShoppingCart, Truck, CheckCircle2, Clock, Navigation, MapPin } from "lucide-react";
@@ -193,10 +194,12 @@ export default function Tracker() {
           {/* Helper info */}
           <div className="flex items-center gap-3 bg-card rounded-3xl p-4 shadow-card">
             <div className="relative">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src={tracking.helper.avatarUrl} alt={tracking.helper.name}
-                className="w-14 h-14 rounded-full object-cover ring-2 ring-primary-100"
+                width={56}
+                height={56}
+                unoptimized={tracking.helper.avatarUrl.startsWith("data:")}
+                className="h-14 w-14 rounded-full object-cover ring-2 ring-primary-100"
               />
               <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-secondary-500 rounded-full border-2 border-white" />
             </div>

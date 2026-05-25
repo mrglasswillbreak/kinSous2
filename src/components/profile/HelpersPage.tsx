@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Search, Star, MapPin, Package, Flame } from "lucide-react";
@@ -7,6 +8,7 @@ import type { Profile } from "@/types";
 import { SkeletonHelperCard } from "@/components/ui/Skeleton";
 import ChefScore from "@/components/profile/ChefScore";
 import Link from "next/link";
+import { SEARCH_DEBOUNCE_MS } from "@/lib/constants";
 import { dbUserToProfile } from "@/lib/mappers";
 
 function HelperCard({ helper, index }: { helper: Profile; index: number }) {
@@ -22,10 +24,13 @@ function HelperCard({ helper, index }: { helper: Profile; index: number }) {
           <div className="h-16 bg-gradient-to-r from-primary-400 to-primary-600" />
           <div className="px-4 pb-4">
             <div className="flex items-end gap-3 -mt-8 mb-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={helper.avatarUrl} alt={helper.name}
-                className="w-16 h-16 rounded-2xl ring-4 ring-white object-cover shadow-md"
+              <Image
+                src={helper.avatarUrl}
+                alt={helper.name}
+                width={64}
+                height={64}
+                unoptimized={helper.avatarUrl.startsWith("data:")}
+                className="h-16 w-16 rounded-2xl object-cover shadow-md ring-4 ring-white"
               />
               {helper.chefScore !== undefined && (
                 <div className="mb-1">
@@ -82,7 +87,7 @@ export default function HelpersPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedQuery(query), 300);
+    const timer = setTimeout(() => setDebouncedQuery(query), SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [query]);
 

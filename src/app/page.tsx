@@ -1,12 +1,8 @@
-"use client";
-
-import { motion } from "framer-motion";
+import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Flame, MapPin, Shield, Video, ArrowRight, Star, ChevronRight, MessageCircle, Map } from "lucide-react";
-import type { Bounty, Profile } from "@/types";
+import { ArrowRight, ChevronRight, Flame, Map, MapPin, MessageCircle, Shield, Star, Video } from "lucide-react";
 import { formatCurrency, timeAgo } from "@/lib/mock-data";
-import { dbBountyToAppBounty, dbUserToProfile } from "@/lib/mappers";
+import { getHomePageData, HOME_PAGE_REVALIDATE_SECONDS } from "@/lib/server-data";
 
 const features = [
   { icon: Flame, title: "Bounty Board", description: "Post food requests and get bids from local culinary helpers", href: "/bounties", color: "bg-primary-50 text-primary-500" },
@@ -17,268 +13,258 @@ const features = [
   { icon: Map, title: "Tracker", description: "Real-time delivery tracking with live map", href: "/tracker", color: "bg-teal-50 text-teal-600" },
 ].slice(0, 4);
 
-export default function HomePage() {
-  const [recentBounties, setRecentBounties] = useState<Bounty[]>([]);
-  const [topHelpers, setTopHelpers] = useState<Profile[]>([]);
+export const revalidate = HOME_PAGE_REVALIDATE_SECONDS;
 
-  useEffect(() => {
-    fetch("/api/bounties")
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => {
-        if (!data) return;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const live = (data.bounties ?? []).slice(0, 3).map((b: any) => dbBountyToAppBounty(b));
-        setRecentBounties(live);
-      })
-      .catch((err) => { console.error("HomePage: failed to load bounties", err); });
-
-    fetch("/api/helpers")
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => {
-        if (!data) return;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const live = (data.helpers ?? []).slice(0, 5).map((u: any) => dbUserToProfile(u));
-        setTopHelpers(live);
-      })
-      .catch((err) => { console.error("HomePage: failed to load helpers", err); });
-  }, []);
-
-  const ratedHelpers = topHelpers.filter((h) => h.helperStats?.averageRating !== undefined);
+export default async function HomePage() {
+  const { recentBounties, topHelpers } = await getHomePageData();
+  const ratedHelpers = topHelpers.filter((helper) => helper.helperStats?.averageRating !== undefined);
   const avgHelperRating = ratedHelpers.length
     ? (
-      ratedHelpers.reduce((sum, h) => sum + (h.helperStats?.averageRating ?? 0), 0) / ratedHelpers.length
-    ).toFixed(1)
+        ratedHelpers.reduce(
+          (sum, helper) => sum + (helper.helperStats?.averageRating ?? 0),
+          0
+        ) / ratedHelpers.length
+      ).toFixed(1)
     : "N/A";
 
   return (
-    <div className="max-w-md mx-auto lg:max-w-5xl pb-24 lg:pb-10">
-      {/* Hero */}
-      <div className="relative px-5 pt-12 pb-8 overflow-hidden lg:rounded-3xl lg:mx-4 lg:mt-6 lg:pt-14 lg:pb-12">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-background to-secondary-50 -z-10 lg:rounded-3xl" />
+    <div className="mx-auto max-w-md pb-24 lg:max-w-5xl lg:pb-10">
+      <div className="relative overflow-hidden px-5 pb-8 pt-12 lg:mx-4 lg:mt-6 lg:rounded-3xl lg:pb-12 lg:pt-14">
+        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary-50 via-background to-secondary-50 lg:rounded-3xl" />
 
-        <div className="lg:grid lg:grid-cols-2 lg:gap-10 lg:items-center">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center shadow-primary">
+        <div className="lg:grid lg:grid-cols-2 lg:items-center lg:gap-10">
+          <div>
+            <div className="mb-4 flex items-center gap-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary shadow-primary">
                 <Flame size={22} className="text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-charcoal leading-tight">KinSous</h1>
+                <h1 className="text-xl font-bold leading-tight text-charcoal">KinSous</h1>
                 <p className="text-xs text-muted">FolkProvidr</p>
               </div>
             </div>
 
-            <h2 className="text-3xl lg:text-4xl font-bold text-charcoal leading-tight">
+            <h2 className="text-3xl font-bold leading-tight text-charcoal lg:text-4xl">
               Taste Your <span className="text-primary">Heritage,</span>
               <br />Wherever You Are
             </h2>
-            <p className="text-muted mt-2 leading-relaxed lg:text-base">
+            <p className="mt-2 leading-relaxed text-muted lg:text-base">
               Connect with local culinary helpers for authentic West African food experiences — from Lagos to Atlanta.
             </p>
 
-            <div className="flex gap-3 mt-5">
-              <Link href="/bounties">
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-2xl text-sm font-semibold shadow-primary"
-                >
-                  Post a Bounty <ArrowRight size={16} />
-                </motion.button>
+            <div className="mt-5 flex gap-3">
+              <Link
+                href="/bounties"
+                className="flex items-center gap-2 rounded-2xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-primary transition-transform active:scale-95"
+              >
+                Post a Bounty <ArrowRight size={16} />
               </Link>
-              <Link href="/profile">
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-2 bg-card text-charcoal px-5 py-2.5 rounded-2xl text-sm font-semibold border border-card-border shadow-card"
-                >
-                  Become a Helper
-                </motion.button>
+              <Link
+                href="/profile"
+                className="flex items-center gap-2 rounded-2xl border border-card-border bg-card px-5 py-2.5 text-sm font-semibold text-charcoal shadow-card transition-transform active:scale-95"
+              >
+                Become a Helper
               </Link>
             </div>
-          </motion.div>
+          </div>
 
-          {/* Stats panel — desktop right column */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-            className="hidden lg:block"
-          >
-            <div className="bg-card rounded-3xl shadow-card p-6 border border-card-border space-y-4">
+          <div className="hidden lg:block">
+            <div className="space-y-4 rounded-3xl border border-card-border bg-card p-6 shadow-card">
               {[
                 { value: `${recentBounties.length}`, label: "Recent Bounties", emoji: "🍽️" },
                 { value: `${topHelpers.length}`, label: "Active Helpers", emoji: "👨‍🍳" },
                 { value: avgHelperRating === "N/A" ? "N/A" : `${avgHelperRating}★`, label: "Avg Helper Rating", emoji: "⭐" },
-              ].map((s) => (
-                <div key={s.label} className="flex items-center gap-4 p-3 rounded-2xl bg-subtle border border-card-border">
-                  <span className="text-2xl">{s.emoji}</span>
+              ].map((stat) => (
+                <div
+                  key={stat.label}
+                  className="flex items-center gap-4 rounded-2xl border border-card-border bg-subtle p-3"
+                >
+                  <span className="text-2xl">{stat.emoji}</span>
                   <div>
-                    <p className="text-2xl font-bold text-charcoal leading-none">{s.value}</p>
-                    <p className="text-xs text-muted mt-0.5">{s.label}</p>
+                    <p className="text-2xl font-bold leading-none text-charcoal">{stat.value}</p>
+                    <p className="mt-0.5 text-xs text-muted">{stat.label}</p>
                   </div>
                 </div>
               ))}
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
 
-      {/* Stats (mobile only) */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-        className="mx-4 bg-card rounded-3xl shadow-card p-4 flex items-center justify-around border border-card-border lg:hidden mt-4"
-      >
+      <div className="mx-4 mt-4 flex items-center justify-around rounded-3xl border border-card-border bg-card p-4 shadow-card lg:hidden">
         {[
           { value: `${recentBounties.length}`, label: "Recent Bounties" },
           { value: `${topHelpers.length}`, label: "Active Helpers" },
           { value: avgHelperRating === "N/A" ? "N/A" : `${avgHelperRating}★`, label: "Avg Rating" },
-        ].map((s) => (
-          <div key={s.label} className="text-center">
-            <p className="text-xl font-bold text-charcoal">{s.value}</p>
-            <p className="text-xs text-muted">{s.label}</p>
+        ].map((stat) => (
+          <div key={stat.label} className="text-center">
+            <p className="text-xl font-bold text-charcoal">{stat.value}</p>
+            <p className="text-xs text-muted">{stat.label}</p>
           </div>
         ))}
-      </motion.div>
+      </div>
 
-      {/* Features */}
-      <div className="px-4 mt-6">
-        <h3 className="text-lg font-bold text-charcoal mb-3">How It Works</h3>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {features.map((feat, i) => (
-            <Link key={feat.title} href={feat.href}>
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.1 + i * 0.05 }} whileTap={{ scale: 0.97 }}
-                className="bg-card rounded-3xl shadow-card p-4 h-full border border-card-border hover:shadow-card-hover transition-shadow"
-              >
-                <div className={`w-10 h-10 rounded-2xl ${feat.color} flex items-center justify-center mb-3`}>
-                  <feat.icon size={20} />
-                </div>
-                <p className="font-bold text-charcoal text-sm">{feat.title}</p>
-                <p className="text-xs text-muted mt-1 leading-relaxed">{feat.description}</p>
-              </motion.div>
+      <div className="mt-6 px-4">
+        <h3 className="mb-3 text-lg font-bold text-charcoal">How It Works</h3>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {features.map((feature) => (
+            <Link
+              key={feature.title}
+              href={feature.href}
+              className="h-full rounded-3xl border border-card-border bg-card p-4 shadow-card transition hover:shadow-card-hover active:scale-[0.98]"
+            >
+              <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-2xl ${feature.color}`}>
+                <feature.icon size={20} />
+              </div>
+              <p className="text-sm font-bold text-charcoal">{feature.title}</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted">{feature.description}</p>
             </Link>
           ))}
         </div>
       </div>
 
-      {/* Recent Bounties + Top Helpers side-by-side on desktop */}
-      <div className="px-4 mt-6 lg:grid lg:grid-cols-2 lg:gap-6">
-        {/* Recent Bounties */}
+      <div className="mt-6 px-4 lg:grid lg:grid-cols-2 lg:gap-6">
         <div>
-          <div className="flex items-center justify-between mb-3">
+          <div className="mb-3 flex items-center justify-between">
             <h3 className="text-lg font-bold text-charcoal">Recent Bounties</h3>
-            <Link href="/bounties" className="text-primary text-sm font-semibold flex items-center gap-1">
+            <Link href="/bounties" className="flex items-center gap-1 text-sm font-semibold text-primary">
               See all <ChevronRight size={14} />
             </Link>
           </div>
           <div className="space-y-3">
             {recentBounties.length === 0 ? (
-              <div className="bg-card rounded-2xl shadow-card p-4 border border-card-border text-center">
+              <div className="rounded-2xl border border-card-border bg-card p-4 text-center shadow-card">
                 <p className="text-sm font-semibold text-charcoal">No bounties yet</p>
-                <p className="text-xs text-muted mt-1">Be the first to post one.</p>
+                <p className="mt-1 text-xs text-muted">Be the first to post one.</p>
               </div>
-            ) : recentBounties.map((b, i) => (
-              <Link key={b.id} href={`/bounties/${b.id}`}>
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.15 + i * 0.05 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="bg-card rounded-2xl shadow-card p-3 flex items-center gap-3 border border-card-border hover:shadow-card-hover transition-shadow"
+            ) : (
+              recentBounties.map((bounty) => (
+                <Link
+                  key={bounty.id}
+                  href={`/bounties/${bounty.id}`}
+                  className="flex items-center gap-3 rounded-2xl border border-card-border bg-card p-3 shadow-card transition hover:shadow-card-hover active:scale-[0.98]"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={b.seeker.avatarUrl} alt={b.seeker.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-charcoal truncate">{b.title}</p>
-                    <p className="text-xs text-muted">{b.location.city} · {timeAgo(b.createdAt)}</p>
+                  <Image
+                    src={bounty.seeker.avatarUrl}
+                    alt={bounty.seeker.name}
+                    width={40}
+                    height={40}
+                    unoptimized={bounty.seeker.avatarUrl.startsWith("data:")}
+                    className="h-10 w-10 flex-shrink-0 rounded-full object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-charcoal">{bounty.title}</p>
+                    <p className="text-xs text-muted">
+                      {bounty.location.city} · {timeAgo(bounty.createdAt)}
+                    </p>
                   </div>
-                  <span className="text-sm font-bold text-secondary-700 flex-shrink-0">
-                    {formatCurrency(b.budget, b.currency)}
+                  <span className="flex-shrink-0 text-sm font-bold text-secondary-700">
+                    {formatCurrency(bounty.budget, bounty.currency)}
                   </span>
-                </motion.div>
-              </Link>
-            ))}
+                </Link>
+              ))
+            )}
           </div>
         </div>
 
-        {/* Top Helpers */}
         <div className="mt-6 lg:mt-0">
-          <div className="flex items-center justify-between mb-3">
+          <div className="mb-3 flex items-center justify-between">
             <h3 className="text-lg font-bold text-charcoal">Top Helpers</h3>
-            <Link href="/helpers" className="text-primary text-sm font-semibold flex items-center gap-1">
+            <Link href="/helpers" className="flex items-center gap-1 text-sm font-semibold text-primary">
               View all <ChevronRight size={14} />
             </Link>
           </div>
-          {/* Mobile: horizontal scroll */}
-          <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 lg:hidden" style={{ scrollbarWidth: "none" }}>
+          <div className="flex -mx-4 gap-3 overflow-x-auto px-4 pb-2 lg:hidden" style={{ scrollbarWidth: "none" }}>
             {topHelpers.length === 0 ? (
-              <div className="bg-card rounded-2xl shadow-card p-4 border border-card-border text-center min-w-full">
+              <div className="min-w-full rounded-2xl border border-card-border bg-card p-4 text-center shadow-card">
                 <p className="text-sm font-semibold text-charcoal">No helpers yet</p>
-                <p className="text-xs text-muted mt-1">New helpers will appear here.</p>
+                <p className="mt-1 text-xs text-muted">New helpers will appear here.</p>
               </div>
-            ) : topHelpers.map((h, i) => (
-              <Link key={h.id} href={`/helpers/${h.id}`}>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.1 + i * 0.05 }} whileTap={{ scale: 0.95 }}
-                  className="flex-shrink-0 bg-card rounded-3xl shadow-card p-4 w-44 text-center border border-card-border"
+            ) : (
+              topHelpers.map((helper) => (
+                <Link
+                  key={helper.id}
+                  href={`/helpers/${helper.id}`}
+                  className="w-44 flex-shrink-0 rounded-3xl border border-card-border bg-card p-4 text-center shadow-card transition active:scale-[0.98]"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={h.avatarUrl} alt={h.name} className="w-14 h-14 rounded-full object-cover mx-auto ring-2 ring-primary-100" />
-                  <p className="text-sm font-bold text-charcoal mt-2 truncate">{h.name}</p>
-                  <p className="text-xs text-muted">{h.location.city}</p>
-                  {h.helperStats ? (
-                    <div className="flex items-center justify-center gap-1 mt-1">
-                      <Star size={11} className="text-yellow-400 fill-yellow-400" />
-                      <span className="text-xs font-semibold text-charcoal">{h.helperStats.averageRating.toFixed(1)}</span>
-                      <span className="text-xs text-muted">({h.helperStats.completedOrders})</span>
+                  <Image
+                    src={helper.avatarUrl}
+                    alt={helper.name}
+                    width={56}
+                    height={56}
+                    unoptimized={helper.avatarUrl.startsWith("data:")}
+                    className="mx-auto h-14 w-14 rounded-full object-cover ring-2 ring-primary-100"
+                  />
+                  <p className="mt-2 truncate text-sm font-bold text-charcoal">{helper.name}</p>
+                  <p className="text-xs text-muted">{helper.location.city}</p>
+                  {helper.helperStats ? (
+                    <div className="mt-1 flex items-center justify-center gap-1">
+                      <Star size={11} className="fill-yellow-400 text-yellow-400" />
+                      <span className="text-xs font-semibold text-charcoal">
+                        {helper.helperStats.averageRating.toFixed(1)}
+                      </span>
+                      <span className="text-xs text-muted">
+                        ({helper.helperStats.completedOrders})
+                      </span>
                     </div>
                   ) : (
-                    <p className="text-xs text-muted mt-1">New Helper</p>
+                    <p className="mt-1 text-xs text-muted">New Helper</p>
                   )}
-                  {h.chefScore && (
-                    <div className="mt-2 bg-primary-50 rounded-full px-2 py-0.5 inline-block">
-                      <span className="text-xs font-bold text-primary">🔥 {h.chefScore}</span>
+                  {helper.chefScore && (
+                    <div className="mt-2 inline-block rounded-full bg-primary-50 px-2 py-0.5">
+                      <span className="text-xs font-bold text-primary">🔥 {helper.chefScore}</span>
                     </div>
                   )}
-                </motion.div>
-              </Link>
-            ))}
+                </Link>
+              ))
+            )}
           </div>
-          {/* Desktop: grid */}
-          <div className="hidden lg:grid grid-cols-2 gap-3">
+          <div className="hidden grid-cols-2 gap-3 lg:grid">
             {topHelpers.length === 0 ? (
-              <div className="col-span-2 bg-card rounded-2xl shadow-card p-4 border border-card-border text-center">
+              <div className="col-span-2 rounded-2xl border border-card-border bg-card p-4 text-center shadow-card">
                 <p className="text-sm font-semibold text-charcoal">No helpers yet</p>
-                <p className="text-xs text-muted mt-1">New helpers will appear here.</p>
+                <p className="mt-1 text-xs text-muted">New helpers will appear here.</p>
               </div>
-            ) : topHelpers.map((h, i) => (
-              <Link key={h.id} href={`/helpers/${h.id}`}>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.1 + i * 0.05 }} whileTap={{ scale: 0.95 }}
-                  className="bg-card rounded-3xl shadow-card p-4 flex items-center gap-3 border border-card-border hover:shadow-card-hover transition-shadow"
+            ) : (
+              topHelpers.map((helper) => (
+                <Link
+                  key={helper.id}
+                  href={`/helpers/${helper.id}`}
+                  className="flex items-center gap-3 rounded-3xl border border-card-border bg-card p-4 shadow-card transition hover:shadow-card-hover active:scale-[0.98]"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={h.avatarUrl} alt={h.name} className="w-12 h-12 rounded-full object-cover ring-2 ring-primary-100 flex-shrink-0" />
+                  <Image
+                    src={helper.avatarUrl}
+                    alt={helper.name}
+                    width={48}
+                    height={48}
+                    unoptimized={helper.avatarUrl.startsWith("data:")}
+                    className="h-12 w-12 flex-shrink-0 rounded-full object-cover ring-2 ring-primary-100"
+                  />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-charcoal truncate">{h.name}</p>
-                    <p className="text-xs text-muted">{h.location.city}</p>
-                    {h.helperStats ? (
-                      <div className="flex items-center gap-1 mt-1">
-                        <Star size={11} className="text-yellow-400 fill-yellow-400" />
-                        <span className="text-xs font-semibold text-charcoal">{h.helperStats.averageRating.toFixed(1)}</span>
-                        <span className="text-xs text-muted">({h.helperStats.completedOrders})</span>
+                    <p className="truncate text-sm font-bold text-charcoal">{helper.name}</p>
+                    <p className="text-xs text-muted">{helper.location.city}</p>
+                    {helper.helperStats ? (
+                      <div className="mt-1 flex items-center gap-1">
+                        <Star size={11} className="fill-yellow-400 text-yellow-400" />
+                        <span className="text-xs font-semibold text-charcoal">
+                          {helper.helperStats.averageRating.toFixed(1)}
+                        </span>
+                        <span className="text-xs text-muted">
+                          ({helper.helperStats.completedOrders})
+                        </span>
                       </div>
                     ) : (
-                      <p className="text-xs text-muted mt-1">New Helper</p>
+                      <p className="mt-1 text-xs text-muted">New Helper</p>
                     )}
                   </div>
-                  {h.chefScore && (
-                    <div className="bg-primary-50 rounded-full px-2 py-0.5">
-                      <span className="text-xs font-bold text-primary">🔥 {h.chefScore}</span>
+                  {helper.chefScore && (
+                    <div className="rounded-full bg-primary-50 px-2 py-0.5">
+                      <span className="text-xs font-bold text-primary">🔥 {helper.chefScore}</span>
                     </div>
                   )}
-                </motion.div>
-              </Link>
-            ))}
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </div>

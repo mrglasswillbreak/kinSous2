@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -161,10 +162,12 @@ export default function TopBar() {
                   href="/profile"
                   className="flex items-center gap-3 rounded-2xl bg-subtle p-3"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <Image
                     src={avatarUrl}
                     alt={displayName}
+                    width={48}
+                    height={48}
+                    unoptimized={avatarUrl.startsWith("data:")}
                     className="h-12 w-12 rounded-2xl object-cover ring-2 ring-primary-100"
                   />
                   <div className="min-w-0">

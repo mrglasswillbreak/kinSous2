@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Suspense, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Headphones, Video } from "lucide-react";
@@ -90,8 +91,14 @@ function VideoPageContent() {
         <div className="p-4 flex items-center gap-3">
           {helper ? (
             <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={helper.avatarUrl} alt={helper.name} className="w-14 h-14 rounded-2xl object-cover ring-2 ring-primary-100" />
+              <Image
+                src={helper.avatarUrl}
+                alt={helper.name}
+                width={56}
+                height={56}
+                unoptimized={helper.avatarUrl.startsWith("data:")}
+                className="h-14 w-14 rounded-2xl object-cover ring-2 ring-primary-100"
+              />
               <div>
                 <p className="font-bold text-charcoal">{helper.name}</p>
                 <p className="text-sm text-muted">{helper.location.city} · {helper.location.country}</p>

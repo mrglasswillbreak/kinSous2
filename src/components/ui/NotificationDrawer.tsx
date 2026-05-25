@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, X, CheckCheck, BellOff, Package, DollarSign, Truck, MessageCircle, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -66,8 +67,14 @@ function NotificationItem({ notification: n, onRead, onDismiss, onClose }: Notif
     >
       <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${cfg.color}`}>
         {n.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={n.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+          <Image
+            src={n.avatarUrl}
+            alt=""
+            width={36}
+            height={36}
+            unoptimized={n.avatarUrl.startsWith("data:")}
+            className="h-full w-full rounded-full object-cover"
+          />
         ) : (
           cfg.icon
         )}

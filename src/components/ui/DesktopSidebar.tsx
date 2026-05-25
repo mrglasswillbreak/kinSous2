@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -169,11 +170,13 @@ export default function DesktopSidebar() {
           href="/profile"
           className="flex items-center gap-3 border-t border-card-border px-4 py-3.5 hover:bg-subtle transition-colors"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src={avatarUrl}
             alt={displayName}
-            className="h-9 w-9 rounded-xl object-cover ring-2 ring-primary-100 flex-shrink-0"
+            width={36}
+            height={36}
+            unoptimized={avatarUrl.startsWith("data:")}
+            className="h-9 w-9 flex-shrink-0 rounded-xl object-cover ring-2 ring-primary-100"
           />
           <div className="min-w-0">
             <p className="truncate text-sm font-bold text-charcoal">{displayName}</p>

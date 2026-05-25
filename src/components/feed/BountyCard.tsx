@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, Clock, ChevronDown, DollarSign, Users, Tag, ArrowRight } from "lucide-react";
@@ -37,18 +38,25 @@ export default function BountyCard({ bounty, onChanged }: BountyCardProps) {
     >
       {bounty.imageUrls && bounty.imageUrls.length > 0 && (
         <div className="relative h-40 overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={bounty.imageUrls[0]} alt={bounty.title} className="w-full h-full object-cover" />
+          <Image
+            src={bounty.imageUrls[0]}
+            alt={bounty.title}
+            fill
+            sizes="(max-width: 1024px) 100vw, 50vw"
+            className="object-cover"
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
         </div>
       )}
 
       <div className="p-4 space-y-3">
         <div className="flex items-start gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src={bounty.seeker.avatarUrl} alt={bounty.seeker.name}
-            className="w-10 h-10 rounded-full ring-2 ring-primary-100 flex-shrink-0 object-cover"
+            width={40}
+            height={40}
+            unoptimized={bounty.seeker.avatarUrl.startsWith("data:")}
+            className="h-10 w-10 flex-shrink-0 rounded-full object-cover ring-2 ring-primary-100"
           />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">

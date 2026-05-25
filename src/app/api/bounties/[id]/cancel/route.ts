@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { getSession } from "@/lib/auth";
 import {
   cancelBounty,
@@ -6,6 +7,7 @@ import {
   getBountyById,
 } from "@/lib/db";
 import { publishUserEvent } from "@/lib/realtime";
+import { CACHE_TAGS } from "@/lib/server-data";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -61,6 +63,7 @@ export async function POST(_req: Request, { params }: RouteContext) {
       });
     }
 
+    revalidateTag(CACHE_TAGS.bounties);
     return NextResponse.json(
       { bounty: cancelled.bounty, notifiedHelpers: cancelled.notifiedHelperIds.length },
       { status: 200 }
