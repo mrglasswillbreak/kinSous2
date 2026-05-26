@@ -15,7 +15,6 @@ export async function GET(_req: NextRequest, { params }: Props) {
     if (!bounty) {
       return NextResponse.json({ error: "Bounty not found" }, { status: 404 });
     }
-    revalidateTag(CACHE_TAGS.bounties);
     return NextResponse.json({ bounty });
   } catch (err) {
     console.error("GET /api/bounties/[id] error:", err);
@@ -137,6 +136,7 @@ export async function PATCH(req: NextRequest, { params }: Props) {
     if (!bounty) {
       return NextResponse.json({ error: "Bounty not found" }, { status: 404 });
     }
+    revalidateTag(CACHE_TAGS.bounties);
     return NextResponse.json({ bounty });
   } catch (err) {
     console.error("PATCH /api/bounties/[id] error:", err);

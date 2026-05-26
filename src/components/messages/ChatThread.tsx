@@ -72,7 +72,6 @@ function MessageBubble({
       {!isMe && (
         <div className="w-7 flex-shrink-0 self-end">
           {showAvatar && (
-            // eslint-disable-next-line @next/next/no-img-element
             <Image
               src={msg.senderAvatarUrl}
               alt={msg.senderName}
@@ -419,7 +418,6 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
           </div>
         ) : (
           <div className="flex items-center gap-2.5 flex-1">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <Image
               src={other.avatarUrl}
               alt={other.name}

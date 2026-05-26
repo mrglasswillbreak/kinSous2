@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ChevronRight, Flame, Map, MapPin, MessageCircle, Shield, Star, Video } from "lucide-react";
 import { formatCurrency, timeAgo } from "@/lib/mock-data";
-import { getHomePageData } from "@/lib/server-data";
+import { getHomePageData, HOME_PAGE_REVALIDATE_SECONDS } from "@/lib/server-data";
 
 const features = [
   { icon: Flame, title: "Bounty Board", description: "Post food requests and get bids from local culinary helpers", href: "/bounties", color: "bg-primary-50 text-primary-500" },
@@ -14,6 +14,10 @@ const features = [
 ].slice(0, 4);
 
 export const revalidate = 60;
+
+if (HOME_PAGE_REVALIDATE_SECONDS !== revalidate) {
+  throw new Error("HOME_PAGE_REVALIDATE_SECONDS must match page revalidate.");
+}
 
 export default async function HomePage() {
   const { recentBounties, topHelpers } = await getHomePageData();

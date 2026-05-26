@@ -11,8 +11,8 @@ export const HOME_PAGE_REVALIDATE_SECONDS = 60;
 
 const getCachedRecentBounties = unstable_cache(
   async () => {
-    const bounties = await getBounties();
-    return bounties.slice(0, 3).map(dbBountyToAppBounty);
+    const bounties = await getBounties({ limit: 3, includeBids: false });
+    return bounties.map(dbBountyToAppBounty);
   },
   ["home-recent-bounties"],
   { revalidate: HOME_PAGE_REVALIDATE_SECONDS, tags: [CACHE_TAGS.bounties] }

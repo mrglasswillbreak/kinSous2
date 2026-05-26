@@ -1321,8 +1321,15 @@ export async function getBounties(filters: {
   query?: string;
   seekerId?: string;
   helperId?: string;
+  limit?: number;
+  includeBids?: boolean;
 } = {}): Promise<DbBounty[]> {
   await initDb();
+  const limit = Number.isInteger(filters.limit) && filters.limit && filters.limit > 0
+    ? filters.limit
+    : null;
+  const includeBids = filters.includeBids ?? true;
+
   if (usingLocalDb()) {
     const store = await readLocalStore();
     const category = normaliseNullable(filters.category);
@@ -1337,7 +1344,7 @@ export async function getBounties(filters: {
             .map((bid) => bid.bounty_id)
         )
       : null;
-    return store.bounties
+    const filtered = store.bounties
       .filter((bounty) => !category || bounty.category === category)
       .filter((bounty) => !status || bounty.status === status)
       .filter((bounty) => !seekerId || bounty.seeker_id === seekerId)
@@ -1351,8 +1358,11 @@ export async function getBounties(filters: {
           .filter(Boolean)
           .some((value) => String(value).toLowerCase().includes(search));
       })
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .map((bounty) => localJoinBounty(store, bounty));
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const limited = limit ? filtered.slice(0, limit) : filtered;
+    const joined = limited.map((bounty) => localJoinBounty(store, bounty));
+    if (includeBids) return joined;
+    return joined.map((bounty) => ({ ...bounty, bids: [] }));
   }
 
   const category = normaliseNullable(filters.category);
@@ -1402,7 +1412,12 @@ export async function getBounties(filters: {
         OR b.city ILIKE ${search}
       )
     ORDER BY b.created_at DESC
+    LIMIT ${limit ?? 2147483647}
   `;
+
+  if (!includeBids) {
+    return rows as DbBounty[];
+  }
 
   return attachBidsToBounties(rows as DbBounty[]);
 }
