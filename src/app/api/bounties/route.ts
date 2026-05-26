@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { getBounties, createBounty } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { CACHE_TAGS } from "@/lib/server-data";
 
 export async function GET(req: NextRequest) {
   try {
@@ -53,6 +55,7 @@ export async function POST(req: NextRequest) {
       tags: Array.isArray(tags) ? tags : [],
     });
 
+    revalidateTag(CACHE_TAGS.bounties);
     return NextResponse.json({ bounty }, { status: 201 });
   } catch (err) {
     console.error("POST /api/bounties error:", err);

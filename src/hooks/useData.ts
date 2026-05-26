@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Bounty, BountyCategory, Profile, Bid } from "@/types";
+import { SEARCH_DEBOUNCE_MS } from "@/lib/constants";
 import { dbBidToAppBid, dbBountyToAppBounty, dbUserToProfile } from "@/lib/mappers";
 
 async function fetchJson<T>(url: string): Promise<T | null> {
@@ -56,7 +57,7 @@ export function useBounties(filter?: BountiesFilter) {
           setIsLoading(false);
           fetchTimerRef.current = null;
         });
-    }, 600);
+    }, SEARCH_DEBOUNCE_MS);
   }, [category, query, status]);
 
   useEffect(() => { refetch(); }, [refetch]);
@@ -110,7 +111,7 @@ export function useHelpers(filter?: HelpersFilter) {
           setError(err instanceof Error ? err : new Error("Failed to load helpers"));
         })
         .finally(() => setIsLoading(false));
-    }, 500);
+    }, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [query, minChefScore, country]);
 
@@ -133,7 +134,7 @@ export function useProfile(id: string) {
           setData(found);
         })
         .finally(() => setIsLoading(false));
-    }, 400);
+    }, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [id]);
 

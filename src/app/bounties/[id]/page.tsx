@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, MapPin, Clock, Tag, Users, DollarSign, Star } from "lucide-react";
@@ -117,13 +118,14 @@ export default function BountyDetailPage() {
         {bounty.imageUrls && bounty.imageUrls.length > 0 && (
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
-            className="rounded-3xl overflow-hidden h-48 shadow-card"
+            className="relative h-48 overflow-hidden rounded-3xl shadow-card"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src={bounty.imageUrls[0]}
               alt={bounty.title}
-              className="w-full h-full object-cover"
+              fill
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              className="object-cover"
             />
           </motion.div>
         )}
@@ -135,11 +137,13 @@ export default function BountyDetailPage() {
           className="bg-card rounded-3xl shadow-card p-5 space-y-4 border border-card-border"
         >
           <div className="flex items-start gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src={bounty.seeker.avatarUrl}
               alt={bounty.seeker.name}
-              className="w-11 h-11 rounded-full object-cover ring-2 ring-primary-100 flex-shrink-0"
+              width={44}
+              height={44}
+              unoptimized={bounty.seeker.avatarUrl.startsWith("data:")}
+              className="h-11 w-11 flex-shrink-0 rounded-full object-cover ring-2 ring-primary-100"
             />
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-charcoal text-sm">{bounty.seeker.name}</p>

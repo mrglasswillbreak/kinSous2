@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import {
@@ -135,8 +136,14 @@ export default function VideoShoppingOverlay({
           className="absolute top-4 right-4 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20 cursor-grab"
         >
           <div className="w-full h-full bg-gradient-to-br from-primary-400 to-primary-700 relative">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={helperAvatar} alt={helperName} className="w-full h-full object-cover opacity-80" />
+            <Image
+              src={helperAvatar}
+              alt={helperName}
+              fill
+              sizes="140px"
+              unoptimized={helperAvatar.startsWith("data:")}
+              className="object-cover opacity-80"
+            />
             {!isPiPMin && (
               <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 p-2">
                 <p className="text-white text-xs font-medium">{helperName}</p>
@@ -218,16 +225,27 @@ export default function VideoShoppingOverlay({
                   ) : msg.type === "SNAPSHOT" ? (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={msg.senderAvatarUrl} alt={msg.senderName} className="w-7 h-7 rounded-full object-cover" />
+                        <Image
+                          src={msg.senderAvatarUrl}
+                          alt={msg.senderName}
+                          width={28}
+                          height={28}
+                          unoptimized={msg.senderAvatarUrl.startsWith("data:")}
+                          className="h-7 w-7 rounded-full object-cover"
+                        />
                         <span className="text-xs font-semibold text-charcoal">{msg.senderName}</span>
                         <span className="text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full">📸 Snapshot</span>
                       </div>
                       {(() => {
                         const safeUrl = safeImageUrl(msg.content);
                         return safeUrl ? (
-                          /* eslint-disable-next-line @next/next/no-img-element */
-                          <img src={safeUrl} alt="snapshot" className="w-full max-w-xs rounded-2xl object-cover border border-card-border" />
+                          <Image
+                            src={safeUrl}
+                            alt="snapshot"
+                            width={320}
+                            height={240}
+                            className="w-full max-w-xs rounded-2xl border border-card-border object-cover"
+                          />
                         ) : null;
                       })()}
                       <motion.button
@@ -239,8 +257,14 @@ export default function VideoShoppingOverlay({
                     </div>
                   ) : (
                     <div className={`flex items-start gap-2 ${msg.senderId === "seeker" ? "flex-row-reverse" : ""}`}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={msg.senderAvatarUrl} alt={msg.senderName} className="w-7 h-7 rounded-full flex-shrink-0 object-cover" />
+                      <Image
+                        src={msg.senderAvatarUrl}
+                        alt={msg.senderName}
+                        width={28}
+                        height={28}
+                        unoptimized={msg.senderAvatarUrl.startsWith("data:")}
+                        className="h-7 w-7 flex-shrink-0 rounded-full object-cover"
+                      />
                       <div className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm ${
                         msg.senderId === "seeker" ? "bg-primary text-white" : "bg-badge text-charcoal"
                       }`}>

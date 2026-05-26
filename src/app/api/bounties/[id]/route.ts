@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { deleteBounty, getBountyById, updateBounty } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { CACHE_TAGS } from "@/lib/server-data";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -134,6 +136,7 @@ export async function PATCH(req: NextRequest, { params }: Props) {
     if (!bounty) {
       return NextResponse.json({ error: "Bounty not found" }, { status: 404 });
     }
+    revalidateTag(CACHE_TAGS.bounties);
     return NextResponse.json({ bounty });
   } catch (err) {
     console.error("PATCH /api/bounties/[id] error:", err);
@@ -161,6 +164,7 @@ export async function DELETE(_req: NextRequest, { params }: Props) {
     if (!deleted) {
       return NextResponse.json({ error: "Bounty not found" }, { status: 404 });
     }
+    revalidateTag(CACHE_TAGS.bounties);
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("DELETE /api/bounties/[id] error:", err);

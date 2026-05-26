@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { createBid, createNotification, getBountyById, getUserById } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { publishUserEvent } from "@/lib/realtime";
+import { CACHE_TAGS } from "@/lib/server-data";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -82,6 +84,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
       },
     });
 
+    revalidateTag(CACHE_TAGS.bounties);
     return NextResponse.json({ bid }, { status: 201 });
   } catch (err) {
     console.error("POST /api/bounties/[id]/bids error:", err);

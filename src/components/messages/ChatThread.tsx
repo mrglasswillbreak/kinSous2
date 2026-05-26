@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -71,11 +72,13 @@ function MessageBubble({
       {!isMe && (
         <div className="w-7 flex-shrink-0 self-end">
           {showAvatar && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={msg.senderAvatarUrl}
               alt={msg.senderName}
-              className="w-7 h-7 rounded-full object-cover"
+              width={28}
+              height={28}
+              unoptimized={msg.senderAvatarUrl.startsWith("data:")}
+              className="h-7 w-7 rounded-full object-cover"
             />
           )}
         </div>
@@ -87,20 +90,29 @@ function MessageBubble({
             Message deleted
           </div>
         ) : msg.type === "IMAGE" ? (
-          safeImageUrl(msg.content) ? (
-            <div className={`rounded-2xl overflow-hidden ${isMe ? "rounded-br-sm" : "rounded-bl-sm"}`}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={safeImageUrl(msg.content)}
-                alt="Shared image"
-                className="max-w-[220px] w-full object-cover rounded-2xl"
-              />
-            </div>
-          ) : (
-            <div className="max-w-[220px] bg-badge rounded-2xl flex items-center justify-center h-24 text-muted text-xs">
-              Image unavailable
-            </div>
-          )
+          (() => {
+            const safeUrl = safeImageUrl(msg.content);
+
+            if (!safeUrl) {
+              return (
+                <div className="max-w-[220px] bg-badge rounded-2xl flex h-24 items-center justify-center text-xs text-muted">
+                  Image unavailable
+                </div>
+              );
+            }
+
+            return (
+              <div className={`rounded-2xl overflow-hidden ${isMe ? "rounded-br-sm" : "rounded-bl-sm"}`}>
+                <Image
+                  src={safeUrl}
+                  alt="Shared image"
+                  width={220}
+                  height={220}
+                  className="w-full max-w-[220px] rounded-2xl object-cover"
+                />
+              </div>
+            );
+          })()
         ) : (
           <div
             className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
@@ -406,11 +418,13 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
           </div>
         ) : (
           <div className="flex items-center gap-2.5 flex-1">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src={other.avatarUrl}
               alt={other.name}
-              className="w-9 h-9 rounded-full object-cover ring-2 ring-primary-100"
+              width={36}
+              height={36}
+              unoptimized={other.avatarUrl.startsWith("data:")}
+              className="h-9 w-9 rounded-full object-cover ring-2 ring-primary-100"
             />
             <div>
               <p className="font-bold text-charcoal text-sm leading-tight">{other.name}</p>

@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { getSession } from "@/lib/auth";
 import {
   createOrUpdateBountyReview,
   getBountyById,
   getReviewByBountyAndAuthor,
 } from "@/lib/db";
+import { CACHE_TAGS } from "@/lib/server-data";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -81,6 +83,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     if (!review) {
       return NextResponse.json({ error: "Unable to submit review" }, { status: 500 });
     }
+    revalidateTag(CACHE_TAGS.helpers);
     return NextResponse.json({ review }, { status: 200 });
   } catch (err) {
     console.error("POST /api/bounties/[id]/review error:", err);

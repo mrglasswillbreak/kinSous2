@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { getSession, setSessionCookie } from "@/lib/auth";
 import { initDb, sql } from "@/lib/db";
+import { CACHE_TAGS } from "@/lib/server-data";
 
 const MAX_NAME_LEN = 100;
 const MAX_BIO_LEN = 500;
@@ -217,6 +219,8 @@ export async function POST(req: NextRequest) {
       exp: Date.now() + 1000 * 60 * 60 * 24 * 30,
     });
 
+    revalidateTag(CACHE_TAGS.helpers);
+    revalidateTag(CACHE_TAGS.bounties);
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Update profile error:", err);

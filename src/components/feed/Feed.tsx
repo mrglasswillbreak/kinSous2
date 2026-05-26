@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, SlidersHorizontal, Plus, Flame } from "lucide-react";
 import type { BountyCategory, Bounty } from "@/types";
+import { SEARCH_DEBOUNCE_MS } from "@/lib/constants";
 import { categoryLabels } from "@/lib/mock-data";
 import { dbBountyToAppBounty } from "@/lib/mappers";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -59,7 +60,7 @@ function useLiveBounties(
   useEffect(() => {
     const timer = setTimeout(
       () => fetchBounties(category, query, scope, userId),
-      query ? 400 : 0
+    query ? SEARCH_DEBOUNCE_MS : 0
     );
     return () => clearTimeout(timer);
   }, [category, query, scope, userId, fetchBounties]);
