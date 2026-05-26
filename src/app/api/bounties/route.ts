@@ -3,6 +3,7 @@ import { revalidateTag } from "next/cache";
 import { getBounties, createBounty } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { CACHE_TAGS } from "@/lib/server-data";
+import { CACHE_POLICY, withCacheControl } from "@/lib/cache-policy";
 
 export async function GET(req: NextRequest) {
   try {
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest) {
     const helperId = searchParams.get("helperId") ?? undefined;
 
     const bounties = await getBounties({ category, status, query, seekerId, helperId });
-    return NextResponse.json({ bounties });
+    return withCacheControl(NextResponse.json({ bounties }), CACHE_POLICY.publicSWR);
   } catch (err) {
     console.error("GET /api/bounties error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
