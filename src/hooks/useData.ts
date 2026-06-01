@@ -52,7 +52,7 @@ export function useBounties(filter?: BountiesFilter) {
       const url = `/api/bounties${queryString ? `?${queryString}` : ""}`;
       const cacheKey = `api:bounties:${queryString}`;
       if (forceRefresh) {
-        invalidateClientCache("api:bounties:");
+        invalidateClientCache(cacheKey);
       }
       fetchJson<{ bounties?: unknown[] }>(url, { forceRefresh, cacheKey, ttlMs: 30_000 })
         .then((payload) => {

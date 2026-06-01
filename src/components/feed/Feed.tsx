@@ -50,7 +50,9 @@ function useLiveBounties(
       setLoading(false);
       return;
     }
-    setLoading((current) => current && !hasDataRef.current);
+    if (!hasDataRef.current) {
+      setLoading(true);
+    }
     try {
       const params = new URLSearchParams();
       if (cat && cat !== "ALL") params.set("category", cat);
@@ -68,7 +70,9 @@ function useLiveBounties(
         ttlMs: 30_000,
         forceRefresh,
       });
-      setBounties((data.bounties ?? []).map((b) => dbBountyToAppBounty(b as never)));
+      const nextBounties = (data.bounties ?? []).map((b) => dbBountyToAppBounty(b as never));
+      hasDataRef.current = nextBounties.length > 0;
+      setBounties(nextBounties);
     } catch (err) {
       console.error("Feed: failed to load bounties", err);
     } finally {

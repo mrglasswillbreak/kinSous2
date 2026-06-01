@@ -50,7 +50,7 @@ function resolveCache<T>(cacheKey: string) {
   return cached;
 }
 
-function isFresh(expiresAt: number) {
+function isNotExpired(expiresAt: number) {
   return Date.now() < expiresAt;
 }
 
@@ -90,7 +90,7 @@ export async function fetchJsonWithCache<T>(
   } = options;
 
   const cached = resolveCache<T>(cacheKey);
-  if (!forceRefresh && cached && isFresh(cached.expiresAt)) {
+  if (!forceRefresh && cached && isNotExpired(cached.expiresAt)) {
     return cached.value;
   }
 
@@ -103,7 +103,7 @@ export async function fetchJsonWithCache<T>(
 
   const request = fetch(url, init).then(async (res) => {
     if (!res.ok) {
-      throw new Error(`Request failed: ${res.status}`);
+      throw new Error(`Request failed (${res.status}): ${url}`);
     }
     return (await res.json()) as T;
   });
