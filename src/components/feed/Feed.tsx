@@ -33,7 +33,7 @@ function useLiveBounties(
   const initialCacheKey = "api:bounties:";
   const cachedInitialPayload = peekCachedJson<{ bounties?: unknown[] }>(initialCacheKey);
   const [bounties, setBounties] = useState<Bounty[]>(
-    () => (cachedInitialPayload?.bounties ?? []).map(dbBountyToAppBounty)
+    () => (cachedInitialPayload?.bounties ?? []).map((b) => dbBountyToAppBounty(b as never))
   );
   const [loading, setLoading] = useState(!cachedInitialPayload);
   const hasDataRef = useRef((cachedInitialPayload?.bounties?.length ?? 0) > 0);
@@ -68,7 +68,7 @@ function useLiveBounties(
         ttlMs: 30_000,
         forceRefresh,
       });
-      setBounties((data.bounties ?? []).map(dbBountyToAppBounty));
+      setBounties((data.bounties ?? []).map((b) => dbBountyToAppBounty(b as never)));
     } catch (err) {
       console.error("Feed: failed to load bounties", err);
     } finally {
