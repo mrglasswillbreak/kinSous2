@@ -2,20 +2,20 @@
 
 import { useState, useCallback, useEffect } from "react";
 import type { Conversation, ConversationTyping, DirectMessage, UserPresence } from "@/types";
+import { fetchJsonWithCache, invalidateClientCache, peekCachedJson } from "@/lib/client-cache";
 
 export function useConversations() {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const cachedConversations = peekCachedJson<{ conversations?: Conversation[] }>("api:messages:conversations");
+  const [conversations, setConversations] = useState<Conversation[]>(cachedConversations?.conversations ?? []);
+  const [isLoading, setIsLoading] = useState(!cachedConversations);
 
   const refetch = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/messages/conversations");
-      if (!res.ok) {
-        setConversations([]);
-        return;
-      }
-      const data = await res.json();
+      const data = await fetchJsonWithCache<{ conversations?: Conversation[] }>("/api/messages/conversations", {
+        cacheKey: "api:messages:conversations",
+        ttlMs: 15_000,
+      });
       setConversations(data.conversations ?? []);
     } catch (err) {
       console.error("useConversations: failed to load conversations", err);
@@ -32,6 +32,7 @@ export function useConversations() {
   useEffect(() => {
     const stream = new EventSource("/api/messages/stream");
     const handleRefresh = () => {
+      invalidateClientCache("api:messages:conversations");
       refetch();
     };
     stream.addEventListener("conversation_updated", handleRefresh);

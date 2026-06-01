@@ -3,13 +3,16 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Bounty, BountyCategory, Profile, Bid } from "@/types";
 import { SEARCH_DEBOUNCE_MS } from "@/lib/constants";
+import { fetchJsonWithCache, invalidateClientCache } from "@/lib/client-cache";
 import { dbBidToAppBid, dbBountyToAppBounty, dbUserToProfile } from "@/lib/mappers";
 
-async function fetchJson<T>(url: string): Promise<T | null> {
+async function fetchJson<T>(url: string, opts?: { forceRefresh?: boolean; ttlMs?: number; cacheKey?: string }): Promise<T | null> {
   try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    return (await res.json()) as T;
+    return await fetchJsonWithCache<T>(url, {
+      cacheKey: opts?.cacheKey ?? url,
+      ttlMs: opts?.ttlMs ?? 45_000,
+      forceRefresh: opts?.forceRefresh ?? false,
+    });
   } catch {
     return null;
   }
@@ -33,7 +36,7 @@ export function useBounties(filter?: BountiesFilter) {
   const query = filter?.query;
   const status = filter?.status;
 
-  const refetch = useCallback(() => {
+  const load = useCallback((forceRefresh: boolean) => {
     if (fetchTimerRef.current) {
       clearTimeout(fetchTimerRef.current);
       fetchTimerRef.current = null;
@@ -45,7 +48,13 @@ export function useBounties(filter?: BountiesFilter) {
       if (category && category !== "ALL") params.set("category", category);
       if (status) params.set("status", status);
       if (query) params.set("q", query);
-      fetchJson<{ bounties?: unknown[] }>(`/api/bounties?${params.toString()}`)
+      const queryString = params.toString();
+      const url = `/api/bounties${queryString ? `?${queryString}` : ""}`;
+      const cacheKey = `api:bounties:${queryString}`;
+      if (forceRefresh) {
+        invalidateClientCache("api:bounties:");
+      }
+      fetchJson<{ bounties?: unknown[] }>(url, { forceRefresh, cacheKey, ttlMs: 30_000 })
         .then((payload) => {
           const results = (payload?.bounties ?? []).map((b) => dbBountyToAppBounty(b as never));
           setData(results);
@@ -60,7 +69,11 @@ export function useBounties(filter?: BountiesFilter) {
     }, SEARCH_DEBOUNCE_MS);
   }, [category, query, status]);
 
-  useEffect(() => { refetch(); }, [refetch]);
+  const refetch = useCallback(() => load(true), [load]);
+
+  useEffect(() => {
+    load(false);
+  }, [load]);
   useEffect(() => {
     return () => {
       if (fetchTimerRef.current) {
@@ -94,7 +107,9 @@ export function useHelpers(filter?: HelpersFilter) {
     const timer = setTimeout(() => {
       const params = new URLSearchParams();
       if (query) params.set("q", query);
-      fetchJson<{ helpers?: unknown[] }>(`/api/helpers?${params.toString()}`)
+      const queryString = params.toString();
+      const url = `/api/helpers${queryString ? `?${queryString}` : ""}`;
+      fetchJson<{ helpers?: unknown[] }>(url, { cacheKey: `api:helpers:${queryString}`, ttlMs: 45_000 })
         .then((payload) => {
           let results = (payload?.helpers ?? []).map((u) => dbUserToProfile(u as never));
           if (minChefScore) {
@@ -127,7 +142,7 @@ export function useProfile(id: string) {
   useEffect(() => {
     setIsLoading(true);
     const timer = setTimeout(() => {
-      fetchJson<{ helpers?: unknown[] }>("/api/helpers")
+      fetchJson<{ helpers?: unknown[] }>("/api/helpers", { cacheKey: "api:helpers:", ttlMs: 45_000 })
         .then((payload) => {
           const profiles = (payload?.helpers ?? []).map((u) => dbUserToProfile(u as never));
           const found = profiles.find((h) => h.id === id) ?? null;

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ShoppingCart, Truck, CheckCircle2, Clock, Navigation, MapPin } from "lucide-react";
 import type { DeliveryTracking, DeliveryStage } from "@/types";
+import { fetchJsonWithCache } from "@/lib/client-cache";
 import { dbBountyToAppBounty, dbUserToProfile } from "@/lib/mappers";
 
 const stageOrder: DeliveryStage[] = ["MARKET", "IN_TRANSIT", "ARRIVED"];
@@ -123,14 +124,18 @@ export default function Tracker() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/bounties?status=IN_PROGRESS").then((r) => (r.ok ? r.json() : null)),
-      fetch("/api/helpers").then((r) => (r.ok ? r.json() : null)),
+      fetchJsonWithCache<{ bounties?: unknown[] }>("/api/bounties?status=IN_PROGRESS", {
+        cacheKey: "api:bounties:status=IN_PROGRESS",
+        ttlMs: 20_000,
+      }).catch(() => null),
+      fetchJsonWithCache<{ helpers?: unknown[] }>("/api/helpers", {
+        cacheKey: "api:helpers:",
+        ttlMs: 45_000,
+      }).catch(() => null),
     ])
       .then(([bountyData, helperData]) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const bounty = (bountyData?.bounties ?? []).map((b: any) => dbBountyToAppBounty(b))[0];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const helper = (helperData?.helpers ?? []).map((u: any) => dbUserToProfile(u))[0];
+        const bounty = (bountyData?.bounties ?? []).map((b) => dbBountyToAppBounty(b as never))[0];
+        const helper = (helperData?.helpers ?? []).map((u) => dbUserToProfile(u as never))[0];
         if (!bounty || !helper) {
           setTracking(null);
           return;

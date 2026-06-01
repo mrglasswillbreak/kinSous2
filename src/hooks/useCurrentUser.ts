@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { fetchJsonWithCache, invalidateClientCache, peekCachedJson } from "@/lib/client-cache";
 
 export interface CurrentUser {
   userId: string;
@@ -20,21 +21,24 @@ export interface CurrentUser {
 }
 
 export function useCurrentUser() {
-  const [user, setUser] = useState<CurrentUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const cachedUser = peekCachedJson<{ user?: CurrentUser | null }>("api:auth:me");
+  const [user, setUser] = useState<CurrentUser | null>(cachedUser?.user ?? null);
+  const [isLoading, setIsLoading] = useState(!cachedUser);
   const [error, setError] = useState<string | null>(null);
 
-  const refetch = useCallback(async () => {
+  const refetch = useCallback(async (forceRefresh = true) => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/auth/me");
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.user ?? null);
-      } else {
-        setUser(null);
+      if (forceRefresh) {
+        invalidateClientCache("api:auth:me");
       }
+      const data = await fetchJsonWithCache<{ user?: CurrentUser | null }>("/api/auth/me", {
+        cacheKey: "api:auth:me",
+        ttlMs: 30_000,
+        forceRefresh,
+      });
+      setUser(data.user ?? null);
     } catch (err) {
       console.error("useCurrentUser: failed to fetch session", err);
       setError("Failed to load user");
@@ -45,7 +49,7 @@ export function useCurrentUser() {
   }, []);
 
   useEffect(() => {
-    refetch();
+    refetch(false);
   }, [refetch]);
 
   return { user, isLoading, error, refetch };

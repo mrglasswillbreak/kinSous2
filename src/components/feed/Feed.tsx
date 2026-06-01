@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, SlidersHorizontal, Plus, Flame } from "lucide-react";
 import type { BountyCategory, Bounty } from "@/types";
 import { SEARCH_DEBOUNCE_MS } from "@/lib/constants";
 import { categoryLabels } from "@/lib/mock-data";
+import { fetchJsonWithCache, invalidateClientCache, peekCachedJson } from "@/lib/client-cache";
 import { dbBountyToAppBounty } from "@/lib/mappers";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import BountyCard from "./BountyCard";
@@ -29,27 +30,45 @@ function useLiveBounties(
   scope: BountyScope,
   userId?: string
 ) {
-  const [bounties, setBounties] = useState<Bounty[]>([]);
-  const [loading, setLoading] = useState(true);
+  const initialCacheKey = "api:bounties:";
+  const cachedInitialPayload = peekCachedJson<{ bounties?: unknown[] }>(initialCacheKey);
+  const [bounties, setBounties] = useState<Bounty[]>(
+    () => (cachedInitialPayload?.bounties ?? []).map(dbBountyToAppBounty)
+  );
+  const [loading, setLoading] = useState(!cachedInitialPayload);
+  const hasDataRef = useRef((cachedInitialPayload?.bounties?.length ?? 0) > 0);
 
-  const fetchBounties = useCallback(async (cat: string, q: string, nextScope: BountyScope, nextUserId?: string) => {
+  const fetchBounties = useCallback(async (
+    cat: string,
+    q: string,
+    nextScope: BountyScope,
+    nextUserId?: string,
+    forceRefresh = false
+  ) => {
     if (nextScope !== "ALL" && !nextUserId) {
       setBounties([]);
       setLoading(false);
       return;
     }
-    setLoading(true);
+    setLoading((current) => current && !hasDataRef.current);
     try {
       const params = new URLSearchParams();
       if (cat && cat !== "ALL") params.set("category", cat);
       if (q) params.set("q", q);
       if (nextScope === "MY_BOUNTIES" && nextUserId) params.set("seekerId", nextUserId);
       if (nextScope === "MY_BIDS" && nextUserId) params.set("helperId", nextUserId);
-      const res = await fetch(`/api/bounties?${params}`);
-      if (res.ok) {
-        const data = await res.json();
-        setBounties((data.bounties ?? []).map(dbBountyToAppBounty));
+      const queryString = params.toString();
+      const url = `/api/bounties${queryString ? `?${queryString}` : ""}`;
+      const cacheKey = `api:bounties:${queryString}`;
+      if (forceRefresh) {
+        invalidateClientCache("api:bounties:");
       }
+      const data = await fetchJsonWithCache<{ bounties?: unknown[] }>(url, {
+        cacheKey,
+        ttlMs: 30_000,
+        forceRefresh,
+      });
+      setBounties((data.bounties ?? []).map(dbBountyToAppBounty));
     } catch (err) {
       console.error("Feed: failed to load bounties", err);
     } finally {
@@ -58,14 +77,18 @@ function useLiveBounties(
   }, []);
 
   useEffect(() => {
+    hasDataRef.current = bounties.length > 0;
+  }, [bounties.length]);
+
+  useEffect(() => {
     const timer = setTimeout(
-      () => fetchBounties(category, query, scope, userId),
+      () => fetchBounties(category, query, scope, userId, false),
     query ? SEARCH_DEBOUNCE_MS : 0
     );
     return () => clearTimeout(timer);
   }, [category, query, scope, userId, fetchBounties]);
 
-  return { bounties, loading, refetch: () => fetchBounties(category, query, scope, userId) };
+  return { bounties, loading, refetch: () => fetchBounties(category, query, scope, userId, true) };
 }
 
 export default function Feed() {
