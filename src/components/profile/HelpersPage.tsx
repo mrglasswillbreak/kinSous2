@@ -9,6 +9,7 @@ import { SkeletonHelperCard } from "@/components/ui/Skeleton";
 import ChefScore from "@/components/profile/ChefScore";
 import Link from "next/link";
 import { SEARCH_DEBOUNCE_MS } from "@/lib/constants";
+import { fetchJsonWithCache, peekCachedJson } from "@/lib/client-cache";
 import { dbUserToProfile } from "@/lib/mappers";
 
 function HelperCard({ helper, index }: { helper: Profile; index: number }) {
@@ -81,10 +82,13 @@ function HelperCard({ helper, index }: { helper: Profile; index: number }) {
 }
 
 export default function HelpersPage() {
+  const cachedHelpersPayload = peekCachedJson<{ helpers?: unknown[] }>("api:helpers:");
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [helpers, setHelpers] = useState<Profile[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [helpers, setHelpers] = useState<Profile[]>(
+    () => (cachedHelpersPayload?.helpers ?? []).map((u) => dbUserToProfile(u as never))
+  );
+  const [isLoading, setIsLoading] = useState(!cachedHelpersPayload);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(query), SEARCH_DEBOUNCE_MS);
@@ -96,13 +100,14 @@ export default function HelpersPage() {
     try {
       const params = new URLSearchParams();
       if (q) params.set("q", q);
-      const res = await fetch(`/api/helpers?${params}`);
-      if (res.ok) {
-        const data = await res.json();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const profiles = (data.helpers ?? []).map((u: any) => dbUserToProfile(u));
-        setHelpers(profiles);
-      }
+      const queryString = params.toString();
+      const url = `/api/helpers${queryString ? `?${queryString}` : ""}`;
+      const data = await fetchJsonWithCache<{ helpers?: unknown[] }>(url, {
+        cacheKey: `api:helpers:${queryString}`,
+        ttlMs: 45_000,
+      });
+      const profiles = (data.helpers ?? []).map((u) => dbUserToProfile(u as never));
+      setHelpers(profiles);
     } catch (err) {
       console.error("HelpersPage: failed to load helpers", err);
       setHelpers([]);

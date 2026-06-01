@@ -6,6 +6,7 @@ import { Shield, Loader2 } from "lucide-react";
 import { usePaymentEscrow } from "@/hooks/usePaymentEscrow";
 import PaymentShield from "@/components/payment/PaymentShield";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { fetchJsonWithCache } from "@/lib/client-cache";
 import { dbBountyToAppBounty, dbUserToProfile } from "@/lib/mappers";
 import type { Bounty, Profile } from "@/types";
 
@@ -21,14 +22,18 @@ export default function PaymentPage() {
     if (!user?.userId) return;
     setLoadingData(true);
     Promise.all([
-      fetch(`/api/bounties?seekerId=${encodeURIComponent(user.userId)}`).then((r) => (r.ok ? r.json() : null)),
-      fetch("/api/helpers").then((r) => (r.ok ? r.json() : null)),
+      fetchJsonWithCache<{ bounties?: unknown[] }>(`/api/bounties?seekerId=${encodeURIComponent(user.userId)}`, {
+        cacheKey: `api:bounties:seekerId=${encodeURIComponent(user.userId)}`,
+        ttlMs: 30_000,
+      }).catch(() => null),
+      fetchJsonWithCache<{ helpers?: unknown[] }>("/api/helpers", {
+        cacheKey: "api:helpers:",
+        ttlMs: 45_000,
+      }).catch(() => null),
     ])
       .then(([bountyData, helperData]) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const bounties = (bountyData?.bounties ?? []).map((b: any) => dbBountyToAppBounty(b));
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const helpers = (helperData?.helpers ?? []).map((u: any) => dbUserToProfile(u));
+        const bounties = (bountyData?.bounties ?? []).map((b) => dbBountyToAppBounty(b as never));
+        const helpers = (helperData?.helpers ?? []).map((u) => dbUserToProfile(u as never));
         setBounty(bounties[0] ?? null);
         setHelper(helpers[0] ?? null);
       })

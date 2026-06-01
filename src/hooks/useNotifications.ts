@@ -2,20 +2,20 @@
 
 import { useState, useCallback, useEffect } from "react";
 import type { AppNotification } from "@/types";
+import { fetchJsonWithCache, invalidateClientCache, peekCachedJson } from "@/lib/client-cache";
 
 export function useNotifications() {
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const cachedNotifications = peekCachedJson<{ notifications?: AppNotification[] }>("api:notifications");
+  const [notifications, setNotifications] = useState<AppNotification[]>(cachedNotifications?.notifications ?? []);
+  const [isLoading, setIsLoading] = useState(!cachedNotifications);
 
   const refetch = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/notifications");
-      if (!res.ok) {
-        setNotifications([]);
-        return;
-      }
-      const data = await res.json();
+      const data = await fetchJsonWithCache<{ notifications?: AppNotification[] }>("/api/notifications", {
+        cacheKey: "api:notifications",
+        ttlMs: 15_000,
+      });
       setNotifications(data.notifications ?? []);
     } catch (err) {
       console.error("useNotifications: failed to load notifications", err);
@@ -46,16 +46,19 @@ export function useNotifications() {
 
   const markRead = useCallback(async (id: string) => {
     await fetch(`/api/notifications/${id}`, { method: "PATCH" });
+    invalidateClientCache("api:notifications");
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
   }, []);
 
   const markAllRead = useCallback(async () => {
     await fetch("/api/notifications", { method: "PATCH" });
+    invalidateClientCache("api:notifications");
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   }, []);
 
   const dismiss = useCallback(async (id: string) => {
     await fetch(`/api/notifications/${id}`, { method: "DELETE" });
+    invalidateClientCache("api:notifications");
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   }, []);
 
