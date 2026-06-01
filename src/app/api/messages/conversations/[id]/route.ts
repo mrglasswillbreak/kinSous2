@@ -83,7 +83,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
           lastSeen: p.last_seen,
         })),
       }),
-      CACHE_POLICY.privateSWR,
+      CACHE_POLICY.privateNoStore,
       { varyCookie: true }
     );
   } catch (err) {

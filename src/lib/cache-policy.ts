@@ -14,7 +14,12 @@ export function withCacheControl<T>(
   response.headers.set("Cache-Control", cacheControl);
 
   if (options?.varyCookie) {
-    response.headers.set("Vary", "Cookie");
+    const vary = response.headers.get("Vary");
+    if (!vary) {
+      response.headers.set("Vary", "Cookie");
+    } else if (!vary.split(",").some((value) => value.trim().toLowerCase() === "cookie")) {
+      response.headers.set("Vary", `${vary}, Cookie`);
+    }
   }
 
   return response;
