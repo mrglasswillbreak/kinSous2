@@ -9,57 +9,66 @@ import {
   sendConversationMessage,
   getBlockStatus,
 } from "@/lib/db";
+import { CACHE_POLICY, withCacheControl } from "@/lib/cache-policy";
 
 export async function GET() {
   try {
     const session = await getSession();
     if (!session) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+      return withCacheControl(
+        NextResponse.json({ error: "Not authenticated" }, { status: 401 }),
+        CACHE_POLICY.privateNoStore,
+        { varyCookie: true }
+      );
     }
 
     const conversations = await getConversationsForUser(session.userId);
-    return NextResponse.json({
-      conversations: conversations.map((c) => ({
-        id: c.id,
-        participants: c.participants.map(dbUserToProfile),
-        bountyRef: c.bounty_id && c.bounty_title ? { id: c.bounty_id, title: c.bounty_title } : undefined,
-        lastMessage: c.last_message
-          ? {
-            id: c.last_message.id,
-            conversationId: c.last_message.conversation_id,
-            senderId: c.last_message.sender_id,
-            senderName: c.last_message.sender_name,
-            senderAvatarUrl:
-              c.last_message.sender_avatar_url ||
-              `https://i.pravatar.cc/150?u=${encodeURIComponent(c.last_message.sender_id)}`,
-            type: c.last_message.type,
-            content: c.last_message.content,
-            read: c.last_message.read,
-            createdAt: c.last_message.created_at,
-            editedAt: c.last_message.edited_at ?? null,
-            deletedAt: c.last_message.deleted_at ?? null,
-            deletedBy: c.last_message.deleted_by ?? null,
-          }
-          : {
-            id: `${c.id}-system`,
-            conversationId: c.id,
-            senderId: "system",
-            senderName: "KinSous",
-            senderAvatarUrl: "",
-            type: "SYSTEM",
-            content: "Conversation started",
-            read: true,
-            createdAt: c.updated_at,
-            editedAt: null,
-            deletedAt: null,
-            deletedBy: null,
-          },
-        unreadCount: c.unread_count,
-        updatedAt: c.updated_at,
-        blockedByMe: c.blocked_by_me ?? false,
-        blockedByOther: c.blocked_by_other ?? false,
-      })),
-    });
+    return withCacheControl(
+      NextResponse.json({
+        conversations: conversations.map((c) => ({
+          id: c.id,
+          participants: c.participants.map(dbUserToProfile),
+          bountyRef: c.bounty_id && c.bounty_title ? { id: c.bounty_id, title: c.bounty_title } : undefined,
+          lastMessage: c.last_message
+            ? {
+              id: c.last_message.id,
+              conversationId: c.last_message.conversation_id,
+              senderId: c.last_message.sender_id,
+              senderName: c.last_message.sender_name,
+              senderAvatarUrl:
+                c.last_message.sender_avatar_url ||
+                `https://i.pravatar.cc/150?u=${encodeURIComponent(c.last_message.sender_id)}`,
+              type: c.last_message.type,
+              content: c.last_message.content,
+              read: c.last_message.read,
+              createdAt: c.last_message.created_at,
+              editedAt: c.last_message.edited_at ?? null,
+              deletedAt: c.last_message.deleted_at ?? null,
+              deletedBy: c.last_message.deleted_by ?? null,
+            }
+            : {
+              id: `${c.id}-system`,
+              conversationId: c.id,
+              senderId: "system",
+              senderName: "KinSous",
+              senderAvatarUrl: "",
+              type: "SYSTEM",
+              content: "Conversation started",
+              read: true,
+              createdAt: c.updated_at,
+              editedAt: null,
+              deletedAt: null,
+              deletedBy: null,
+            },
+          unreadCount: c.unread_count,
+          updatedAt: c.updated_at,
+          blockedByMe: c.blocked_by_me ?? false,
+          blockedByOther: c.blocked_by_other ?? false,
+        })),
+      }),
+      CACHE_POLICY.privateSWR,
+      { varyCookie: true }
+    );
   } catch (err) {
     console.error("GET /api/messages/conversations error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
