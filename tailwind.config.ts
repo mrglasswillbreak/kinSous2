@@ -13,7 +13,7 @@ const config: Config = {
         background: "var(--bg)",
         foreground: "var(--fg)",
         primary: {
-          DEFAULT: "#E67E22",
+          DEFAULT: "#B8520B",
           50: "#FEF3E8",
           100: "#FDE7D1",
           200: "#FBCFA3",
@@ -24,7 +24,7 @@ const config: Config = {
           700: "#9E5416",
         },
         secondary: {
-          DEFAULT: "#27AE60",
+          DEFAULT: "#197841",
           50: "#E9F7EF",
           100: "#D4EFDF",
           200: "#A9DFBF",

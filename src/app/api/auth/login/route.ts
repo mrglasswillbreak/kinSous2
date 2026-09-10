@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     const normalizedEmail = loginIdentifier.toLowerCase();
     const normalizedPhone = normalizePhone(loginIdentifier);
 
-    if (!loginIdentifier || !password) {
+    if (!loginIdentifier || typeof password !== "string" || !password || password.length > 1024) {
       return NextResponse.json(
         { error: "Email or phone number and password are required" },
         { status: 400 }
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     }
 
     const rows = await sql`
-      SELECT id, email, phone, name, password_hash, role, avatar_url
+      SELECT id, email, phone, name, password_hash, role, avatar_url, suspended_at
       FROM users
       WHERE lower(email) = ${normalizedEmail}
         OR phone = ${normalizedPhone || null}
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
     `;
 
     const user = rows[0];
-    if (!user) {
+    if (!user || user.suspended_at) {
       return NextResponse.json(
         { error: "Invalid email/phone or password" },
         { status: 401 }

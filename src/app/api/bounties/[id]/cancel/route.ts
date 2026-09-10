@@ -1,11 +1,8 @@
+import { sql, usingLocalDb } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { getSession } from "@/lib/auth";
-import {
-  cancelBounty,
-  createNotification,
-  getBountyById,
-} from "@/lib/db";
+import { cancelBounty, createNotification, getBountyById } from "@/lib/db";
 import { publishUserEvent } from "@/lib/realtime";
 import { CACHE_TAGS } from "@/lib/server-data";
 
@@ -21,6 +18,16 @@ export async function POST(_req: Request, { params }: RouteContext) {
     }
 
     const { id } = await params;
+    if (!usingLocalDb()) {
+      const orders = await sql`SELECT id FROM orders WHERE id=${id}`;
+      if (orders.length)
+        return NextResponse.json(
+          {
+            error: "Report an issue from the order page for manual resolution",
+          },
+          { status: 409 },
+        );
+    }
     const bounty = await getBountyById(id);
     if (!bounty) {
       return NextResponse.json({ error: "Bounty not found" }, { status: 404 });
@@ -28,15 +35,20 @@ export async function POST(_req: Request, { params }: RouteContext) {
     if (bounty.seeker_id !== session.userId) {
       return NextResponse.json(
         { error: "Only the bounty poster can cancel this bounty" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
-    const cancelled = await cancelBounty({ bountyId: id, seekerId: session.userId });
+    const cancelled = await cancelBounty({
+      bountyId: id,
+      seekerId: session.userId,
+    });
     if (!cancelled) {
       return NextResponse.json(
-        { error: "This bounty can only be cancelled before any bid is accepted" },
-        { status: 409 }
+        {
+          error: "This bounty can only be cancelled before any bid is accepted",
+        },
+        { status: 409 },
       );
     }
 
@@ -65,8 +77,11 @@ export async function POST(_req: Request, { params }: RouteContext) {
 
     revalidateTag(CACHE_TAGS.bounties);
     return NextResponse.json(
-      { bounty: cancelled.bounty, notifiedHelpers: cancelled.notifiedHelperIds.length },
-      { status: 200 }
+      {
+        bounty: cancelled.bounty,
+        notifiedHelpers: cancelled.notifiedHelperIds.length,
+      },
+      { status: 200 },
     );
   } catch (err) {
     console.error("POST /api/bounties/[id]/cancel error:", err);

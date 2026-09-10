@@ -42,7 +42,7 @@ type RegisterField = keyof RegisterFormState;
 type RegisterErrors = Partial<Record<RegisterField | "form", string>>;
 type UpdateRegisterField = <Field extends RegisterField>(
   field: Field,
-  value: RegisterFormState[Field]
+  value: RegisterFormState[Field],
 ) => void;
 
 const INITIAL_REGISTER_FORM: RegisterFormState = {
@@ -115,7 +115,7 @@ function isValidPhone(value: string) {
 
 function validateRegisterForm(
   form: RegisterFormState,
-  step?: RegisterStep
+  step?: RegisterStep,
 ): RegisterErrors {
   const errors: RegisterErrors = {};
   const shouldValidate = (candidate: RegisterStep) =>
@@ -293,7 +293,7 @@ function ContactFields({
           <button
             key={method}
             type="button"
-            aria-selected={form.contactMethod === method}
+            aria-pressed={form.contactMethod === method}
             onClick={() => onChange("contactMethod", method)}
             className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
               form.contactMethod === method
@@ -454,7 +454,7 @@ export default function LoginPage() {
   const [identifier, setIdentifier] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [registerForm, setRegisterForm] = useState<RegisterFormState>(
-    INITIAL_REGISTER_FORM
+    INITIAL_REGISTER_FORM,
   );
   const [registerErrors, setRegisterErrors] = useState<RegisterErrors>({});
   const [registerStep, setRegisterStep] = useState<RegisterStep>(0);
@@ -525,7 +525,14 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/");
+      const target = new URLSearchParams(window.location.search).get("next");
+      router.push(
+        target?.startsWith("/") &&
+          !target.startsWith("//") &&
+          !target.includes("\\")
+          ? target
+          : "/",
+      );
       router.refresh();
     } catch {
       setError("Network error. Please try again.");
@@ -560,7 +567,14 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/");
+      const target = new URLSearchParams(window.location.search).get("next");
+      router.push(
+        target?.startsWith("/") &&
+          !target.startsWith("//") &&
+          !target.includes("\\")
+          ? target
+          : "/",
+      );
       router.refresh();
     } catch {
       setError("Network error. Please try again.");
@@ -584,8 +598,9 @@ export default function LoginPage() {
 
     setRegisterErrors({});
     setError("");
-    setRegisterStep((current) =>
-      Math.min(current + 1, REGISTER_STEPS.length - 1) as RegisterStep
+    setRegisterStep(
+      (current) =>
+        Math.min(current + 1, REGISTER_STEPS.length - 1) as RegisterStep,
     );
   };
 
@@ -653,6 +668,9 @@ export default function LoginPage() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary shadow-primary">
             <Flame size={32} className="text-white" />
           </div>
+          <a href="/recover" className="block text-sm text-primary mb-4">
+            Forgot your password?
+          </a>
           <h1 className="text-2xl font-bold text-charcoal">KinSous</h1>
           <p className="mt-1 text-sm text-muted">
             Your Cultural Culinary Marketplace
@@ -702,9 +720,7 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   label="Password"
                   onChange={setLoginPassword}
-                  onToggle={() =>
-                    setShowLoginPassword((current) => !current)
-                  }
+                  onToggle={() => setShowLoginPassword((current) => !current)}
                   showPassword={showLoginPassword}
                   value={loginPassword}
                 />
@@ -756,7 +772,7 @@ export default function LoginPage() {
                       </p>
                       <p className="text-xs font-semibold text-primary">
                         {Math.round(
-                          ((registerStep + 1) / REGISTER_STEPS.length) * 100
+                          ((registerStep + 1) / REGISTER_STEPS.length) * 100,
                         )}
                         %
                       </p>

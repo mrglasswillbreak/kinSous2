@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { initDb, sql } from "@/lib/db";
+import {
+  initDb,
+  sql,
+  usingLocalDb,
+  getUserById,
+  upsertLocalUser,
+  type DbUser,
+} from "@/lib/db";
 import { getSession } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
@@ -14,21 +21,29 @@ export async function POST(req: NextRequest) {
 
     const { currentPassword, newPassword } = await req.json();
 
-    if (!currentPassword || !newPassword) {
+    if (
+      typeof currentPassword !== "string" ||
+      typeof newPassword !== "string" ||
+      !currentPassword ||
+      !newPassword ||
+      Buffer.byteLength(newPassword) > 72
+    ) {
       return NextResponse.json(
         { error: "Current password and new password are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (newPassword.length < 8) {
       return NextResponse.json(
         { error: "New password must be at least 8 characters" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const rows = await sql`
+    const rows = usingLocalDb()
+      ? [await getUserById(session.userId)]
+      : await sql`
       SELECT password_hash FROM users WHERE id = ${session.userId}
     `;
     const user = rows[0];
@@ -36,19 +51,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const valid = await bcrypt.compare(currentPassword, user.password_hash);
+    const valid = await bcrypt.compare(
+      currentPassword,
+      user.password_hash || "",
+    );
     if (!valid) {
       return NextResponse.json(
         { error: "Current password is incorrect" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const newHash = await bcrypt.hash(newPassword, 12);
+    if (usingLocalDb()) {
+      await upsertLocalUser({ ...user, password_hash: newHash } as DbUser);
+      return NextResponse.json({ success: true });
+    }
     await sql`
       UPDATE users SET password_hash = ${newHash} WHERE id = ${session.userId}
     `;
 
+    await sql`DELETE FROM sessions WHERE user_id = ${session.userId}`;
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Update password error:", err);

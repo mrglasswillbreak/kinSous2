@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { getSession, setSessionCookie } from "@/lib/auth";
-import { initDb, sql } from "@/lib/db";
+import {
+  initDb,
+  sql,
+  usingLocalDb,
+  getUserById,
+  upsertLocalUser,
+  findLocalUserByIdentifier,
+} from "@/lib/db";
 import { CACHE_TAGS } from "@/lib/server-data";
 
 const MAX_NAME_LEN = 100;
@@ -108,53 +115,63 @@ export async function POST(req: NextRequest) {
     if (displayName.length > MAX_NAME_LEN) {
       return NextResponse.json(
         { error: `Name must be at most ${MAX_NAME_LEN} characters` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (cleanBio && cleanBio.length > MAX_BIO_LEN) {
       return NextResponse.json(
         { error: `Bio must be at most ${MAX_BIO_LEN} characters` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (cleanCity && cleanCity.length > MAX_CITY_LEN) {
       return NextResponse.json(
         { error: `City must be at most ${MAX_CITY_LEN} characters` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (cleanCountry && cleanCountry.length > MAX_COUNTRY_LEN) {
       return NextResponse.json(
         { error: `Country must be at most ${MAX_COUNTRY_LEN} characters` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (cleanCountryCode && cleanCountryCode.length > MAX_COUNTRY_CODE_LEN) {
       return NextResponse.json(
-        { error: `Country code must be at most ${MAX_COUNTRY_CODE_LEN} characters` },
-        { status: 400 }
+        {
+          error: `Country code must be at most ${MAX_COUNTRY_CODE_LEN} characters`,
+        },
+        { status: 400 },
       );
     }
 
     if (cleanAvatarUrl && !isValidProfileImage(cleanAvatarUrl)) {
       return NextResponse.json(
         { error: "Use an HTTPS image URL or a supported image upload" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (normalizedPhone === "") {
       return NextResponse.json(
         { error: "Enter a valid phone number" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    if (normalizedPhone) {
+    if (normalizedPhone && usingLocalDb()) {
+      const other = await findLocalUserByIdentifier(normalizedPhone);
+      if (other && other.id !== session.userId)
+        return NextResponse.json(
+          { error: "This phone number is already in use" },
+          { status: 409 },
+        );
+    }
+    if (normalizedPhone && !usingLocalDb()) {
       const existingPhone = await sql`
         SELECT id FROM users
         WHERE phone = ${normalizedPhone}
@@ -165,7 +182,7 @@ export async function POST(req: NextRequest) {
       if (existingPhone.length > 0) {
         return NextResponse.json(
           { error: "This phone number is already in use" },
-          { status: 409 }
+          { status: 409 },
         );
       }
     }
@@ -175,7 +192,7 @@ export async function POST(req: NextRequest) {
       if (age === null || age < 13 || age > 120) {
         return NextResponse.json(
           { error: "Enter a valid date of birth" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -183,10 +200,32 @@ export async function POST(req: NextRequest) {
     if (cleanGender && !GENDERS.has(cleanGender)) {
       return NextResponse.json(
         { error: "Select a valid gender option" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
+    if (usingLocalDb()) {
+      const existing = await getUserById(session.userId);
+      if (!existing)
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+      await upsertLocalUser({
+        ...existing,
+        name: displayName,
+        first_name: cleanFirstName,
+        last_name: cleanLastName,
+        phone: normalizedPhone,
+        date_of_birth: cleanDateOfBirth,
+        gender: cleanGender,
+        bio: cleanBio,
+        city: cleanCity,
+        country: cleanCountry,
+        country_code: cleanCountryCode,
+        avatar_url: cleanAvatarUrl,
+      });
+      revalidateTag(CACHE_TAGS.helpers);
+      revalidateTag(CACHE_TAGS.bounties);
+      return NextResponse.json({ success: true });
+    }
     const rows = await sql`
       UPDATE users
       SET

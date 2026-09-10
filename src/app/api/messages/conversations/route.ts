@@ -1,3 +1,4 @@
+import { publicUser } from "@/lib/public-data";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { dbUserToProfile } from "@/lib/mappers";
@@ -8,6 +9,7 @@ import {
   getUserById,
   sendConversationMessage,
   getBlockStatus,
+  getBountyById,
 } from "@/lib/db";
 
 export async function GET() {
@@ -21,39 +23,42 @@ export async function GET() {
     return NextResponse.json({
       conversations: conversations.map((c) => ({
         id: c.id,
-        participants: c.participants.map(dbUserToProfile),
-        bountyRef: c.bounty_id && c.bounty_title ? { id: c.bounty_id, title: c.bounty_title } : undefined,
+        participants: c.participants.map((u) => dbUserToProfile(publicUser(u))),
+        bountyRef:
+          c.bounty_id && c.bounty_title
+            ? { id: c.bounty_id, title: c.bounty_title }
+            : undefined,
         lastMessage: c.last_message
           ? {
-            id: c.last_message.id,
-            conversationId: c.last_message.conversation_id,
-            senderId: c.last_message.sender_id,
-            senderName: c.last_message.sender_name,
-            senderAvatarUrl:
-              c.last_message.sender_avatar_url ||
-              `https://i.pravatar.cc/150?u=${encodeURIComponent(c.last_message.sender_id)}`,
-            type: c.last_message.type,
-            content: c.last_message.content,
-            read: c.last_message.read,
-            createdAt: c.last_message.created_at,
-            editedAt: c.last_message.edited_at ?? null,
-            deletedAt: c.last_message.deleted_at ?? null,
-            deletedBy: c.last_message.deleted_by ?? null,
-          }
+              id: c.last_message.id,
+              conversationId: c.last_message.conversation_id,
+              senderId: c.last_message.sender_id,
+              senderName: c.last_message.sender_name,
+              senderAvatarUrl:
+                c.last_message.sender_avatar_url ||
+                `https://i.pravatar.cc/150?u=${encodeURIComponent(c.last_message.sender_id)}`,
+              type: c.last_message.type,
+              content: c.last_message.content,
+              read: c.last_message.read,
+              createdAt: c.last_message.created_at,
+              editedAt: c.last_message.edited_at ?? null,
+              deletedAt: c.last_message.deleted_at ?? null,
+              deletedBy: c.last_message.deleted_by ?? null,
+            }
           : {
-            id: `${c.id}-system`,
-            conversationId: c.id,
-            senderId: "system",
-            senderName: "KinSous",
-            senderAvatarUrl: "",
-            type: "SYSTEM",
-            content: "Conversation started",
-            read: true,
-            createdAt: c.updated_at,
-            editedAt: null,
-            deletedAt: null,
-            deletedBy: null,
-          },
+              id: `${c.id}-system`,
+              conversationId: c.id,
+              senderId: "system",
+              senderName: "KinSous",
+              senderAvatarUrl: "",
+              type: "SYSTEM",
+              content: "Conversation started",
+              read: true,
+              createdAt: c.updated_at,
+              editedAt: null,
+              deletedAt: null,
+              deletedBy: null,
+            },
         unreadCount: c.unread_count,
         updatedAt: c.updated_at,
         blockedByMe: c.blocked_by_me ?? false,
@@ -84,19 +89,44 @@ export async function POST(req: NextRequest) {
             : null;
     const bountyId = typeof body?.bountyId === "string" ? body.bountyId : null;
     if (!helperId) {
-      return NextResponse.json({ error: "recipientId is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "recipientId is required" },
+        { status: 400 },
+      );
     }
     if (helperId === session.userId) {
-      return NextResponse.json({ error: "Cannot message yourself" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Cannot message yourself" },
+        { status: 400 },
+      );
     }
 
+    if (bountyId) {
+      const bounty = await getBountyById(bountyId);
+      const bids = bounty?.bids ?? [];
+      const accepted = bids.find((b) => b.status === "ACCEPTED");
+      if (
+        !bounty ||
+        !accepted ||
+        ![bounty.seeker_id, accepted.helper_id].includes(session.userId) ||
+        ![bounty.seeker_id, accepted.helper_id].includes(helperId)
+      ) {
+        return NextResponse.json(
+          { error: "Only the selected order participants can open this chat" },
+          { status: 403 },
+        );
+      }
+    }
     const target = await getUserById(helperId);
     if (!target) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
     const blockStatus = await getBlockStatus(session.userId, helperId);
     if (blockStatus.blockedByMe || blockStatus.blockedByOther) {
-      return NextResponse.json({ error: "Messaging is blocked" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Messaging is blocked" },
+        { status: 403 },
+      );
     }
 
     const conversationId = await getOrCreateDirectConversation({
@@ -105,9 +135,15 @@ export async function POST(req: NextRequest) {
       bountyId,
     });
 
-    const conversation = await getConversationForUser(conversationId, session.userId);
+    const conversation = await getConversationForUser(
+      conversationId,
+      session.userId,
+    );
     if (!conversation) {
-      return NextResponse.json({ error: "Conversation unavailable" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Conversation unavailable" },
+        { status: 404 },
+      );
     }
 
     if (!conversation.last_message) {

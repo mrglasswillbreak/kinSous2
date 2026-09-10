@@ -1,3 +1,4 @@
+import { publicUser } from "@/lib/public-data";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ProfileCard from "@/components/profile/ProfileCard";
@@ -24,8 +25,8 @@ export default async function HelperProfilePage({ params }: Props) {
   const { id } = await params;
   const dbUser = await getUserById(id).catch(() => null);
   if (!dbUser) notFound();
-  const profile = dbUserToProfile(dbUser);
-  const helperHistoryRows = await listHelperInteractionHistory(id).catch(() => []);
+  const profile = dbUserToProfile(publicUser(dbUser));
+  const helperHistoryRows: Awaited<ReturnType<typeof listHelperInteractionHistory>> = [];
   const helperHistory = helperHistoryRows.map(dbHelperHistoryToAppHistory);
 
   return (

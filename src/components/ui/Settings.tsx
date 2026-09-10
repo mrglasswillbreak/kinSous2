@@ -1,23 +1,41 @@
 "use client";
+import PayoutSettings from "@/components/payment/PayoutSettings";
+import { logout } from "@/lib/logout";
 
-import Image from "next/image";
+import Image from "@/components/ui/AppImage";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  User, Bell, Globe, Shield, ChevronRight, Moon, Sun, Smartphone, LogOut, CreditCard,
-  Mail, Lock, Check, X, Loader2,
+  User,
+  Bell,
+  Globe,
+  Shield,
+  ChevronRight,
+  Smartphone,
+  LogOut,
+  CreditCard,
+  Mail,
+  Lock,
+  Check,
+  X,
+  Loader2,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 import { useRouter } from "next/navigation";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { usePwa } from "./PwaProvider";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 
-interface ToggleProps { enabled: boolean; onChange: (v: boolean) => void }
+interface ToggleProps {
+  enabled: boolean;
+  onChange: (v: boolean) => void;
+}
 
 function Toggle({ enabled, onChange }: ToggleProps) {
   return (
     <motion.button
-      layout onClick={() => onChange(!enabled)}
+      layout
+      onClick={() => onChange(!enabled)}
       className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${enabled ? "bg-primary" : "bg-badge"}`}
     >
       <motion.div
@@ -39,31 +57,57 @@ interface SectionItemProps {
   danger?: boolean;
 }
 
-function SectionItem({ icon, label, sublabel, right, onClick, danger }: SectionItemProps) {
+function SectionItem({
+  icon,
+  label,
+  sublabel,
+  right,
+  onClick,
+  danger,
+}: SectionItemProps) {
+  const Container = onClick ? motion.button : motion.div;
   return (
-    <motion.button
+    <Container
       whileTap={onClick ? { scale: 0.98 } : {}}
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-subtle transition-colors text-left ${
         danger ? "text-red-600" : ""
       }`}
     >
-      <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${danger ? "bg-red-50 dark:bg-red-900/20" : "bg-badge"}`}>
+      <div
+        className={`w-8 h-8 rounded-xl flex items-center justify-center ${danger ? "bg-red-50 dark:bg-red-900/20" : "bg-badge"}`}
+      >
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium ${danger ? "text-red-600" : "text-charcoal"}`}>{label}</p>
+        <p
+          className={`text-sm font-medium ${danger ? "text-red-600" : "text-charcoal"}`}
+        >
+          {label}
+        </p>
         {sublabel && <p className="text-xs text-muted mt-0.5">{sublabel}</p>}
       </div>
-      {right ?? (onClick && <ChevronRight size={16} className="text-muted flex-shrink-0" />)}
-    </motion.button>
+      {right ??
+        (onClick && (
+          <ChevronRight size={16} className="text-muted flex-shrink-0" />
+        ))}
+    </Container>
   );
 }
 
 export default function Settings() {
   const router = useRouter();
+  const pwa = usePwa();
+  const themeSettings = useTheme();
   const { user, refetch: refetchUser } = useCurrentUser();
-  const { isSupported, isSubscribed, subscribe, unsubscribe, permission } = usePushNotifications();
+  const {
+    isSupported,
+    isSubscribed,
+    subscribe,
+    unsubscribe,
+    permission,
+    error: pushError,
+  } = usePushNotifications();
   const [notifications, setNotifications] = useState(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("kinsous-notification-settings");
@@ -113,7 +157,6 @@ export default function Settings() {
       allowDirectMessages: true,
     };
   });
-  const { darkMode, setDarkMode } = useTheme();
 
   // Sync role from DB user once loaded so Settings reflects real DB state
   useEffect(() => {
@@ -124,25 +167,27 @@ export default function Settings() {
   }, [user?.role]);
 
   useEffect(() => {
-    localStorage.setItem("kinsous-notification-settings", JSON.stringify(notifications));
+    localStorage.setItem(
+      "kinsous-notification-settings",
+      JSON.stringify(notifications),
+    );
   }, [notifications]);
 
   useEffect(() => {
-    localStorage.setItem("kinsous-privacy-settings", JSON.stringify(privacySettings));
+    localStorage.setItem(
+      "kinsous-privacy-settings",
+      JSON.stringify(privacySettings),
+    );
   }, [privacySettings]);
 
   const [role, setRoleState] = useState<"SEEKER" | "HELPER">(() => {
     if (typeof window !== "undefined") {
-      return (localStorage.getItem("kinsous-role") as "SEEKER" | "HELPER") ?? "SEEKER";
+      return (
+        (localStorage.getItem("kinsous-role") as "SEEKER" | "HELPER") ??
+        "SEEKER"
+      );
     }
     return "SEEKER";
-  });
-
-  const [currency, setCurrencyState] = useState<"NGN" | "USD">(() => {
-    if (typeof window !== "undefined") {
-      return (localStorage.getItem("kinsous-currency") as "NGN" | "USD") ?? "NGN";
-    }
-    return "NGN";
   });
 
   // ── Change Email state ──────────────────────────────────────────────────────
@@ -179,13 +224,8 @@ export default function Settings() {
     }
   };
 
-  const setCurrency = (c: "NGN" | "USD") => {
-    setCurrencyState(c);
-    localStorage.setItem("kinsous-currency", c);
-  };
-
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await logout();
     router.push("/login");
   };
 
@@ -208,7 +248,10 @@ export default function Settings() {
         setNewEmail("");
         setEmailPassword("");
         await refetchUser();
-        setTimeout(() => { setShowEmailForm(false); setEmailSuccess(false); }, 1500);
+        setTimeout(() => {
+          setShowEmailForm(false);
+          setEmailSuccess(false);
+        }, 1500);
       }
     } catch {
       setEmailError("Network error. Please try again.");
@@ -240,7 +283,10 @@ export default function Settings() {
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
-        setTimeout(() => { setShowPasswordForm(false); setPasswordSuccess(false); }, 1500);
+        setTimeout(() => {
+          setShowPasswordForm(false);
+          setPasswordSuccess(false);
+        }, 1500);
       }
     } catch {
       setPasswordError("Network error. Please try again.");
@@ -253,354 +299,472 @@ export default function Settings() {
   const displayEmail = user?.email ?? user?.phone ?? "";
   const displayCity = user?.city;
   const displayCountry = user?.country;
-  const locationLabel = displayCity && displayCountry
-    ? `${displayCity}, ${displayCountry}`
-    : displayCity || displayCountry || null;
-  const avatarUrl = user?.avatarUrl
-    || `https://i.pravatar.cc/150?u=${encodeURIComponent(user?.userId ?? "default")}`;
+  const locationLabel =
+    displayCity && displayCountry
+      ? `${displayCity}, ${displayCountry}`
+      : displayCity || displayCountry || null;
+  const avatarUrl =
+    user?.avatarUrl ||
+    `https://i.pravatar.cc/150?u=${encodeURIComponent(user?.userId ?? "default")}`;
 
-  const sectionCard = "bg-card rounded-3xl shadow-card border border-card-border overflow-hidden";
+  const sectionCard =
+    "bg-card rounded-3xl shadow-card border border-card-border overflow-hidden";
   const sectionHeader = "px-4 py-3 border-b border-card-border";
-  const inputCls = "w-full px-3 py-2.5 rounded-xl bg-input-surface border border-card-border text-charcoal placeholder:text-muted text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 transition";
+  const inputCls =
+    "w-full px-3 py-2.5 rounded-xl bg-input-surface border border-card-border text-charcoal placeholder:text-muted text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 transition";
 
   return (
     <div className="max-w-md lg:max-w-4xl mx-auto px-4 pb-24 lg:pb-10 pt-6">
+      {user?.role === "HELPER" && <PayoutSettings />}
+      {pushError && (
+        <p role="alert" className="notice">
+          {pushError}
+        </p>
+      )}
+      <section
+        className="bg-card rounded-2xl border border-card-border p-4 mb-5 space-y-3"
+        aria-label="App preferences"
+      >
+        <label className="flex items-center justify-between gap-4">
+          Appearance
+          <select
+            aria-label="Appearance"
+            value={themeSettings.theme}
+            onChange={(e) =>
+              themeSettings.setTheme(
+                e.target.value as "system" | "light" | "dark",
+              )
+            }
+            className="bg-input rounded-xl border border-card-border p-3"
+          >
+            <option value="system">System</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </label>
+        {!pwa.installed && (
+          <button
+            onClick={pwa.install}
+            className="min-h-11 font-semibold text-primary"
+          >
+            Install KinSous on this device
+          </button>
+        )}
+        <p className="text-sm text-muted">
+          Drafts are saved on this device. Orders and payments need an internet
+          connection.
+        </p>
+      </section>
       <h1 className="text-2xl font-bold text-charcoal px-0 mb-5">Settings</h1>
 
       <div className="lg:grid lg:grid-cols-2 lg:gap-5 space-y-5 lg:space-y-0">
         {/* Left column */}
         <div className="space-y-5">
+          {/* Profile */}
+          <div className={sectionCard}>
+            <div className={sectionHeader}>
+              <p className="text-xs font-semibold text-muted uppercase tracking-wider">
+                Account
+              </p>
+            </div>
+            <div className="flex items-center gap-3 px-4 py-4">
+              <Image
+                src={avatarUrl}
+                alt={displayName}
+                width={48}
+                height={48}
+                unoptimized={avatarUrl.startsWith("data:")}
+                className="h-12 w-12 rounded-2xl object-cover ring-2 ring-primary-100"
+              />
+              <div className="min-w-0">
+                <p className="font-bold text-charcoal truncate">
+                  {displayName}
+                </p>
+                <p className="text-xs text-muted truncate">
+                  {displayEmail}
+                  {locationLabel ? ` · ${locationLabel}` : ""}
+                </p>
+              </div>
+            </div>
+            <div className="border-t border-card-border">
+              <SectionItem
+                icon={<User size={16} className="text-muted" />}
+                label="Edit Profile"
+                sublabel="Name, bio, avatar"
+                onClick={() => router.push("/profile")}
+              />
+            </div>
+          </div>
 
-      {/* Profile */}
-      <div className={sectionCard}>
-        <div className={sectionHeader}>
-          <p className="text-xs font-semibold text-muted uppercase tracking-wider">Account</p>
-        </div>
-        <div className="flex items-center gap-3 px-4 py-4">
-          <Image
-            src={avatarUrl}
-            alt={displayName}
-            width={48}
-            height={48}
-            unoptimized={avatarUrl.startsWith("data:")}
-            className="h-12 w-12 rounded-2xl object-cover ring-2 ring-primary-100"
-          />
-          <div className="min-w-0">
-            <p className="font-bold text-charcoal truncate">{displayName}</p>
-            <p className="text-xs text-muted truncate">
-              {displayEmail}{locationLabel ? ` · ${locationLabel}` : ""}
+          {/* Change Email */}
+          <div className={sectionCard}>
+            <div className={sectionHeader}>
+              <p className="text-xs font-semibold text-muted uppercase tracking-wider">
+                Email Address
+              </p>
+            </div>
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <div className="w-8 h-8 bg-badge rounded-xl flex items-center justify-center">
+                <Mail size={15} className="text-muted" />
+              </div>
+              <p className="flex-1 text-sm text-charcoal truncate">
+                {displayEmail || "—"}
+              </p>
+              <button
+                onClick={() => {
+                  setShowEmailForm((v) => !v);
+                  setEmailError("");
+                  setEmailSuccess(false);
+                }}
+                className="text-xs text-primary font-semibold flex-shrink-0"
+              >
+                {showEmailForm ? "Cancel" : "Change"}
+              </button>
+            </div>
+            <AnimatePresence>
+              {showEmailForm && (
+                <motion.form
+                  key="email-form"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  onSubmit={handleChangeEmail}
+                  className="overflow-hidden border-t border-card-border px-4 pb-4 pt-3 space-y-2.5"
+                >
+                  <input
+                    type="email"
+                    placeholder="New email address"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    required
+                    className={inputCls}
+                  />
+                  <input
+                    type="password"
+                    placeholder="Confirm with your password"
+                    value={emailPassword}
+                    onChange={(e) => setEmailPassword(e.target.value)}
+                    required
+                    className={inputCls}
+                  />
+                  {emailError && (
+                    <p className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-3 py-2">
+                      {emailError}
+                    </p>
+                  )}
+                  {emailSuccess && (
+                    <p className="text-xs text-green-600 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl px-3 py-2 flex items-center gap-1.5">
+                      <Check size={13} /> Verification email sent. Open the link
+                      to finish updating
+                    </p>
+                  )}
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    type="submit"
+                    disabled={emailLoading}
+                    className="w-full flex items-center justify-center gap-2 bg-primary text-white py-2.5 rounded-xl font-semibold text-sm shadow-primary disabled:opacity-60 transition"
+                  >
+                    {emailLoading ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <>
+                        <Check size={15} /> Update Email
+                      </>
+                    )}
+                  </motion.button>
+                </motion.form>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Change Password */}
+          <div className={sectionCard}>
+            <div className={sectionHeader}>
+              <p className="text-xs font-semibold text-muted uppercase tracking-wider">
+                Password
+              </p>
+            </div>
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <div className="w-8 h-8 bg-badge rounded-xl flex items-center justify-center">
+                <Lock size={15} className="text-muted" />
+              </div>
+              <p className="flex-1 text-sm text-charcoal">••••••••</p>
+              <button
+                onClick={() => {
+                  setShowPasswordForm((v) => !v);
+                  setPasswordError("");
+                  setPasswordSuccess(false);
+                }}
+                className="text-xs text-primary font-semibold flex-shrink-0"
+              >
+                {showPasswordForm ? "Cancel" : "Change"}
+              </button>
+            </div>
+            <AnimatePresence>
+              {showPasswordForm && (
+                <motion.form
+                  key="password-form"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  onSubmit={handleChangePassword}
+                  className="overflow-hidden border-t border-card-border px-4 pb-4 pt-3 space-y-2.5"
+                >
+                  <input
+                    type="password"
+                    placeholder="Current password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    required
+                    className={inputCls}
+                  />
+                  <input
+                    type="password"
+                    placeholder="New password (min 8 chars)"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    className={inputCls}
+                  />
+                  <input
+                    type="password"
+                    placeholder="Confirm new password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    className={inputCls}
+                  />
+                  {passwordError && (
+                    <p className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-3 py-2 flex items-center gap-1.5">
+                      <X size={13} /> {passwordError}
+                    </p>
+                  )}
+                  {passwordSuccess && (
+                    <p className="text-xs text-green-600 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl px-3 py-2 flex items-center gap-1.5">
+                      <Check size={13} /> Password updated successfully
+                    </p>
+                  )}
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    type="submit"
+                    disabled={passwordLoading}
+                    className="w-full flex items-center justify-center gap-2 bg-primary text-white py-2.5 rounded-xl font-semibold text-sm shadow-primary disabled:opacity-60 transition"
+                  >
+                    {passwordLoading ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <>
+                        <Check size={15} /> Update Password
+                      </>
+                    )}
+                  </motion.button>
+                </motion.form>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Role */}
+          <div className={sectionCard}>
+            <div className={sectionHeader}>
+              <p className="text-xs font-semibold text-muted uppercase tracking-wider">
+                Role
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 p-3">
+              {(["SEEKER", "HELPER"] as const).map((r) => (
+                <motion.button
+                  key={r}
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => setRole(r)}
+                  className={`py-3 rounded-2xl text-sm font-semibold transition-colors ${
+                    role === r
+                      ? "bg-primary text-white shadow-primary"
+                      : "bg-badge text-muted"
+                  }`}
+                >
+                  {r === "SEEKER" ? "🛍️ Seeker" : "👨‍🍳 Helper"}
+                </motion.button>
+              ))}
+            </div>
+            <p className="text-xs text-muted px-4 pb-4 leading-relaxed">
+              {role === "SEEKER"
+                ? "As a Seeker you post bounties and receive bids from local Helpers."
+                : "As a Helper you bid on bounties and earn by completing culinary tasks."}
             </p>
           </div>
         </div>
-        <div className="border-t border-card-border">
-          <SectionItem icon={<User size={16} className="text-muted" />} label="Edit Profile" sublabel="Name, bio, avatar" onClick={() => router.push("/profile")} />
-        </div>
-      </div>
-
-      {/* Change Email */}
-      <div className={sectionCard}>
-        <div className={sectionHeader}>
-          <p className="text-xs font-semibold text-muted uppercase tracking-wider">Email Address</p>
-        </div>
-        <div className="flex items-center gap-3 px-4 py-3.5">
-          <div className="w-8 h-8 bg-badge rounded-xl flex items-center justify-center">
-            <Mail size={15} className="text-muted" />
-          </div>
-          <p className="flex-1 text-sm text-charcoal truncate">{displayEmail || "—"}</p>
-          <button
-            onClick={() => { setShowEmailForm((v) => !v); setEmailError(""); setEmailSuccess(false); }}
-            className="text-xs text-primary font-semibold flex-shrink-0"
-          >
-            {showEmailForm ? "Cancel" : "Change"}
-          </button>
-        </div>
-        <AnimatePresence>
-          {showEmailForm && (
-            <motion.form
-              key="email-form"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
-              onSubmit={handleChangeEmail}
-              className="overflow-hidden border-t border-card-border px-4 pb-4 pt-3 space-y-2.5"
-            >
-              <input
-                type="email"
-                placeholder="New email address"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                required
-                className={inputCls}
-              />
-              <input
-                type="password"
-                placeholder="Confirm with your password"
-                value={emailPassword}
-                onChange={(e) => setEmailPassword(e.target.value)}
-                required
-                className={inputCls}
-              />
-              {emailError && (
-                <p className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-3 py-2">
-                  {emailError}
-                </p>
-              )}
-              {emailSuccess && (
-                <p className="text-xs text-green-600 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl px-3 py-2 flex items-center gap-1.5">
-                  <Check size={13} /> Email updated successfully
-                </p>
-              )}
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                type="submit"
-                disabled={emailLoading}
-                className="w-full flex items-center justify-center gap-2 bg-primary text-white py-2.5 rounded-xl font-semibold text-sm shadow-primary disabled:opacity-60 transition"
-              >
-                {emailLoading ? <Loader2 size={16} className="animate-spin" /> : <><Check size={15} /> Update Email</>}
-              </motion.button>
-            </motion.form>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Change Password */}
-      <div className={sectionCard}>
-        <div className={sectionHeader}>
-          <p className="text-xs font-semibold text-muted uppercase tracking-wider">Password</p>
-        </div>
-        <div className="flex items-center gap-3 px-4 py-3.5">
-          <div className="w-8 h-8 bg-badge rounded-xl flex items-center justify-center">
-            <Lock size={15} className="text-muted" />
-          </div>
-          <p className="flex-1 text-sm text-charcoal">••••••••</p>
-          <button
-            onClick={() => { setShowPasswordForm((v) => !v); setPasswordError(""); setPasswordSuccess(false); }}
-            className="text-xs text-primary font-semibold flex-shrink-0"
-          >
-            {showPasswordForm ? "Cancel" : "Change"}
-          </button>
-        </div>
-        <AnimatePresence>
-          {showPasswordForm && (
-            <motion.form
-              key="password-form"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
-              onSubmit={handleChangePassword}
-              className="overflow-hidden border-t border-card-border px-4 pb-4 pt-3 space-y-2.5"
-            >
-              <input
-                type="password"
-                placeholder="Current password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                required
-                className={inputCls}
-              />
-              <input
-                type="password"
-                placeholder="New password (min 8 chars)"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-                className={inputCls}
-              />
-              <input
-                type="password"
-                placeholder="Confirm new password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                className={inputCls}
-              />
-              {passwordError && (
-                <p className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-3 py-2 flex items-center gap-1.5">
-                  <X size={13} /> {passwordError}
-                </p>
-              )}
-              {passwordSuccess && (
-                <p className="text-xs text-green-600 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl px-3 py-2 flex items-center gap-1.5">
-                  <Check size={13} /> Password updated successfully
-                </p>
-              )}
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                type="submit"
-                disabled={passwordLoading}
-                className="w-full flex items-center justify-center gap-2 bg-primary text-white py-2.5 rounded-xl font-semibold text-sm shadow-primary disabled:opacity-60 transition"
-              >
-                {passwordLoading ? <Loader2 size={16} className="animate-spin" /> : <><Check size={15} /> Update Password</>}
-              </motion.button>
-            </motion.form>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Role */}
-      <div className={sectionCard}>
-        <div className={sectionHeader}>
-          <p className="text-xs font-semibold text-muted uppercase tracking-wider">Role</p>
-        </div>
-        <div className="grid grid-cols-2 gap-2 p-3">
-          {(["SEEKER", "HELPER"] as const).map((r) => (
-            <motion.button
-              key={r} whileTap={{ scale: 0.96 }}
-              onClick={() => setRole(r)}
-              className={`py-3 rounded-2xl text-sm font-semibold transition-colors ${
-                role === r ? "bg-primary text-white shadow-primary" : "bg-badge text-muted"
-              }`}
-            >
-              {r === "SEEKER" ? "🛍️ Seeker" : "👨‍🍳 Helper"}
-            </motion.button>
-          ))}
-        </div>
-        <p className="text-xs text-muted px-4 pb-4 leading-relaxed">
-          {role === "SEEKER"
-            ? "As a Seeker you post bounties and receive bids from local Helpers."
-            : "As a Helper you bid on bounties and earn by completing culinary tasks."}
-        </p>
-      </div>
-
-        </div>{/* end left column */}
+        {/* end left column */}
 
         {/* Right column */}
         <div className="space-y-5">
+          {/* Payments */}
+          <div className={sectionCard}>
+            <div className={sectionHeader}>
+              <p className="text-xs font-semibold text-muted uppercase tracking-wider">
+                Payments
+              </p>
+            </div>
+            <p className="px-4 py-3 text-sm text-muted">
+              New orders are paid in Nigerian naira (NGN).
+            </p>
+            <div className="border-t border-card-border">
+              <SectionItem
+                icon={<CreditCard size={16} className="text-muted" />}
+                label="Your orders and payments"
+                sublabel="Flutterwave ? NGN"
+                onClick={() => router.push("/payment")}
+              />
+            </div>
+          </div>
 
-      {/* Payments */}
-      <div className={sectionCard}>
-        <div className={sectionHeader}>
-          <p className="text-xs font-semibold text-muted uppercase tracking-wider">Payments</p>
-        </div>
-        <div className="p-3 flex gap-2">
-          {(["NGN", "USD"] as const).map((c) => (
-            <motion.button
-              key={c} whileTap={{ scale: 0.95 }}
-              onClick={() => setCurrency(c)}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-                currency === c ? "bg-secondary text-white" : "bg-badge text-muted"
-              }`}
-            >
-              {c === "NGN" ? "₦ Naira" : "$ USD"}
-            </motion.button>
-          ))}
-        </div>
-        <div className="border-t border-card-border">
-          <SectionItem
-            icon={<CreditCard size={16} className="text-muted" />}
-            label="Payment Methods"
-            sublabel={currency === "NGN" ? "Flutterwave · NGN" : "Stripe · USD"}
-            onClick={() => router.push("/payment")}
-          />
-        </div>
-      </div>
+          {/* Notifications */}
+          <div className={sectionCard}>
+            <div className={sectionHeader}>
+              <p className="text-xs font-semibold text-muted uppercase tracking-wider">
+                Notifications
+              </p>
+            </div>
+            {[
+              {
+                key: "newBid" as const,
+                label: "New bids on my bounties",
+                icon: <Bell size={15} className="text-primary" />,
+              },
+              {
+                key: "bidAccepted" as const,
+                label: "My bid was accepted",
+                icon: <Bell size={15} className="text-secondary-600" />,
+              },
+              {
+                key: "deliveryUpdate" as const,
+                label: "Delivery updates",
+                icon: <Smartphone size={15} className="text-blue-500" />,
+              },
+              {
+                key: "messages" as const,
+                label: "New messages",
+                icon: <Bell size={15} className="text-purple-500" />,
+              },
+              {
+                key: "promotions" as const,
+                label: "Tips & promotions",
+                icon: <Globe size={15} className="text-muted" />,
+              },
+            ].map((item) => (
+              <div
+                key={item.key}
+                className="flex items-center gap-3 px-4 py-3 border-b border-card-border last:border-0"
+              >
+                <div className="w-8 h-8 bg-badge rounded-xl flex items-center justify-center">
+                  {item.icon}
+                </div>
+                <p className="flex-1 text-sm text-charcoal">{item.label}</p>
+                <Toggle
+                  enabled={notifications[item.key]}
+                  onChange={(v) =>
+                    setNotifications((prev) => ({ ...prev, [item.key]: v }))
+                  }
+                />
+              </div>
+            ))}
+            <div className="flex items-center gap-3 px-4 py-3 border-t border-card-border">
+              <div className="w-8 h-8 bg-badge rounded-xl flex items-center justify-center">
+                <Smartphone size={15} className="text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-charcoal">Push notifications</p>
+                <p className="text-xs text-muted">
+                  {isSupported
+                    ? permission === "denied"
+                      ? "Blocked in browser settings"
+                      : "Get alerts even when you’re away"
+                    : "Not supported on this device"}
+                </p>
+              </div>
+              <Toggle
+                enabled={isSubscribed}
+                onChange={(v) => {
+                  if (!isSupported || permission === "denied") return;
+                  return v ? subscribe() : unsubscribe();
+                }}
+              />
+            </div>
+          </div>
 
-      {/* Notifications */}
-      <div className={sectionCard}>
-        <div className={sectionHeader}>
-          <p className="text-xs font-semibold text-muted uppercase tracking-wider">Notifications</p>
-        </div>
-        {[
-          { key: "newBid" as const, label: "New bids on my bounties", icon: <Bell size={15} className="text-primary" /> },
-          { key: "bidAccepted" as const, label: "My bid was accepted", icon: <Bell size={15} className="text-secondary-600" /> },
-          { key: "deliveryUpdate" as const, label: "Delivery updates", icon: <Smartphone size={15} className="text-blue-500" /> },
-          { key: "messages" as const, label: "New messages", icon: <Bell size={15} className="text-purple-500" /> },
-          { key: "promotions" as const, label: "Tips & promotions", icon: <Globe size={15} className="text-muted" /> },
-        ].map((item) => (
-          <div key={item.key} className="flex items-center gap-3 px-4 py-3 border-b border-card-border last:border-0">
-            <div className="w-8 h-8 bg-badge rounded-xl flex items-center justify-center">{item.icon}</div>
-            <p className="flex-1 text-sm text-charcoal">{item.label}</p>
-            <Toggle
-              enabled={notifications[item.key]}
-              onChange={(v) => setNotifications((prev) => ({ ...prev, [item.key]: v }))}
+          {/* Security */}
+          <div className={sectionCard}>
+            <div className={sectionHeader}>
+              <p className="text-xs font-semibold text-muted uppercase tracking-wider">
+                Security & Privacy
+              </p>
+            </div>
+            <SectionItem
+              icon={<Shield size={16} className="text-muted" />}
+              label="Privacy Settings"
+              sublabel="Profile visibility and messages"
+              onClick={() => setPrivacyOpen((v) => !v)}
+            />
+            <AnimatePresence>
+              {privacyOpen && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden border-y border-card-border bg-subtle/50"
+                >
+                  {[
+                    {
+                      key: "showProfileInSearch" as const,
+                      label: "Show profile in helper search",
+                    },
+                    {
+                      key: "showLocation" as const,
+                      label: "Show city and country on profile",
+                    },
+                    {
+                      key: "allowDirectMessages" as const,
+                      label: "Allow direct messages",
+                    },
+                  ].map((item) => (
+                    <div
+                      key={item.key}
+                      className="flex items-center gap-3 px-4 py-3 border-b border-card-border last:border-0"
+                    >
+                      <p className="flex-1 text-sm text-charcoal">
+                        {item.label}
+                      </p>
+                      <Toggle
+                        enabled={privacySettings[item.key]}
+                        onChange={(v) =>
+                          setPrivacySettings((current) => ({
+                            ...current,
+                            [item.key]: v,
+                          }))
+                        }
+                      />
+                    </div>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <SectionItem
+              icon={<LogOut size={16} className="text-red-500" />}
+              label="Sign Out"
+              danger
+              onClick={handleLogout}
             />
           </div>
-        ))}
-        <div className="flex items-center gap-3 px-4 py-3 border-t border-card-border">
-          <div className="w-8 h-8 bg-badge rounded-xl flex items-center justify-center">
-            <Smartphone size={15} className="text-primary" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm text-charcoal">Push notifications</p>
-            <p className="text-xs text-muted">
-              {isSupported
-                ? permission === "denied"
-                  ? "Blocked in browser settings"
-                  : "Get alerts even when you’re away"
-                : "Not supported on this device"}
-            </p>
-          </div>
-          <Toggle
-            enabled={isSubscribed}
-            onChange={(v) => {
-              if (!isSupported || permission === "denied") return;
-              return v ? subscribe() : unsubscribe();
-            }}
-          />
         </div>
+        {/* end right column */}
       </div>
+      {/* end grid */}
 
-      {/* Appearance */}
-      <div className={sectionCard}>
-        <div className={sectionHeader}>
-          <p className="text-xs font-semibold text-muted uppercase tracking-wider">Appearance</p>
-        </div>
-        <div className="flex items-center gap-3 px-4 py-3.5">
-          <div className="w-8 h-8 bg-badge rounded-xl flex items-center justify-center">
-            {darkMode ? <Moon size={15} className="text-muted" /> : <Sun size={15} className="text-yellow-500" />}
-          </div>
-          <p className="flex-1 text-sm text-charcoal">Dark Mode</p>
-          <Toggle enabled={darkMode} onChange={setDarkMode} />
-        </div>
-      </div>
-
-      {/* Security */}
-      <div className={sectionCard}>
-        <div className={sectionHeader}>
-          <p className="text-xs font-semibold text-muted uppercase tracking-wider">Security & Privacy</p>
-        </div>
-        <SectionItem
-          icon={<Shield size={16} className="text-muted" />}
-          label="Privacy Settings"
-          sublabel="Profile visibility and messages"
-          onClick={() => setPrivacyOpen((v) => !v)}
-        />
-        <AnimatePresence>
-          {privacyOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden border-y border-card-border bg-subtle/50"
-            >
-              {[
-                { key: "showProfileInSearch" as const, label: "Show profile in helper search" },
-                { key: "showLocation" as const, label: "Show city and country on profile" },
-                { key: "allowDirectMessages" as const, label: "Allow direct messages" },
-              ].map((item) => (
-                <div key={item.key} className="flex items-center gap-3 px-4 py-3 border-b border-card-border last:border-0">
-                  <p className="flex-1 text-sm text-charcoal">{item.label}</p>
-                  <Toggle
-                    enabled={privacySettings[item.key]}
-                    onChange={(v) =>
-                      setPrivacySettings((current) => ({ ...current, [item.key]: v }))
-                    }
-                  />
-                </div>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <SectionItem icon={<LogOut size={16} className="text-red-500" />} label="Sign Out" danger onClick={handleLogout} />
-      </div>
-
-        </div>{/* end right column */}
-      </div>{/* end grid */}
-
-      <p className="text-center text-xs text-muted pb-4 mt-5">KinSous v0.1.0 · FolkProvidr</p>
+      <p className="text-center text-xs text-muted pb-4 mt-5">
+        KinSous v0.1.0 · FolkProvidr
+      </p>
     </div>
   );
 }

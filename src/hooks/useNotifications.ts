@@ -1,4 +1,5 @@
 "use client";
+import { usePolling } from "./usePolling";
 
 import { useState, useCallback, useEffect } from "react";
 import type { AppNotification } from "@/types";
@@ -8,7 +9,6 @@ export function useNotifications() {
   const [isLoading, setIsLoading] = useState(true);
 
   const refetch = useCallback(async () => {
-    setIsLoading(true);
     try {
       const res = await fetch("/api/notifications");
       if (!res.ok) {
@@ -29,24 +29,15 @@ export function useNotifications() {
     refetch();
   }, [refetch]);
 
-  useEffect(() => {
-    const stream = new EventSource("/api/messages/stream");
-    const handleNotification = (event: MessageEvent<string>) => {
-      const payload = JSON.parse(event.data) as AppNotification;
-      setNotifications((prev) => [payload, ...prev.filter((n) => n.id !== payload.id)]);
-    };
-    stream.addEventListener("notification", handleNotification);
-    stream.addEventListener("error", refetch);
-    return () => {
-      stream.close();
-    };
-  }, [refetch]);
+  usePolling(refetch, 15000);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const markRead = useCallback(async (id: string) => {
     await fetch(`/api/notifications/${id}`, { method: "PATCH" });
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
+    );
   }, []);
 
   const markAllRead = useCallback(async () => {
@@ -59,5 +50,13 @@ export function useNotifications() {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   }, []);
 
-  return { notifications, unreadCount, markRead, markAllRead, dismiss, isLoading, refetch };
+  return {
+    notifications,
+    unreadCount,
+    markRead,
+    markAllRead,
+    dismiss,
+    isLoading,
+    refetch,
+  };
 }

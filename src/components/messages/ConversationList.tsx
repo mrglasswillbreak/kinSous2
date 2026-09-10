@@ -1,4 +1,5 @@
 "use client";
+import Image from "@/components/ui/AppImage";
 
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -20,8 +21,18 @@ function Shimmer({ className }: { className?: string }) {
   );
 }
 
-function ConversationRow({ conv, index, currentUserId }: { conv: Conversation; index: number; currentUserId: string }) {
-  const other = conv.participants.find((p) => p.id !== currentUserId) ?? conv.participants[0];
+function ConversationRow({
+  conv,
+  index,
+  currentUserId,
+}: {
+  conv: Conversation;
+  index: number;
+  currentUserId: string;
+}) {
+  const other =
+    conv.participants.find((p) => p.id !== currentUserId) ??
+    conv.participants[0];
   const lastMsg = conv.lastMessage;
   const isMe = lastMsg.senderId === currentUserId;
   const isBlocked = conv.blockedByMe || conv.blockedByOther;
@@ -32,11 +43,15 @@ function ConversationRow({ conv, index, currentUserId }: { conv: Conversation; i
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.06 }}
     >
-      <Link href={`/contacts/${conv.id}`}>
-        <div className={`flex items-center gap-3 px-4 py-3.5 hover:bg-subtle transition-colors ${conv.unreadCount > 0 ? "bg-primary-50/30" : ""}`}>
+      <Link href={`/messages/${conv.id}`}>
+        <div
+          className={`flex items-center gap-3 px-4 py-3.5 hover:bg-subtle transition-colors ${conv.unreadCount > 0 ? "bg-primary-50/30" : ""}`}
+        >
           <div className="relative flex-shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
+              width={48}
+              height={48}
               src={other.avatarUrl}
               alt={other.name}
               className="w-12 h-12 rounded-full object-cover ring-2 ring-white shadow-sm"
@@ -48,22 +63,34 @@ function ConversationRow({ conv, index, currentUserId }: { conv: Conversation; i
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
-              <p className={`text-sm truncate ${conv.unreadCount > 0 ? "font-bold text-charcoal" : "font-semibold text-charcoal/80"}`}>
+              <p
+                className={`text-sm truncate ${conv.unreadCount > 0 ? "font-bold text-charcoal" : "font-semibold text-charcoal/80"}`}
+              >
                 {other.name}
               </p>
-              <span className="text-xs text-muted flex-shrink-0">{timeAgo(conv.updatedAt)}</span>
+              <span className="text-xs text-muted flex-shrink-0">
+                {timeAgo(conv.updatedAt)}
+              </span>
             </div>
             {conv.bountyRef && (
-              <p className="text-xs text-primary truncate font-medium">{conv.bountyRef.title}</p>
+              <p className="text-xs text-primary truncate font-medium">
+                {conv.bountyRef.title}
+              </p>
             )}
             {isBlocked && (
               <p className="text-xs text-red-500 flex items-center gap-1">
                 <Ban size={12} /> Blocked
               </p>
             )}
-            <p className={`text-xs truncate mt-0.5 ${conv.unreadCount > 0 ? "text-charcoal font-medium" : "text-muted"}`}>
+            <p
+              className={`text-xs truncate mt-0.5 ${conv.unreadCount > 0 ? "text-charcoal font-medium" : "text-muted"}`}
+            >
               {isMe ? "You: " : ""}
-              {lastMsg.deletedAt ? "Message deleted" : lastMsg.type === "IMAGE" ? "📷 Photo" : lastMsg.content}
+              {lastMsg.deletedAt
+                ? "Message deleted"
+                : lastMsg.type === "IMAGE"
+                  ? "📷 Photo"
+                  : lastMsg.content}
             </p>
           </div>
 
@@ -80,7 +107,11 @@ function ConversationRow({ conv, index, currentUserId }: { conv: Conversation; i
   );
 }
 
-export default function ConversationList({ className }: { className?: string }) {
+export default function ConversationList({
+  className,
+}: {
+  className?: string;
+}) {
   const { user } = useCurrentUser();
   const { conversations, isLoading, refetch } = useConversations();
   const router = useRouter();
@@ -99,7 +130,7 @@ export default function ConversationList({ className }: { className?: string }) 
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data?.conversationId) {
-          router.replace(`/contacts/${data.conversationId}`);
+          router.replace(`/messages/${data.conversationId}`);
           return;
         }
         refetch();
@@ -126,7 +157,10 @@ export default function ConversationList({ className }: { className?: string }) 
           <h1 className="text-2xl font-bold text-charcoal">Contacts</h1>
         </div>
         <div className="relative">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
+          <Search
+            size={16}
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"
+          />
           <input
             type="text"
             placeholder="Search contacts…"
@@ -140,7 +174,10 @@ export default function ConversationList({ className }: { className?: string }) 
       <div className="bg-card rounded-3xl shadow-card overflow-hidden mx-4 mt-2">
         {isLoading ? (
           Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-3 px-4 py-4 border-b border-card-border last:border-0">
+            <div
+              key={i}
+              className="flex items-center gap-3 px-4 py-4 border-b border-card-border last:border-0"
+            >
               <Shimmer className="w-12 h-12 rounded-full flex-shrink-0" />
               <div className="flex-1 space-y-1.5">
                 <Shimmer className="h-3 w-32" />
@@ -161,7 +198,12 @@ export default function ConversationList({ className }: { className?: string }) 
           <AnimatePresence>
             <div className="divide-y divide-card-border">
               {filtered.map((conv, i) => (
-                <ConversationRow key={conv.id} conv={conv} index={i} currentUserId={user?.userId ?? ""} />
+                <ConversationRow
+                  key={conv.id}
+                  conv={conv}
+                  index={i}
+                  currentUserId={user?.userId ?? ""}
+                />
               ))}
             </div>
           </AnimatePresence>

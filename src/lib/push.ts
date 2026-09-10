@@ -17,7 +17,7 @@ function ensureConfigured() {
 
 export async function sendPushNotifications(
   subscriptions: PushSubscription[],
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
 ) {
   if (!ensureConfigured() || subscriptions.length === 0) {
     return { invalidEndpoints: [] as string[] };
@@ -27,7 +27,9 @@ export async function sendPushNotifications(
   await Promise.all(
     subscriptions.map(async (subscription) => {
       try {
-        await webPush.sendNotification(subscription, JSON.stringify(payload));
+        await webPush.sendNotification(subscription, JSON.stringify(payload), {
+          timeout: 5000,
+        });
       } catch (err) {
         const statusCode = (err as { statusCode?: number }).statusCode;
         if (statusCode === 404 || statusCode === 410) {
@@ -36,7 +38,7 @@ export async function sendPushNotifications(
           console.error("push send error", err);
         }
       }
-    })
+    }),
   );
 
   return { invalidEndpoints };

@@ -1,137 +1,51 @@
-# KinSous2 (KinSous · FolkProvidr)
+# KinSous
 
-KinSous2 is a **Next.js 15 full-stack marketplace prototype** for connecting food seekers with verified culinary helpers across diaspora and local communities. It includes bounties, helper discovery, messaging, notifications, onboarding, tracking, and mock/real API pathways.
+A Nigeria-first culinary marketplace built with Next.js, React and Neon Postgres.
 
-## Project Status
+The application supports account management, bounty posting and bidding, private conversations, order milestones, NGN checkout, payout/refund review and a mobile PWA. The warm orange interface includes light/dark/system themes, responsive navigation, accessible forms and explicit loading/error states.
 
-- **Current maturity:** Functional prototype with many production-minded flows already scaffolded.
-- **Architecture:** App Router + API routes, typed domain models, reusable UI components, and lib-layer data mappers.
-- **Primary gap to production:** Environment setup + dependency installation + hardening (auth, storage, observability, CI).
+## Run locally
 
-## Core Capabilities
+Use Node.js 22 or newer.
 
-- **Bounty Marketplace**
-  - Create, browse, and manage bounties.
-  - Bid and accept bid flows with API endpoints under `src/app/api/bounties/**`.
-- **Helper Discovery & Profiles**
-  - Helper list + profile pages with score/certification UI components.
-- **Messaging System**
-  - Conversation list, thread UI, streaming route stubs, typing indicators, uploads route, moderation routes.
-- **Notifications & Presence**
-  - Notification feed endpoints + subscription route + presence endpoint.
-- **Payment & Escrow UX**
-  - Payment page and escrow helper hooks for currency-based flow modeling.
-- **Realtime/Tracking UX**
-  - Tracking page/components and realtime utility scaffolding.
-- **Authentication APIs**
-  - Register/login/logout/me and profile/password/email/role update routes.
-
-## Tech Stack
-
-- **Framework:** Next.js 15 (App Router)
-- **Language:** TypeScript
-- **UI:** React 18, Tailwind CSS, Framer Motion, Lucide icons
-- **Data & Networking:** API Routes + React Query
-- **Storage/Infra Libraries:** Neon serverless client, Vercel Blob, web-push
-
-## Repository Layout
-
-```text
-src/
-  app/                    # Pages and API routes (UI + backend handlers)
-    api/
-      auth/               # Auth endpoints
-      bounties/           # Bounty CRUD + bidding endpoints
-      helpers/            # Helper listing endpoint
-      messages/           # Conversations/messages/uploads/stream/moderation
-      notifications/      # Notifications + subscribe + item actions
-      presence/           # Presence endpoint
-  components/
-    feed/                 # Bounty feed, cards, bid/review modals
-    messages/             # Conversation list + thread shell
-    payment/              # Payment status/shield UI
-    profile/              # Profile cards, helper pages, certification/score
-    tracker/              # Tracking experience UI
-    ui/                   # App shell/navigation/drawers/onboarding/settings
-    video/                # Video shopping overlay
-  hooks/                  # App hooks (notifications, conversations, escrow, etc.)
-  lib/                    # Auth, db access, mappers, realtime, push helpers
-  types/                  # Shared domain types
-public/
-  sw.js                   # Service worker
-```
-
-## Requirements
-
-- Node.js 20+
-- npm 10+
-- Environment variables for production-like usage (see below)
-
-## Environment Variables
-
-Create a `.env.local` file for local development:
-
-```bash
-# Auth
-AUTH_SECRET=replace_with_long_random_secret
-
-# Database
-DATABASE_URL=postgres://...
-
-# Push Notifications (VAPID)
-NEXT_PUBLIC_VAPID_PUBLIC_KEY=...
-VAPID_PRIVATE_KEY=...
-VAPID_SUBJECT=mailto:you@example.com
-
-# Optional/feature-specific integrations
-BLOB_READ_WRITE_TOKEN=...
-```
-
-## Local Development
-
-```bash
-npm install
+```sh
+npm ci
 npm run dev
 ```
 
-Open <http://localhost:3000>.
+Without DATABASE_URL, development uses a local demo database. POST /api/auth/seed creates the documented demo users; this endpoint is disabled in production. Hosted payments, email verification and private attachments require their corresponding services. Production requires a configured database and strong authentication secret.
 
-## Quality Checks
+## Hosted setup
 
-```bash
-npm run lint
+Copy .env.local.example to .env.local and configure your own service values. Never commit secrets.
+
+```sh
+npm run db:migrate
 npm run build
+npm start
 ```
 
-> Note: Build/lint require full dependency installation and proper registry/network access.
+Schema migrations are explicit and versioned. They never run from user requests.
 
-## Professional Improvement Plan (Recommended)
+Read [the launch runbook](docs/LAUNCH.md) before configuring Vercel, Neon, Flutterwave, private Vercel Blob, Resend, web push and the reconciliation scheduler. Live collection and delayed helper payouts remain disabled until the provider has approved the business model. Commission is 10%; the platform covers processing charges. Refunds and disputed deliveries require operator review.
 
-1. **Dependency reliability**
-   - Add lockfile governance and CI cache strategy.
-   - Enforce deterministic installs (`npm ci`) in CI.
-2. **Static quality gates**
-   - Run ESLint + TypeScript checks on pull requests.
-   - Add pre-commit hooks (lint staged files).
-3. **Testing coverage**
-   - Add unit tests for `lib/auth`, `lib/mappers`, `lib/db` query adapters.
-   - Add integration tests for critical API routes (`auth`, `bounties`, `messages`).
-4. **Security hardening**
-   - Introduce rate limiting on auth/messaging endpoints.
-   - Add validation middleware (Zod schema parsing per route).
-   - Add audit logging for admin/security-sensitive actions.
-5. **Observability**
-   - Structured logging and request correlation IDs.
-   - Error reporting pipeline (Sentry or equivalent).
-6. **Operational readiness**
-   - Add `CONTRIBUTING.md`, issue templates, CODEOWNERS, and CI badges.
-   - Add deployment runbook and rollback instructions.
+## PWA
 
-## Known Setup Pitfalls
+The service worker supports installation, an offline fallback and controlled updates. It only caches approved public assets; private pages and APIs stay network-only. Unsent bounty/message text is saved on the device when storage is available. Drafts are scoped to the account and cleared on logout. Payments and submissions require an online connection and explicit user action.
 
-- Missing or blocked npm registry access prevents installation of packages such as `@neondatabase/serverless`, `@vercel/blob`, and `web-push`.
-- Without dependencies installed, `next build` and TypeScript checks will fail with module resolution errors.
+Audio/video calls, live GPS and new USD orders are deferred. Existing USD records remain readable.
 
-## License
+## Checks
 
-No license file is currently present. Add a `LICENSE` file before public distribution.
+```sh
+npm run lint
+npm run typecheck
+npm test
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
+
+Database tests execute the migrations against PGlite and verify transactional order rules. Security tests cover payment verification, token integrity and public-data filtering. Browser tests exercise mobile/desktop navigation, theme persistence, draft recovery, offline launch and two-account marketplace messaging in local demo mode.
+
+Provider-backed testing, real-device installation/push and staging deployment require configured accounts; local test success does not substitute for those checks.

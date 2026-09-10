@@ -9,7 +9,7 @@ import { useConversations } from "@/hooks/useConversations";
 const navItems = [
   { href: "/", icon: Flame, label: "Home" },
   { href: "/bounties", icon: Scroll, label: "Bounties" },
-  { href: "/contacts", icon: MessageCircle, label: "Contacts", badge: true },
+  { href: "/messages", icon: MessageCircle, label: "Messages", badge: true },
   { href: "/helpers", icon: Users, label: "Helpers" },
   { href: "/profile", icon: User, label: "Profile" },
 ];
@@ -22,10 +22,17 @@ export default function BottomNav() {
     <nav className="fixed bottom-0 inset-x-0 z-40 bg-[var(--nav-bg)] backdrop-blur-md border-t border-card-border lg:hidden">
       <div className="flex items-center justify-around max-w-md mx-auto px-2 py-2 pb-safe">
         {navItems.map(({ href, icon: Icon, label, badge }) => {
-          const active = pathname === href || pathname.startsWith(href + "/") && href !== "/";
+          const active =
+            pathname === href ||
+            (pathname.startsWith(href + "/") && href !== "/");
           const showBadge = badge && totalUnread > 0;
           return (
-            <Link key={href} href={href} className="flex-1">
+            <Link
+              key={href}
+              href={href}
+              className="flex-1 min-h-11"
+              aria-current={active ? "page" : undefined}
+            >
               <motion.div
                 whileTap={{ scale: 0.88 }}
                 className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-2xl transition-colors ${
@@ -52,7 +59,11 @@ export default function BottomNav() {
                     </motion.div>
                   )}
                 </div>
-                <span className={`text-[10px] ${active ? "font-semibold" : "font-medium"}`}>{label}</span>
+                <span
+                  className={`text-[10px] ${active ? "font-semibold" : "font-medium"}`}
+                >
+                  {label}
+                </span>
               </motion.div>
             </Link>
           );

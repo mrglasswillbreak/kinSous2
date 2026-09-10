@@ -1,5 +1,15 @@
-import type { Bid, Bounty, HelperInteractionHistoryItem, Profile } from "@/types";
-import type { DbBid, DbBounty, DbHelperInteractionHistoryRow, DbUser } from "@/lib/db";
+import type {
+  Bid,
+  Bounty,
+  HelperInteractionHistoryItem,
+  Profile,
+} from "@/types";
+import type {
+  DbBid,
+  DbBounty,
+  DbHelperInteractionHistoryRow,
+  DbUser,
+} from "@/lib/db";
 
 /** Convert a DbBounty row (with joined seeker fields) to the app Bounty type */
 export function dbBountyToAppBounty(b: DbBounty): Bounty {
@@ -46,13 +56,11 @@ export function dbBidToAppBid(bid: DbBid): Bid {
     bountyId: bid.bounty_id,
     helper: {
       id: bid.helper_id,
-      email: bid.helper_email,
-      phone: bid.helper_phone,
+
       name: bid.helper_name,
       firstName: bid.helper_first_name,
       lastName: bid.helper_last_name,
-      dateOfBirth: bid.helper_date_of_birth,
-      gender: bid.helper_gender,
+
       avatarUrl:
         bid.helper_avatar_url ||
         `https://i.pravatar.cc/150?u=${encodeURIComponent(bid.helper_id)}`,
@@ -80,16 +88,19 @@ export function dbUserToProfile(u: DbUser): Profile {
   const averageRating = Number(u.average_rating ?? 0);
   const totalReviews = Number(u.total_reviews ?? 0);
   const ratingPercentage = Number(
-    u.rating_percentage ?? (averageRating > 0 ? (averageRating / 5) * 100 : 0)
+    u.rating_percentage ?? (averageRating > 0 ? (averageRating / 5) * 100 : 0),
   );
   const totalEarningsNgn = Number(
-    u.total_earnings_ngn ?? (u.earnings_currency === "NGN" ? u.total_earnings ?? 0 : 0)
+    u.total_earnings_ngn ??
+      (u.earnings_currency === "NGN" ? (u.total_earnings ?? 0) : 0),
   );
   const totalEarningsUsd = Number(
-    u.total_earnings_usd ?? (u.earnings_currency === "USD" ? u.total_earnings ?? 0 : 0)
+    u.total_earnings_usd ??
+      (u.earnings_currency === "USD" ? (u.total_earnings ?? 0) : 0),
   );
   const earningsCurrency = u.earnings_currency === "USD" ? "USD" : "NGN";
-  const totalEarnings = earningsCurrency === "USD" ? totalEarningsUsd : totalEarningsNgn;
+  const totalEarnings =
+    earningsCurrency === "USD" ? totalEarningsUsd : totalEarningsNgn;
   const hasStats = u.role === "HELPER";
 
   return {
@@ -102,8 +113,7 @@ export function dbUserToProfile(u: DbUser): Profile {
     dateOfBirth: u.date_of_birth,
     gender: u.gender,
     avatarUrl:
-      u.avatar_url ||
-      `https://i.pravatar.cc/150?u=${encodeURIComponent(u.id)}`,
+      u.avatar_url || `https://i.pravatar.cc/150?u=${encodeURIComponent(u.id)}`,
     role: u.role as Profile["role"],
     location: {
       city: u.city || "Unknown",
@@ -134,7 +144,7 @@ export function dbUserToProfile(u: DbUser): Profile {
 }
 
 export function dbHelperHistoryToAppHistory(
-  row: DbHelperInteractionHistoryRow
+  row: DbHelperInteractionHistoryRow,
 ): HelperInteractionHistoryItem {
   return {
     bountyId: row.bounty_id,
@@ -143,7 +153,9 @@ export function dbHelperHistoryToAppHistory(
     city: row.city || "Unknown",
     country: row.country || "Unknown",
     acceptedAmount: Number(row.accepted_amount),
-    currency: (row.currency === "USD" ? "USD" : "NGN") as HelperInteractionHistoryItem["currency"],
+    currency: (row.currency === "USD"
+      ? "USD"
+      : "NGN") as HelperInteractionHistoryItem["currency"],
     interactedAt: row.interacted_at,
     reviewCompleted: Boolean(row.review_id),
     reviewRating: row.review_rating ?? undefined,

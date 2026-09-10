@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint src --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs",
+    "test": "tsx --test tests/*.test.mjs tests/*.test.ts",
+    "test:e2e": "playwright test",
+    "prebuild": "node scripts/version-worker.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
@@ -21,14 +26,20 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@playwright/test": "^1.63.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/web-push": "^3.6.4",
     "eslint": "^8",
     "eslint-config-next": "^15.5.15",
-    "postcss": "^8",
+    "postcss": "^8.5.28",
     "tailwindcss": "^3.4.1",
+    "tsx": "^4.23.13",
     "typescript": "^5"
+  },
+  "overrides": {
+    "postcss": "$postcss"
   }
 }

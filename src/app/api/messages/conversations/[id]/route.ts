@@ -1,3 +1,4 @@
+import { publicUser } from "@/lib/public-data";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { dbUserToProfile } from "@/lib/mappers";
@@ -18,13 +19,21 @@ export async function GET(_req: Request, { params }: RouteContext) {
   try {
     const session = await getSession();
     if (!session) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+      return NextResponse.json(
+        {
+          error: "Not authenticated",
+        },
+        { status: 401 },
+      );
     }
 
     const { id } = await params;
     const conversation = await getConversationForUser(id, session.userId);
     if (!conversation) {
-      return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Conversation not found" },
+        { status: 404 },
+      );
     }
 
     await markConversationRead(id, session.userId);
@@ -32,15 +41,28 @@ export async function GET(_req: Request, { params }: RouteContext) {
       type: "read",
       payload: { readerId: session.userId },
     });
-    publishUserEvent(session.userId, { type: "conversation_updated", payload: { conversationId: id } });
-    const messages = await listMessagesForConversation(id, session.userId);
+    publishUserEvent(session.userId, {
+      type: "conversation_updated",
+      payload: { conversationId: id },
+    });
+    const before = new URL(_req.url).searchParams.get("before") || undefined;
+    const messages = await listMessagesForConversation(
+      id,
+      session.userId,
+      before,
+    );
     const typing = await listTypingForConversation(id);
-    const presence = await getPresenceForUsers(conversation.participants.map((p) => p.id));
+    const presence = await getPresenceForUsers(
+      conversation.participants.map((p) => p.id),
+    );
 
     return NextResponse.json({
+      nextCursor: messages.length === 50 ? messages[0].id : null,
       conversation: {
         id: conversation.id,
-        participants: conversation.participants.map(dbUserToProfile),
+        participants: conversation.participants.map((u) =>
+          dbUserToProfile(publicUser(u)),
+        ),
         bountyRef:
           conversation.bounty_id && conversation.bounty_title
             ? { id: conversation.bounty_id, title: conversation.bounty_title }

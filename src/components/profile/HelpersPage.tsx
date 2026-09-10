@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
-import { useState, useEffect, useCallback } from "react";
+import Image from "@/components/ui/AppImage";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { Search, Star, MapPin, Package, Flame } from "lucide-react";
 import type { Profile } from "@/types";
@@ -34,7 +34,11 @@ function HelperCard({ helper, index }: { helper: Profile; index: number }) {
               />
               {helper.chefScore !== undefined && (
                 <div className="mb-1">
-                  <ChefScore score={helper.chefScore} size="sm" showLabel={false} />
+                  <ChefScore
+                    score={helper.chefScore}
+                    size="sm"
+                    showLabel={false}
+                  />
                 </div>
               )}
               <div className="ml-auto mb-1">
@@ -46,7 +50,8 @@ function HelperCard({ helper, index }: { helper: Profile; index: number }) {
 
             <h3 className="font-bold text-charcoal">{helper.name}</h3>
             <p className="flex items-center gap-1 text-xs text-muted mt-0.5">
-              <MapPin size={11} /> {helper.location.city}, {helper.location.country}
+              <MapPin size={11} /> {helper.location.city},{" "}
+              {helper.location.country}
             </p>
             {helper.bio && (
               <p className="text-xs text-charcoal mt-2 leading-relaxed line-clamp-2 opacity-80">
@@ -58,11 +63,15 @@ function HelperCard({ helper, index }: { helper: Profile; index: number }) {
               <div className="flex items-center gap-4 mt-3 pt-3 border-t border-card-border">
                 <div className="flex items-center gap-1 text-xs text-muted">
                   <Star size={12} className="text-yellow-400 fill-yellow-400" />
-                  <span className="font-semibold text-charcoal">{helper.helperStats.averageRating.toFixed(1)}</span>
+                  <span className="font-semibold text-charcoal">
+                    {helper.helperStats.averageRating.toFixed(1)}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1 text-xs text-muted">
                   <Package size={12} />
-                  <span className="font-semibold text-charcoal">{helper.helperStats.completedOrders}</span>
+                  <span className="font-semibold text-charcoal">
+                    {helper.helperStats.completedOrders}
+                  </span>
                   <span>orders</span>
                 </div>
                 {helper.chefScore && (
@@ -85,49 +94,80 @@ export default function HelpersPage() {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [helpers, setHelpers] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const pending = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedQuery(query), SEARCH_DEBOUNCE_MS);
+    const timer = setTimeout(
+      () => setDebouncedQuery(query),
+      SEARCH_DEBOUNCE_MS,
+    );
     return () => clearTimeout(timer);
   }, [query]);
 
   const loadHelpers = useCallback(async (q: string) => {
+    pending.current?.abort();
+    const controller = new AbortController();
+    pending.current = controller;
+    setError("");
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
       if (q) params.set("q", q);
-      const res = await fetch(`/api/helpers?${params}`);
+      const res = await fetch(`/api/helpers?${params}`, {
+        signal: controller.signal,
+      });
+      if (!res.ok) throw Error("Could not load helpers. Please retry.");
       if (res.ok) {
         const data = await res.json();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const profiles = (data.helpers ?? []).map((u: any) => dbUserToProfile(u));
+        const profiles = (data.helpers ?? []).map((u: any) =>
+          dbUserToProfile(u),
+        );
         setHelpers(profiles);
       }
     } catch (err) {
       console.error("HelpersPage: failed to load helpers", err);
-      setHelpers([]);
+      if (!controller.signal.aborted)
+        setError(err instanceof Error ? err.message : "Connection failed");
     } finally {
-      setIsLoading(false);
+      if (!controller.signal.aborted) setIsLoading(false);
     }
   }, []);
 
-  useEffect(() => { loadHelpers(debouncedQuery); }, [debouncedQuery, loadHelpers]);
+  useEffect(() => {
+    loadHelpers(debouncedQuery);
+    return () => pending.current?.abort();
+  }, [debouncedQuery, loadHelpers]);
 
   return (
     <div className="max-w-2xl mx-auto lg:max-w-5xl px-4 pb-24 lg:pb-10">
+      {error && (
+        <div role="alert" className="notice">
+          {error}
+          <button onClick={() => loadHelpers(debouncedQuery)}>Retry</button>
+        </div>
+      )}
       <div className="sticky top-0 z-10 bg-background pt-4 pb-3 space-y-3">
         <div>
           <h1 className="text-2xl font-bold text-charcoal">Browse Helpers</h1>
           <p className="text-sm text-muted mt-0.5">
-            {isLoading ? "Loading…" : `${helpers.length} helper${helpers.length !== 1 ? "s" : ""} available`}
+            {isLoading
+              ? "Loading…"
+              : `${helpers.length} helper${helpers.length !== 1 ? "s" : ""} available`}
           </p>
         </div>
 
         <div className="relative">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
+          <Search
+            size={16}
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"
+          />
           <input
-            type="text" placeholder="Search by name, city, or specialty…"
-            value={query} onChange={(e) => setQuery(e.target.value)}
+            type="text"
+            placeholder="Search by name, city, or specialty…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-input-surface border border-card-border rounded-2xl text-sm text-charcoal placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-200 shadow-sm"
           />
         </div>
@@ -136,7 +176,10 @@ export default function HelpersPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-card rounded-3xl shadow-card p-4 space-y-3">
+            <div
+              key={i}
+              className="bg-card rounded-3xl shadow-card p-4 space-y-3"
+            >
               <SkeletonHelperCard />
             </div>
           ))

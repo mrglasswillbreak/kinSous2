@@ -2,7 +2,20 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Star, Package, DollarSign, ShieldCheck, Edit3, Scroll, MessageCircle, Loader2, Check, X, ChevronDown } from "lucide-react";
+import {
+  MapPin,
+  Star,
+  Package,
+  DollarSign,
+  ShieldCheck,
+  Edit3,
+  Scroll,
+  MessageCircle,
+  Loader2,
+  Check,
+  X,
+  ChevronDown,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Profile, Bounty, HelperInteractionHistoryItem } from "@/types";
@@ -18,7 +31,14 @@ interface ProfileCardProps {
   helperHistory?: HelperInteractionHistoryItem[];
 }
 
-const COUNTRIES = ["Nigeria", "United States", "United Kingdom", "Canada", "Ghana", "Other"];
+const COUNTRIES = [
+  "Nigeria",
+  "United States",
+  "United Kingdom",
+  "Canada",
+  "Ghana",
+  "Other",
+];
 
 const historyStatusColor: Record<string, string> = {
   OPEN: "bg-secondary-50 text-secondary-700 border-secondary-200",
@@ -50,10 +70,16 @@ export default function ProfileCard({
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState(profile.name);
   const [editBio, setEditBio] = useState(profile.bio ?? "");
-  const [editCity, setEditCity] = useState(profile.location.city !== "Unknown" ? profile.location.city : "");
-  const [editCountry, setEditCountry] = useState(profile.location.country !== "Unknown" ? profile.location.country : "");
+  const [editCity, setEditCity] = useState(
+    profile.location.city !== "Unknown" ? profile.location.city : "",
+  );
+  const [editCountry, setEditCountry] = useState(
+    profile.location.country !== "Unknown" ? profile.location.country : "",
+  );
   const [editAvatarUrl, setEditAvatarUrl] = useState(
-    profile.avatarUrl && !profile.avatarUrl.startsWith("https://i.pravatar.cc") ? profile.avatarUrl : ""
+    profile.avatarUrl && !profile.avatarUrl.startsWith("https://i.pravatar.cc")
+      ? profile.avatarUrl
+      : "",
   );
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState("");
@@ -61,7 +87,10 @@ export default function ProfileCard({
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editName.trim()) { setEditError("Name is required"); return; }
+    if (!editName.trim()) {
+      setEditError("Name is required");
+      return;
+    }
     setEditLoading(true);
     setEditError("");
     setEditSuccess(false);
@@ -95,13 +124,15 @@ export default function ProfileCard({
     }
   };
 
-  const inputCls = "w-full px-3 py-2.5 rounded-xl bg-input-surface border border-card-border text-charcoal placeholder:text-muted text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 transition";
+  const inputCls =
+    "w-full px-3 py-2.5 rounded-xl bg-input-surface border border-card-border text-charcoal placeholder:text-muted text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 transition";
 
   return (
     <div className="max-w-md lg:max-w-3xl mx-auto space-y-4 px-4 py-6 lg:pb-10">
       {/* Hero */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
         className="bg-card rounded-3xl shadow-card overflow-hidden"
       >
         <div className="h-24 bg-gradient-to-br from-primary-400 to-primary-600 relative">
@@ -116,18 +147,27 @@ export default function ProfileCard({
           <div className="flex items-end gap-4 -mt-10 mb-4">
             <motion.img
               whileHover={{ scale: 1.05 }}
-               src={profile.avatarUrl} alt={profile.name}
-               className="w-20 h-20 rounded-2xl ring-4 ring-card object-cover shadow-md"
+              src={profile.avatarUrl}
+              alt={profile.name}
+              className="w-20 h-20 rounded-2xl ring-4 ring-card object-cover shadow-md"
             />
             {isHelper && profile.chefScore !== undefined && (
               <div className="mb-1">
-                <ChefScore score={profile.chefScore} size="sm" showLabel={false} />
+                <ChefScore
+                  score={profile.chefScore}
+                  size="sm"
+                  showLabel={false}
+                />
               </div>
             )}
             {isCurrentUser && (
               <motion.button
                 whileTap={{ scale: 0.92 }}
-                onClick={() => { setEditOpen((v) => !v); setEditError(""); setEditSuccess(false); }}
+                onClick={() => {
+                  setEditOpen((v) => !v);
+                  setEditError("");
+                  setEditSuccess(false);
+                }}
                 className="ml-auto mb-1 flex items-center gap-1.5 text-xs text-muted border border-card-border px-3 py-1.5 rounded-xl hover:bg-subtle transition-colors"
               >
                 <Edit3 size={12} /> {editOpen ? "Cancel" : "Edit"}
@@ -137,10 +177,16 @@ export default function ProfileCard({
 
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-xl font-bold text-charcoal">{profile.name}</h2>
-              <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-                isHelper ? "bg-primary-50 text-primary-700" : "bg-secondary-50 text-secondary-700"
-              }`}>
+              <h2 className="text-xl font-bold text-charcoal">
+                {profile.name}
+              </h2>
+              <span
+                className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
+                  isHelper
+                    ? "bg-primary-50 text-primary-700"
+                    : "bg-secondary-50 text-secondary-700"
+                }`}
+              >
                 {profile.role}
               </span>
             </div>
@@ -149,7 +195,9 @@ export default function ProfileCard({
               {profile.location.city}, {profile.location.country}
             </p>
             {profile.bio && (
-              <p className="text-sm text-charcoal mt-2 leading-relaxed">{profile.bio}</p>
+              <p className="text-sm text-charcoal mt-2 leading-relaxed">
+                {profile.bio}
+              </p>
             )}
           </div>
         </div>
@@ -166,9 +214,13 @@ export default function ProfileCard({
               onSubmit={handleEditSubmit}
               className="overflow-hidden border-t border-card-border px-5 pb-5 pt-4 space-y-3"
             >
-              <p className="text-xs font-semibold text-muted uppercase tracking-wider">Edit Profile</p>
+              <p className="text-xs font-semibold text-muted uppercase tracking-wider">
+                Edit Profile
+              </p>
               <div>
-                <label className="text-xs font-medium text-charcoal block mb-1">Full Name *</label>
+                <label className="text-xs font-medium text-charcoal block mb-1">
+                  Full Name *
+                </label>
                 <input
                   type="text"
                   value={editName}
@@ -179,7 +231,9 @@ export default function ProfileCard({
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-charcoal block mb-1">Bio</label>
+                <label className="text-xs font-medium text-charcoal block mb-1">
+                  Bio
+                </label>
                 <textarea
                   value={editBio}
                   onChange={(e) => setEditBio(e.target.value)}
@@ -190,7 +244,9 @@ export default function ProfileCard({
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs font-medium text-charcoal block mb-1">City</label>
+                  <label className="text-xs font-medium text-charcoal block mb-1">
+                    City
+                  </label>
                   <input
                     type="text"
                     value={editCity}
@@ -200,7 +256,9 @@ export default function ProfileCard({
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-charcoal block mb-1">Country</label>
+                  <label className="text-xs font-medium text-charcoal block mb-1">
+                    Country
+                  </label>
                   <div className="relative">
                     <select
                       value={editCountry}
@@ -209,15 +267,22 @@ export default function ProfileCard({
                     >
                       <option value="">Select…</option>
                       {COUNTRIES.map((c) => (
-                        <option key={c} value={c}>{c}</option>
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
                       ))}
                     </select>
-                    <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
+                    <ChevronDown
+                      size={13}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none"
+                    />
                   </div>
                 </div>
               </div>
               <div>
-                <label className="text-xs font-medium text-charcoal block mb-1">Avatar URL (optional)</label>
+                <label className="text-xs font-medium text-charcoal block mb-1">
+                  Avatar URL (optional)
+                </label>
                 <input
                   type="url"
                   value={editAvatarUrl}
@@ -242,7 +307,13 @@ export default function ProfileCard({
                 disabled={editLoading || editSuccess}
                 className="w-full flex items-center justify-center gap-2 bg-primary text-white py-2.5 rounded-xl font-semibold text-sm shadow-primary disabled:opacity-60 transition"
               >
-                {editLoading ? <Loader2 size={15} className="animate-spin" /> : <><Check size={14} /> Save Changes</>}
+                {editLoading ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <>
+                    <Check size={14} /> Save Changes
+                  </>
+                )}
               </motion.button>
             </motion.form>
           )}
@@ -252,7 +323,8 @@ export default function ProfileCard({
       {/* Stats */}
       {isHelper && profile.helperStats && (
         <motion.div
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           className="bg-card rounded-3xl shadow-card p-5"
         >
@@ -260,12 +332,19 @@ export default function ProfileCard({
           <div className="grid grid-cols-3 gap-3">
             <div className="text-center bg-secondary-50 rounded-2xl p-3">
               <Package size={18} className="text-secondary-600 mx-auto mb-1" />
-              <p className="text-xl font-bold text-charcoal">{profile.helperStats.completedOrders}</p>
+              <p className="text-xl font-bold text-charcoal">
+                {profile.helperStats.completedOrders}
+              </p>
               <p className="text-xs text-muted">Orders</p>
             </div>
             <div className="text-center bg-yellow-50 rounded-2xl p-3">
-              <Star size={18} className="text-yellow-500 mx-auto mb-1 fill-yellow-500" />
-              <p className="text-xl font-bold text-charcoal">{profile.helperStats.averageRating.toFixed(1)}</p>
+              <Star
+                size={18}
+                className="text-yellow-500 mx-auto mb-1 fill-yellow-500"
+              />
+              <p className="text-xl font-bold text-charcoal">
+                {profile.helperStats.averageRating.toFixed(1)}
+              </p>
               <p className="text-xs text-muted">Rating</p>
             </div>
             <div className="text-center bg-primary-50 rounded-2xl p-3">
@@ -273,7 +352,10 @@ export default function ProfileCard({
               <p className="text-xl font-bold text-charcoal">
                 {hasMixedCurrencyEarnings
                   ? `${formatCurrency(helperEarningsByCurrency?.NGN ?? 0, "NGN")} + ${formatCurrency(helperEarningsByCurrency?.USD ?? 0, "USD")}`
-                  : formatCurrency(profile.helperStats.totalEarnings, profile.helperStats.currency)}
+                  : formatCurrency(
+                      profile.helperStats.totalEarnings,
+                      profile.helperStats.currency,
+                    )}
               </p>
               <p className="text-xs text-muted">Earned</p>
             </div>
@@ -284,7 +366,8 @@ export default function ProfileCard({
               {(profile.helperStats.totalReviews ?? 0) !== 1 ? "s" : ""}
             </span>
             <span className="font-semibold text-charcoal">
-              Rating score: {(profile.helperStats.ratingPercentage ?? 0).toFixed(0)}%
+              Rating score:{" "}
+              {(profile.helperStats.ratingPercentage ?? 0).toFixed(0)}%
             </span>
           </div>
         </motion.div>
@@ -293,7 +376,8 @@ export default function ProfileCard({
       {/* Chef Score detail */}
       {isHelper && profile.chefScore !== undefined && (
         <motion.div
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
           className="bg-card rounded-3xl shadow-card p-5 flex items-center gap-6"
         >
@@ -305,37 +389,45 @@ export default function ProfileCard({
             </p>
             <div className="flex items-center gap-1.5 mt-2">
               <ShieldCheck size={14} className="text-secondary-500" />
-              <span className="text-xs text-secondary-700 font-medium">KinSous Verified</span>
+              <span className="text-xs text-secondary-700 font-medium">
+                KinSous community
+              </span>
             </div>
           </div>
         </motion.div>
       )}
 
       {/* Certifications */}
-      {isHelper && profile.certificationBadges && profile.certificationBadges.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-card rounded-3xl shadow-card p-5"
-        >
-          <h3 className="font-bold text-charcoal mb-3">
-            Certifications ({profile.certificationBadges.length})
-          </h3>
-          <div className="grid grid-cols-1 gap-2">
-            {profile.certificationBadges.map((badge, i) => (
-              <CertificationBadge key={badge.id} badge={badge} index={i} />
-            ))}
-          </div>
-        </motion.div>
-      )}
+      {isHelper &&
+        profile.certificationBadges &&
+        profile.certificationBadges.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-card rounded-3xl shadow-card p-5"
+          >
+            <h3 className="font-bold text-charcoal mb-3">
+              Certifications ({profile.certificationBadges.length})
+            </h3>
+            <div className="grid grid-cols-1 gap-2">
+              {profile.certificationBadges.map((badge, i) => (
+                <CertificationBadge key={badge.id} badge={badge} index={i} />
+              ))}
+            </div>
+          </motion.div>
+        )}
 
       {isHelper && helperHistory !== undefined && (
         <motion.div
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
           className="bg-card rounded-3xl shadow-card p-5"
         >
-          <h3 className="font-bold text-charcoal mb-3">Bounty Interaction History</h3>
+          <h3 className="font-bold text-charcoal mb-3">
+            Bounty Interaction History
+          </h3>
           <div className="space-y-2">
             {helperHistory.length === 0 ? (
               <p className="text-sm text-muted bg-subtle border border-card-border rounded-2xl p-3">
@@ -343,14 +435,24 @@ export default function ProfileCard({
               </p>
             ) : (
               helperHistory.map((item) => (
-                <Link key={`${item.bountyId}-${item.interactedAt}`} href={`/bounties/${item.bountyId}`} className="block">
+                <Link
+                  key={`${item.bountyId}-${item.interactedAt}`}
+                  href={`/bounties/${item.bountyId}`}
+                  className="block"
+                >
                   <div className="rounded-2xl border border-card-border bg-subtle p-3 space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="text-sm font-semibold text-charcoal">{item.bountyTitle}</p>
-                        <p className="text-xs text-muted">{item.city}, {item.country}</p>
+                        <p className="text-sm font-semibold text-charcoal">
+                          {item.bountyTitle}
+                        </p>
+                        <p className="text-xs text-muted">
+                          {item.city}, {item.country}
+                        </p>
                       </div>
-                      <span className={`text-[11px] px-2 py-0.5 rounded-full border font-semibold ${historyStatusColor[item.bountyStatus] ?? "bg-badge text-muted border-card-border"}`}>
+                      <span
+                        className={`text-[11px] px-2 py-0.5 rounded-full border font-semibold ${historyStatusColor[item.bountyStatus] ?? "bg-badge text-muted border-card-border"}`}
+                      >
                         {item.bountyStatus.replace("_", " ")}
                       </span>
                     </div>
@@ -367,7 +469,9 @@ export default function ProfileCard({
                       )}
                     </div>
                     {item.reviewCompleted && item.reviewComment && (
-                      <p className="text-xs text-muted line-clamp-2">{item.reviewComment}</p>
+                      <p className="text-xs text-muted line-clamp-2">
+                        {item.reviewComment}
+                      </p>
                     )}
                   </div>
                 </Link>
@@ -380,7 +484,8 @@ export default function ProfileCard({
       {/* My Bounties (seeker view or current user) */}
       {isCurrentUser && myBounties.length > 0 && (
         <motion.div
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
           className="bg-card rounded-3xl shadow-card p-5"
         >
@@ -388,21 +493,41 @@ export default function ProfileCard({
             <h3 className="font-bold text-charcoal flex items-center gap-2">
               <Scroll size={16} className="text-primary" /> My Bounties
             </h3>
-            <Link href="/bounties" className="text-xs text-primary font-semibold">See all</Link>
+            <Link
+              href="/bounties"
+              className="text-xs text-primary font-semibold"
+            >
+              See all
+            </Link>
           </div>
           <div className="space-y-2">
             {myBounties.map((bounty) => (
-              <Link key={bounty.id} href={`/bounties/${bounty.id}`} className="block">
+              <Link
+                key={bounty.id}
+                href={`/bounties/${bounty.id}`}
+                className="block"
+              >
                 <div className="flex items-center gap-3 bg-subtle rounded-2xl p-3">
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                    bounty.status === "OPEN" ? "bg-secondary-500" :
-                    bounty.status === "IN_PROGRESS" ? "bg-primary" :
-                    bounty.status === "COMPLETED" ? "bg-muted" :
-                    bounty.status === "INCOMPLETE" ? "bg-orange-400" : "bg-red-400"
-                   }`} />
+                  <div
+                    className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                      bounty.status === "OPEN"
+                        ? "bg-secondary-500"
+                        : bounty.status === "IN_PROGRESS"
+                          ? "bg-primary"
+                          : bounty.status === "COMPLETED"
+                            ? "bg-muted"
+                            : bounty.status === "INCOMPLETE"
+                              ? "bg-orange-400"
+                              : "bg-red-400"
+                    }`}
+                  />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-charcoal truncate">{bounty.title}</p>
-                    <p className="text-xs text-muted">{bounty.location.city} · {bounty.status.replace("_", " ")}</p>
+                    <p className="text-sm font-semibold text-charcoal truncate">
+                      {bounty.title}
+                    </p>
+                    <p className="text-xs text-muted">
+                      {bounty.location.city} · {bounty.status.replace("_", " ")}
+                    </p>
                   </div>
                   <span className="text-xs font-bold text-secondary-700 flex-shrink-0">
                     {formatCurrency(bounty.budget, bounty.currency)}
@@ -417,13 +542,16 @@ export default function ProfileCard({
       {/* Empty state for current user with no bounties */}
       {isCurrentUser && myBounties.length === 0 && (
         <motion.div
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
           className="bg-card rounded-3xl shadow-card p-5 text-center"
         >
           <p className="text-3xl mb-2">🎯</p>
           <p className="font-semibold text-charcoal text-sm">No bounties yet</p>
-          <p className="text-xs text-muted mt-1 mb-3">Post your first food request and get bids from local helpers.</p>
+          <p className="text-xs text-muted mt-1 mb-3">
+            Post your first food request and get bids from local helpers.
+          </p>
           <Link href="/bounties">
             <motion.button
               whileTap={{ scale: 0.96 }}
@@ -438,7 +566,8 @@ export default function ProfileCard({
       {/* Message button for helpers */}
       {isHelper && !isCurrentUser && (
         <motion.div
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35 }}
         >
           <Link href={`/contacts?helperId=${encodeURIComponent(profile.id)}`}>

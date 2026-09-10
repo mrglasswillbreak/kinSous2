@@ -34,3 +34,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.kinsous-test-db.json
+playwright-report/
+test-results/
+
+.next-e2e/

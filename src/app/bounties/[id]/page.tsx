@@ -1,13 +1,26 @@
 "use client";
 
-import Image from "next/image";
+import Image from "@/components/ui/AppImage";
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Clock, Tag, Users, DollarSign, Star } from "lucide-react";
+import {
+  ArrowLeft,
+  MapPin,
+  Clock,
+  Tag,
+  Users,
+  DollarSign,
+  Star,
+} from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Bounty } from "@/types";
-import { formatCurrency, timeAgo, categoryLabels, categoryColors } from "@/lib/mock-data";
+import {
+  formatCurrency,
+  timeAgo,
+  categoryLabels,
+  categoryColors,
+} from "@/lib/mock-data";
 import { dbBountyToAppBounty } from "@/lib/mappers";
 import BidSection from "@/components/feed/BidSection";
 import LeaveReviewModal from "@/components/feed/LeaveReviewModal";
@@ -38,7 +51,11 @@ export default function BountyDetailPage() {
     setLoading(true);
     fetch(`/api/bounties/${id}`)
       .then((res) => {
-        if (res.status === 404) { setNotFound(true); setLoading(false); return null; }
+        if (res.status === 404) {
+          setNotFound(true);
+          setLoading(false);
+          return null;
+        }
         return res.json();
       })
       .then((data) => {
@@ -46,7 +63,10 @@ export default function BountyDetailPage() {
         setBounty(dbBountyToAppBounty(data.bounty));
         setLoading(false);
       })
-      .catch(() => { setNotFound(true); setLoading(false); });
+      .catch(() => {
+        setNotFound(true);
+        setLoading(false);
+      });
   }, [id]);
 
   useEffect(() => {
@@ -65,7 +85,10 @@ export default function BountyDetailPage() {
     return (
       <div className="max-w-md lg:max-w-2xl mx-auto px-4 pt-12 pb-24 lg:pb-10 space-y-4">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="bg-card rounded-3xl h-24 animate-pulse border border-card-border" />
+          <div
+            key={i}
+            className="bg-card rounded-3xl h-24 animate-pulse border border-card-border"
+          />
         ))}
       </div>
     );
@@ -76,7 +99,9 @@ export default function BountyDetailPage() {
       <div className="max-w-md lg:max-w-2xl mx-auto px-4 pt-12 pb-24 lg:pb-10 text-center">
         <p className="text-4xl mb-3">🍽️</p>
         <p className="text-xl font-bold text-charcoal">Bounty not found</p>
-        <p className="text-muted text-sm mt-2">This bounty may have been removed.</p>
+        <p className="text-muted text-sm mt-2">
+          This bounty may have been removed.
+        </p>
         <Link href="/bounties">
           <motion.button
             whileTap={{ scale: 0.96 }}
@@ -107,8 +132,12 @@ export default function BountyDetailPage() {
         >
           <ArrowLeft size={18} className="text-charcoal" />
         </motion.button>
-        <h1 className="text-lg font-bold text-charcoal truncate flex-1">Bounty Detail</h1>
-        <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${statusColors[bounty.status]}`}>
+        <h1 className="text-lg font-bold text-charcoal truncate flex-1">
+          Bounty Detail
+        </h1>
+        <span
+          className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${statusColors[bounty.status]}`}
+        >
           {bounty.status.replace("_", " ")}
         </span>
       </div>
@@ -117,7 +146,8 @@ export default function BountyDetailPage() {
         {/* Hero image */}
         {bounty.imageUrls && bounty.imageUrls.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
             className="relative h-48 overflow-hidden rounded-3xl shadow-card"
           >
             <Image
@@ -132,7 +162,8 @@ export default function BountyDetailPage() {
 
         {/* Main info card */}
         <motion.div
-          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
           className="bg-card rounded-3xl shadow-card p-5 space-y-4 border border-card-border"
         >
@@ -146,25 +177,43 @@ export default function BountyDetailPage() {
               className="h-11 w-11 flex-shrink-0 rounded-full object-cover ring-2 ring-primary-100"
             />
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-charcoal text-sm">{bounty.seeker.name}</p>
+              <p className="font-semibold text-charcoal text-sm">
+                {bounty.seeker.name}
+              </p>
               <div className="flex items-center gap-2 mt-0.5 text-xs text-muted">
-                <span className="flex items-center gap-1"><MapPin size={11} />{bounty.location.city}, {bounty.location.country}</span>
-                <span className="flex items-center gap-1"><Clock size={11} />{timeAgo(bounty.createdAt)}</span>
+                <span className="flex items-center gap-1">
+                  <MapPin size={11} />
+                  {bounty.location.city}, {bounty.location.country}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Clock size={11} />
+                  {timeAgo(bounty.createdAt)}
+                </span>
               </div>
             </div>
-            <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${categoryColors[bounty.category]}`}>
+            <span
+              className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${categoryColors[bounty.category]}`}
+            >
               {categoryLabels[bounty.category]}
             </span>
           </div>
 
-          <h2 className="text-xl font-bold text-charcoal leading-snug">{bounty.title}</h2>
-          <p className="text-sm text-charcoal leading-relaxed">{bounty.description}</p>
+          <h2 className="text-xl font-bold text-charcoal leading-snug">
+            {bounty.title}
+          </h2>
+          <p className="text-sm text-charcoal leading-relaxed">
+            {bounty.description}
+          </p>
 
           {bounty.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {bounty.tags.map((tag) => (
-                <span key={tag} className="flex items-center gap-1 text-xs bg-badge text-muted px-2.5 py-1 rounded-full">
-                  <Tag size={10} />{tag}
+                <span
+                  key={tag}
+                  className="flex items-center gap-1 text-xs bg-badge text-muted px-2.5 py-1 rounded-full"
+                >
+                  <Tag size={10} />
+                  {tag}
                 </span>
               ))}
             </div>
@@ -173,7 +222,8 @@ export default function BountyDetailPage() {
 
         {/* Budget & location */}
         <motion.div
-          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           className="grid grid-cols-2 gap-3"
         >
@@ -195,13 +245,16 @@ export default function BountyDetailPage() {
               </div>
               <span className="text-xs text-muted font-medium">Bids</span>
             </div>
-            <p className="text-xl font-bold text-charcoal">{bounty.bids?.length ?? 0}</p>
+            <p className="text-xl font-bold text-charcoal">
+              {bounty.bids?.length ?? 0}
+            </p>
           </div>
         </motion.div>
 
         {/* Location */}
         <motion.div
-          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
           className="bg-card rounded-3xl shadow-card p-4 flex items-start gap-3 border border-card-border"
         >
@@ -209,25 +262,34 @@ export default function BountyDetailPage() {
             <MapPin size={18} className="text-primary" />
           </div>
           <div>
-            <p className="font-semibold text-charcoal text-sm">{bounty.location.address || bounty.location.city}</p>
-            <p className="text-xs text-muted">{bounty.location.city}, {bounty.location.country}</p>
+            <p className="font-semibold text-charcoal text-sm">
+              {bounty.location.address || bounty.location.city}
+            </p>
+            <p className="text-xs text-muted">
+              {bounty.location.city}, {bounty.location.country}
+            </p>
           </div>
         </motion.div>
 
         {/* Track order prompt for active deliveries */}
         {bounty.status === "IN_PROGRESS" && (
           <motion.div
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <Link href="/tracker">
+            <Link href={"/tracker?bountyId=" + encodeURIComponent(bounty.id)}>
               <div className="bg-gradient-to-r from-secondary-50 to-green-50 rounded-2xl p-4 flex items-center gap-3 border border-secondary-100">
                 <div className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0">
                   <MapPin size={18} className="text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-charcoal">Order in progress</p>
-                  <p className="text-xs text-muted">Track your helper&apos;s location live</p>
+                  <p className="text-sm font-bold text-charcoal">
+                    Order in progress
+                  </p>
+                  <p className="text-xs text-muted">
+                    Track your helper&apos;s location live
+                  </p>
                 </div>
               </div>
             </Link>
@@ -236,7 +298,8 @@ export default function BountyDetailPage() {
 
         {/* Bids section */}
         <motion.div
-          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
           className="bg-card rounded-3xl shadow-card p-5 border border-card-border"
         >
@@ -246,7 +309,8 @@ export default function BountyDetailPage() {
         {/* Leave Review button for COMPLETED bounties */}
         {canReview && acceptedBid && (
           <motion.div
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
           >
             <motion.button

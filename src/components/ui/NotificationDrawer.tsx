@@ -1,13 +1,26 @@
 "use client";
 
-import Image from "next/image";
+import Image from "@/components/ui/AppImage";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, X, CheckCheck, BellOff, Package, DollarSign, Truck, MessageCircle, ShieldCheck } from "lucide-react";
+import {
+  Bell,
+  X,
+  CheckCheck,
+  BellOff,
+  Package,
+  DollarSign,
+  Truck,
+  MessageCircle,
+  ShieldCheck,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { AppNotification, NotificationType } from "@/types";
 import { timeAgo } from "@/lib/mock-data";
 
-const typeConfig: Record<NotificationType, { icon: React.ReactNode; color: string }> = {
+const typeConfig: Record<
+  NotificationType,
+  { icon: React.ReactNode; color: string }
+> = {
   NEW_BID: {
     icon: <Package size={16} />,
     color: "bg-primary-50 text-primary-600",
@@ -41,7 +54,12 @@ interface NotificationItemProps {
   onClose: () => void;
 }
 
-function NotificationItem({ notification: n, onRead, onDismiss, onClose }: NotificationItemProps) {
+function NotificationItem({
+  notification: n,
+  onRead,
+  onDismiss,
+  onClose,
+}: NotificationItemProps) {
   const cfg = typeConfig[n.type];
   const router = useRouter();
 
@@ -65,7 +83,9 @@ function NotificationItem({ notification: n, onRead, onDismiss, onClose }: Notif
         !n.read ? "bg-primary-50/40 dark:bg-primary-900/20" : ""
       }`}
     >
-      <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${cfg.color}`}>
+      <div
+        className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${cfg.color}`}
+      >
         {n.avatarUrl ? (
           <Image
             src={n.avatarUrl}
@@ -82,11 +102,15 @@ function NotificationItem({ notification: n, onRead, onDismiss, onClose }: Notif
 
       <div className="flex-1 min-w-0 pr-6">
         <div className="flex items-start justify-between gap-2">
-          <p className={`text-sm leading-snug ${!n.read ? "font-semibold text-charcoal" : "font-medium text-charcoal/80"}`}>
+          <p
+            className={`text-sm leading-snug ${!n.read ? "font-semibold text-charcoal" : "font-medium text-charcoal/80"}`}
+          >
             {n.title}
           </p>
         </div>
-        <p className="text-xs text-muted mt-0.5 leading-relaxed line-clamp-2">{n.body}</p>
+        <p className="text-xs text-muted mt-0.5 leading-relaxed line-clamp-2">
+          {n.body}
+        </p>
         <p className="text-xs text-muted/70 mt-1">{timeAgo(n.createdAt)}</p>
       </div>
 
@@ -96,7 +120,10 @@ function NotificationItem({ notification: n, onRead, onDismiss, onClose }: Notif
 
       <motion.button
         whileTap={{ scale: 0.85 }}
-        onClick={(e) => { e.stopPropagation(); onDismiss(n.id); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDismiss(n.id);
+        }}
         aria-label="Dismiss notification"
         title="Dismiss notification"
         className="absolute right-3 top-3.5 text-muted hover:text-charcoal transition-colors"
@@ -118,7 +145,13 @@ interface NotificationDrawerProps {
 }
 
 export default function NotificationDrawer({
-  open, onClose, notifications, unreadCount, onRead, onMarkAllRead, onDismiss,
+  open,
+  onClose,
+  notifications,
+  unreadCount,
+  onRead,
+  onMarkAllRead,
+  onDismiss,
 }: NotificationDrawerProps) {
   return (
     <AnimatePresence>
@@ -127,7 +160,9 @@ export default function NotificationDrawer({
           {/* Backdrop */}
           <motion.div
             key="backdrop"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             onClick={onClose}
             className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm"
           />
@@ -135,7 +170,9 @@ export default function NotificationDrawer({
           {/* Drawer */}
           <motion.div
             key="drawer"
-            initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
             transition={{ type: "spring", stiffness: 300, damping: 35 }}
             className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-sm bg-card shadow-2xl flex flex-col"
           >
@@ -143,7 +180,9 @@ export default function NotificationDrawer({
             <div className="flex items-center justify-between px-5 py-4 border-b border-card-border">
               <div className="flex items-center gap-2">
                 <Bell size={20} className="text-charcoal" />
-                <h2 className="font-bold text-charcoal text-lg">Notifications</h2>
+                <h2 className="font-bold text-charcoal text-lg">
+                  Notifications
+                </h2>
                 {unreadCount > 0 && (
                   <span className="bg-primary text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
                     {unreadCount}
@@ -160,7 +199,11 @@ export default function NotificationDrawer({
                     <CheckCheck size={13} /> Mark all read
                   </motion.button>
                 )}
-                <motion.button whileTap={{ scale: 0.9 }} onClick={onClose} aria-label="Close notifications">
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={onClose}
+                  aria-label="Close notifications"
+                >
                   <X size={20} className="text-muted" />
                 </motion.button>
               </div>
@@ -171,14 +214,24 @@ export default function NotificationDrawer({
               {notifications.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full gap-3 text-muted py-16">
                   <BellOff size={40} strokeWidth={1.5} />
-                  <p className="font-semibold text-charcoal">You&apos;re all caught up</p>
-                  <p className="text-sm text-center max-w-[200px]">No notifications right now.</p>
+                  <p className="font-semibold text-charcoal">
+                    You&apos;re all caught up
+                  </p>
+                  <p className="text-sm text-center max-w-[200px]">
+                    No notifications right now.
+                  </p>
                 </div>
               ) : (
                 <motion.ul layout className="divide-y divide-card-border">
                   <AnimatePresence>
                     {notifications.map((n) => (
-                      <NotificationItem key={n.id} notification={n} onRead={onRead} onDismiss={onDismiss} onClose={onClose} />
+                      <NotificationItem
+                        key={n.id}
+                        notification={n}
+                        onRead={onRead}
+                        onDismiss={onDismiss}
+                        onClose={onClose}
+                      />
                     ))}
                   </AnimatePresence>
                 </motion.ul>
@@ -186,7 +239,9 @@ export default function NotificationDrawer({
             </div>
 
             <div className="p-4 border-t border-card-border">
-              <p className="text-center text-xs text-muted">Pull down in the app to refresh</p>
+              <p className="text-center text-xs text-muted">
+                Pull down in the app to refresh
+              </p>
             </div>
           </motion.div>
         </>

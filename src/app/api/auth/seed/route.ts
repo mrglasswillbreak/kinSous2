@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { sql, initDb, usingLocalDb, upsertLocalUser, findLocalUserByIdentifier } from "@/lib/db";
+import {
+  sql,
+  initDb,
+  usingLocalDb,
+  upsertLocalUser,
+  findLocalUserByIdentifier,
+} from "@/lib/db";
 
 /**
  * POST /api/auth/seed
@@ -8,6 +14,8 @@ import { sql, initDb, usingLocalDb, upsertLocalUser, findLocalUserByIdentifier }
  * Call this once after connecting your Neon database.
  */
 export async function POST() {
+  if (process.env.NODE_ENV === "production")
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   try {
     await initDb();
 
@@ -108,13 +116,19 @@ export async function POST() {
       )
     `;
 
-    return NextResponse.json({ message: "Default user created", email, password: "KinSous2024!" });
+    return NextResponse.json({
+      message: "Default user created",
+      email,
+      password: "KinSous2024!",
+    });
   } catch (err) {
     console.error("Seed error:", err);
     if (err instanceof Error && err.message.includes("DATABASE_URL")) {
       return NextResponse.json(
-        { error: "Database is not configured. Add DATABASE_URL to .env.local." },
-        { status: 500 }
+        {
+          error: "Database is not configured. Add DATABASE_URL to .env.local.",
+        },
+        { status: 500 },
       );
     }
     return NextResponse.json({ error: "Server error" }, { status: 500 });

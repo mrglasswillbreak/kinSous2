@@ -1,6 +1,7 @@
 "use client";
+import { logout } from "@/lib/logout";
 
-import Image from "next/image";
+import Image from "@/components/ui/AppImage";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -38,7 +39,12 @@ const menuItems: Array<{
   { href: "/", icon: Home, label: "Home" },
   { href: "/bounties", icon: Scroll, label: "Bounties" },
   { href: "/helpers", icon: Users, label: "Helpers" },
-  { href: "/contacts", icon: MessageCircle, label: "Contacts", badge: "messages" },
+  {
+    href: "/messages",
+    icon: MessageCircle,
+    label: "Messages",
+    badge: "messages",
+  },
   { href: "/tracker", icon: Map, label: "Tracker" },
   { href: "/payment", icon: CreditCard, label: "Payments" },
   { href: "/profile", icon: User, label: "Profile" },
@@ -83,7 +89,7 @@ export default function TopBar() {
   };
 
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await logout();
     setMenuOpen(false);
     router.push("/login");
     router.refresh();
@@ -174,7 +180,9 @@ export default function TopBar() {
                     <p className="truncate text-sm font-bold text-charcoal">
                       {displayName}
                     </p>
-                    <p className="truncate text-xs text-muted">{displayContact}</p>
+                    <p className="truncate text-xs text-muted">
+                      {displayContact}
+                    </p>
                   </div>
                 </Link>
               </div>
@@ -219,8 +227,10 @@ export default function TopBar() {
               <nav className="flex-1 overflow-y-auto p-3">
                 {menuItems.map(({ href, icon: Icon, label, badge }) => {
                   const active =
-                    pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
-                  const showMessageBadge = badge === "messages" && totalUnread > 0;
+                    pathname === href ||
+                    (href !== "/" && pathname.startsWith(`${href}/`));
+                  const showMessageBadge =
+                    badge === "messages" && totalUnread > 0;
 
                   return (
                     <Link

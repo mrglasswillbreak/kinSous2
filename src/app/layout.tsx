@@ -4,6 +4,8 @@ import "./globals.css";
 import AppShell from "@/components/ui/AppShell";
 import { ThemeProvider } from "@/lib/theme-context";
 
+export const dynamic = "force-dynamic";
+
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
@@ -35,7 +37,7 @@ export const metadata: Metadata = {
   metadataBase: getMetadataBase(),
   title: "KinSous · Cultural Culinary Marketplace",
   description:
-    "FolkProvidr – Connect with local culinary helpers for authentic food experiences across Nigeria and the US.",
+    "FolkProvidr – Connect with local culinary helpers for authentic food experiences across Nigeria.",
   applicationName: "KinSous",
   manifest: "/site.webmanifest",
   keywords: ["Nigerian food", "culinary marketplace", "food delivery", "cooking help"],
@@ -64,14 +66,14 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "KinSous · Cultural Culinary Marketplace",
-    description: "FolkProvidr – Connect with local culinary helpers for authentic food experiences across Nigeria and the US.",
+    description: "FolkProvidr – Connect with local culinary helpers for authentic food experiences across Nigeria.",
     type: "website",
     images: [{ url: "/android-chrome-512x512.png", width: 512, height: 512 }],
   },
   twitter: {
     card: "summary",
     title: "KinSous · Cultural Culinary Marketplace",
-    description: "FolkProvidr – Connect with local culinary helpers for authentic food experiences across Nigeria and the US.",
+    description: "FolkProvidr – Connect with local culinary helpers for authentic food experiences across Nigeria.",
     images: ["/android-chrome-512x512.png"],
   },
 };
@@ -80,7 +82,7 @@ export const viewport: Viewport = {
   themeColor: "#E67E22",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -88,6 +90,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{ __html: "(function(){try{var t=localStorage.getItem('kinsous-theme')||(localStorage.getItem('kinsous-dark')==='1'?'dark':localStorage.getItem('kinsous-dark')==='0'?'light':'system');var d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);document.documentElement.style.colorScheme=d?'dark':'light'}catch(e){}})()" }} /></head>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans bg-background antialiased`}>
         <ThemeProvider>
           <AppShell>{children}</AppShell>

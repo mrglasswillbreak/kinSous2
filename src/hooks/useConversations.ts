@@ -1,25 +1,31 @@
 "use client";
+import { usePolling } from "./usePolling";
 
-import { useState, useCallback, useEffect } from "react";
-import type { Conversation, ConversationTyping, DirectMessage, UserPresence } from "@/types";
+import { useState, useCallback, useEffect, useRef } from "react";
+import type {
+  Conversation,
+  ConversationTyping,
+  DirectMessage,
+  UserPresence,
+} from "@/types";
 
 export function useConversations() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const refetch = useCallback(async () => {
-    setIsLoading(true);
     try {
       const res = await fetch("/api/messages/conversations");
       if (!res.ok) {
-        setConversations([]);
-        return;
+        throw new Error("Could not load conversations. Please retry.");
       }
       const data = await res.json();
       setConversations(data.conversations ?? []);
+      setError("");
     } catch (err) {
       console.error("useConversations: failed to load conversations", err);
-      setConversations([]);
+      setError("Could not load conversations. Please retry.");
     } finally {
       setIsLoading(false);
     }
@@ -29,55 +35,57 @@ export function useConversations() {
     refetch();
   }, [refetch]);
 
-  useEffect(() => {
-    const stream = new EventSource("/api/messages/stream");
-    const handleRefresh = () => {
-      refetch();
-    };
-    stream.addEventListener("conversation_updated", handleRefresh);
-    stream.addEventListener("conversation_deleted", handleRefresh);
-    stream.addEventListener("notification", handleRefresh);
-    stream.addEventListener("error", handleRefresh);
-    return () => {
-      stream.close();
-    };
-  }, [refetch]);
+  usePolling(refetch, 15000);
 
   const totalUnread = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
 
-  return { conversations, isLoading, totalUnread, refetch };
+  return { conversations, isLoading, error, totalUnread, refetch };
 }
 
 export function useConversation(id: string) {
+  const pending = useRef<{
+    content: string;
+    type: string;
+    id: string;
+    conversationId: string;
+  } | null>(null);
+  const historyInitialized = useRef(false);
+  const [olderCursor, setOlderCursor] = useState<string | null>(null);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const [messages, setMessages] = useState<DirectMessage[]>([]);
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
   const [typing, setTyping] = useState<ConversationTyping[]>([]);
   const [presence, setPresence] = useState<UserPresence[]>([]);
 
   const refetch = useCallback(async () => {
     if (!id) return;
-    setIsLoading(true);
+
     try {
       const res = await fetch(`/api/messages/conversations/${id}`);
-      if (!res.ok) {
-        setConversation(null);
-        setMessages([]);
-        setTyping([]);
-        setPresence([]);
-        return;
-      }
+      if (!res.ok)
+        throw new Error("Could not load this conversation. Please retry.");
       const data = await res.json();
       setConversation(data.conversation ?? null);
-      setMessages(data.messages ?? []);
+      setError("");
+      if (!historyInitialized.current) {
+        setOlderCursor(data.nextCursor ?? null);
+        historyInitialized.current = true;
+      }
+      setMessages((previous) => {
+        const latest = data.messages ?? [];
+        const first = latest[0]?.createdAt;
+        return [
+          ...previous.filter((m) => first && m.createdAt < first),
+          ...latest,
+        ];
+      });
       setTyping(data.typing ?? []);
       setPresence(data.presence ?? []);
     } catch (err) {
       console.error("useConversation: failed to load conversation", err);
-      setConversation(null);
-      setMessages([]);
-      setTyping([]);
-      setPresence([]);
+      setError("Could not refresh messages. Please retry.");
     } finally {
       setIsLoading(false);
     }
@@ -87,105 +95,86 @@ export function useConversation(id: string) {
     refetch();
   }, [refetch]);
 
-  useEffect(() => {
-    if (!id) return;
-    const stream = new EventSource(`/api/messages/conversations/${id}/stream`);
-    const handleMessage = (event: MessageEvent<string>) => {
-      const payload = JSON.parse(event.data) as DirectMessage;
-      setMessages((prev) => {
-        if (prev.some((m) => m.id === payload.id)) {
-          return prev.map((m) => (m.id === payload.id ? payload : m));
-        }
-        return [...prev, payload];
-      });
-      setConversation((prev) => (prev ? { ...prev, lastMessage: payload, updatedAt: payload.createdAt } : prev));
-    };
-    const handleMessageUpdated = (event: MessageEvent<string>) => {
-      const payload = JSON.parse(event.data) as DirectMessage;
-      setMessages((prev) => prev.map((m) => (m.id === payload.id ? payload : m)));
-      setConversation((prev) =>
-        prev && prev.lastMessage.id === payload.id
-          ? { ...prev, lastMessage: payload, updatedAt: payload.createdAt }
-          : prev
+  usePolling(refetch, 3000);
+
+  const loadOlder = useCallback(async () => {
+    if (!olderCursor || loadingOlder) return;
+    setLoadingOlder(true);
+    try {
+      const response = await fetch(
+        `/api/messages/conversations/${id}?before=${encodeURIComponent(olderCursor)}`,
       );
-    };
-    const handleMessageDeleted = (event: MessageEvent<string>) => {
-      const payload = JSON.parse(event.data) as DirectMessage;
-      setMessages((prev) => prev.map((m) => (m.id === payload.id ? payload : m)));
-      setConversation((prev) =>
-        prev && prev.lastMessage.id === payload.id
-          ? { ...prev, lastMessage: payload, updatedAt: payload.createdAt }
-          : prev
-      );
-    };
-    const handleTyping = (event: MessageEvent<string>) => {
-      const payload = JSON.parse(event.data) as ConversationTyping[];
-      setTyping(payload);
-    };
-    const handlePresence = (event: MessageEvent<string>) => {
-      const payload = JSON.parse(event.data) as UserPresence[] | UserPresence;
-      if (Array.isArray(payload)) {
-        setPresence(payload);
-        return;
-      }
-      setPresence((prev) => {
-        const next = prev.filter((p) => p.userId !== payload.userId);
-        return [...next, payload];
-      });
-    };
-    const handleRead = (event: MessageEvent<string>) => {
-      const payload = JSON.parse(event.data) as { readerId: string };
-      setMessages((prev) =>
-        prev.map((m) => (m.senderId !== payload.readerId ? { ...m, read: true } : m))
-      );
-    };
-    stream.addEventListener("message", handleMessage);
-    stream.addEventListener("message_updated", handleMessageUpdated);
-    stream.addEventListener("message_deleted", handleMessageDeleted);
-    stream.addEventListener("typing", handleTyping);
-    stream.addEventListener("presence", handlePresence);
-    stream.addEventListener("read", handleRead);
-    stream.addEventListener("error", () => refetch());
-    return () => {
-      stream.close();
-    };
-  }, [id, refetch]);
+      if (!response.ok) throw Error("Could not load older messages");
+      const data = await response.json();
+      setMessages((previous) => [
+        ...data.messages,
+        ...previous.filter(
+          (m) =>
+            !data.messages.some((older: DirectMessage) => older.id === m.id),
+        ),
+      ]);
+      setOlderCursor(data.nextCursor);
+    } finally {
+      setLoadingOlder(false);
+    }
+  }, [id, olderCursor, loadingOlder]);
 
   const sendMessage = useCallback(
     async (content: string, type: DirectMessage["type"] = "TEXT") => {
+      if (
+        !pending.current ||
+        pending.current.content !== content ||
+        pending.current.type !== type ||
+        pending.current.conversationId !== id
+      )
+        pending.current = {
+          content,
+          type,
+          id: crypto.randomUUID(),
+          conversationId: id,
+        };
       const res = await fetch(`/api/messages/conversations/${id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, type }),
+        body: JSON.stringify({ content, type, clientId: pending.current.id }),
       });
       if (!res.ok) {
         throw new Error("Failed to send message");
       }
       const data = await res.json();
+      pending.current = null;
       const message = data.message as DirectMessage;
-      setMessages((prev) => [...prev, message]);
+      setMessages((prev) => [
+        ...prev.filter((m) => m.id !== message.id),
+        message,
+      ]);
       setConversation((prev) => {
         if (!prev) return prev;
         return { ...prev, lastMessage: message, updatedAt: message.createdAt };
       });
       return message;
     },
-    [id]
+    [id],
   );
 
   const updateMessage = useCallback(
     async (messageId: string, content: string) => {
-      const res = await fetch(`/api/messages/conversations/${id}/messages/${messageId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
-      });
+      const res = await fetch(
+        `/api/messages/conversations/${id}/messages/${messageId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content }),
+        },
+      );
       if (!res.ok) {
         throw new Error("Failed to update message");
       }
       const data = await res.json();
       const message = data.message as DirectMessage;
-      setMessages((prev) => prev.map((m) => (m.id === message.id ? message : m)));
+      setMessages((prev) =>
+        prev.map((m) => (m.id === message.id ? message : m)),
+      );
       setConversation((prev) => {
         if (!prev) return prev;
         if (prev.lastMessage.id !== message.id) return prev;
@@ -193,20 +182,25 @@ export function useConversation(id: string) {
       });
       return message;
     },
-    [id]
+    [id],
   );
 
   const deleteMessage = useCallback(
     async (messageId: string) => {
-      const res = await fetch(`/api/messages/conversations/${id}/messages/${messageId}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(
+        `/api/messages/conversations/${id}/messages/${messageId}`,
+        {
+          method: "DELETE",
+        },
+      );
       if (!res.ok) {
         throw new Error("Failed to delete message");
       }
       const data = await res.json();
       const message = data.message as DirectMessage;
-      setMessages((prev) => prev.map((m) => (m.id === message.id ? message : m)));
+      setMessages((prev) =>
+        prev.map((m) => (m.id === message.id ? message : m)),
+      );
       setConversation((prev) => {
         if (!prev) return prev;
         if (prev.lastMessage.id !== message.id) return prev;
@@ -214,11 +208,13 @@ export function useConversation(id: string) {
       });
       return message;
     },
-    [id]
+    [id],
   );
 
   const deleteConversation = useCallback(async () => {
-    const res = await fetch(`/api/messages/conversations/${id}/delete`, { method: "POST" });
+    const res = await fetch(`/api/messages/conversations/${id}/delete`, {
+      method: "POST",
+    });
     if (!res.ok) {
       throw new Error("Failed to delete conversation");
     }
@@ -233,13 +229,17 @@ export function useConversation(id: string) {
         body: JSON.stringify({ isTyping }),
       });
     },
-    [id]
+    [id],
   );
 
   return {
     conversation,
     messages,
+    loadOlder,
+    hasOlder: Boolean(olderCursor),
+    loadingOlder,
     isLoading,
+    error,
     typing,
     presence,
     sendMessage,

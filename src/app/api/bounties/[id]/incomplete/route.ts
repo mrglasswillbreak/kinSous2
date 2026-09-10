@@ -1,3 +1,4 @@
+import { sql, usingLocalDb } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { getSession } from "@/lib/auth";
@@ -23,6 +24,16 @@ export async function POST(_req: Request, { params }: RouteContext) {
     }
 
     const { id } = await params;
+    if (!usingLocalDb()) {
+      const orders = await sql`SELECT id FROM orders WHERE id=${id}`;
+      if (orders.length)
+        return NextResponse.json(
+          {
+            error: "Report an issue from the order page for manual resolution",
+          },
+          { status: 409 },
+        );
+    }
     const bounty = await getBountyById(id);
     if (!bounty) {
       return NextResponse.json({ error: "Bounty not found" }, { status: 404 });
@@ -30,15 +41,18 @@ export async function POST(_req: Request, { params }: RouteContext) {
     if (bounty.seeker_id !== session.userId) {
       return NextResponse.json(
         { error: "Only the bounty poster can mark this bounty incomplete" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
-    const updated = await markBountyIncomplete({ bountyId: id, seekerId: session.userId });
+    const updated = await markBountyIncomplete({
+      bountyId: id,
+      seekerId: session.userId,
+    });
     if (!updated) {
       return NextResponse.json(
         { error: "This bounty cannot be marked incomplete right now" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -87,7 +101,7 @@ export async function POST(_req: Request, { params }: RouteContext) {
         acceptedBid: updated.acceptedBid,
         conversationId,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (err) {
     console.error("POST /api/bounties/[id]/incomplete error:", err);

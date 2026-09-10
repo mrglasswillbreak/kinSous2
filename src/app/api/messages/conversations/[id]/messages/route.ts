@@ -1,3 +1,4 @@
+import { sql, usingLocalDb } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import {
@@ -23,22 +24,56 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
 
     const { id } = await params;
     const body = await req.json();
-    const content = typeof body?.content === "string" ? body.content.trim() : "";
+    const content =
+      typeof body?.content === "string" ? body.content.trim() : "";
     const type = body?.type === "IMAGE" ? "IMAGE" : "TEXT";
 
+    if (content.length > 10000)
+      return NextResponse.json({ error: "Message too long" }, { status: 400 });
+    const clientId =
+      typeof body.clientId === "string" && /^[a-f0-9-]{36}$/.test(body.clientId)
+        ? body.clientId
+        : undefined;
     if (!content) {
-      return NextResponse.json({ error: "Message content is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Message content is required" },
+        { status: 400 },
+      );
     }
 
     const conversation = await getConversationForUser(id, session.userId);
     if (!conversation) {
-      return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Conversation not found" },
+        { status: 404 },
+      );
     }
     if (conversation.blocked_by_me || conversation.blocked_by_other) {
-      return NextResponse.json({ error: "Messaging is blocked" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Messaging is blocked" },
+        { status: 403 },
+      );
     }
 
+    if (type === "IMAGE") {
+      const attachmentId = content.match(
+        /^\/api\/messages\/uploads\/([a-f0-9-]+)$/,
+      )?.[1];
+      if (!attachmentId || usingLocalDb())
+        return NextResponse.json(
+          { error: "Invalid attachment" },
+          { status: 400 },
+        );
+      const matches =
+        await sql`SELECT id FROM attachments WHERE id=${attachmentId} AND conversation_id=${id} AND owner_id=${session.userId}`;
+      if (!matches.length)
+        return NextResponse.json(
+          { error: "Invalid attachment" },
+          { status: 403 },
+        );
+    }
     const message = await sendConversationMessage({
+      clientId,
       conversationId: id,
       senderId: session.userId,
       type,
@@ -46,7 +81,10 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     });
 
     if (!message) {
-      return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Conversation not found" },
+        { status: 404 },
+      );
     }
 
     const mappedMessage = {
@@ -68,8 +106,10 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
 
     publishConversationEvent(id, { type: "message", payload: mappedMessage });
 
-    const other = conversation.participants.find((p) => p.id !== session.userId);
-    if (other) {
+    const other = conversation.participants.find(
+      (p) => p.id !== session.userId,
+    );
+    if (other && !message.wasDuplicate) {
       const notification = await createNotification({
         userId: other.id,
         type: "NEW_MESSAGE",
@@ -94,21 +134,32 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
           createdAt: notification.created_at,
         },
       });
-      publishUserEvent(other.id, { type: "conversation_updated", payload: { conversationId: id } });
-      publishUserEvent(session.userId, { type: "conversation_updated", payload: { conversationId: id } });
+      publishUserEvent(other.id, {
+        type: "conversation_updated",
+        payload: { conversationId: id },
+      });
+      publishUserEvent(session.userId, {
+        type: "conversation_updated",
+        payload: { conversationId: id },
+      });
 
       const subs = await listPushSubscriptions(other.id);
       const pushSubscriptions = subs.map((sub) => ({
         endpoint: sub.endpoint,
         keys: { p256dh: sub.p256dh, auth: sub.auth },
       }));
-      const { invalidEndpoints } = await sendPushNotifications(pushSubscriptions, {
-        title: notification.title,
-        body: notification.body,
-        url: notification.href,
-      });
+      const { invalidEndpoints } = await sendPushNotifications(
+        pushSubscriptions,
+        {
+          title: notification.title,
+          body: notification.body,
+          url: notification.href,
+        },
+      );
       await Promise.all(
-        invalidEndpoints.map((endpoint) => deletePushSubscription(other.id, endpoint))
+        invalidEndpoints.map((endpoint) =>
+          deletePushSubscription(other.id, endpoint),
+        ),
       );
     }
 

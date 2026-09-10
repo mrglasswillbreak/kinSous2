@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import Image from "@/components/ui/AppImage";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -11,12 +11,10 @@ import {
   CheckCheck,
   Loader2,
   MoreVertical,
-  Phone,
   Trash2,
   Pencil,
   Ban,
   Flag,
-  Video,
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -62,13 +60,17 @@ function MessageBubble({
   if (isSystem) {
     return (
       <div className="flex justify-center my-2">
-        <span className="text-xs text-muted bg-badge px-3 py-1 rounded-full">{msg.content}</span>
+        <span className="text-xs text-muted bg-badge px-3 py-1 rounded-full">
+          {msg.content}
+        </span>
       </div>
     );
   }
 
   return (
-    <div className={`flex items-end gap-2 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
+    <div
+      className={`flex items-end gap-2 ${isMe ? "flex-row-reverse" : "flex-row"}`}
+    >
       {!isMe && (
         <div className="w-7 flex-shrink-0 self-end">
           {showAvatar && (
@@ -84,7 +86,9 @@ function MessageBubble({
         </div>
       )}
 
-      <div className={`max-w-[75%] space-y-1 ${isMe ? "items-end" : "items-start"} flex flex-col`}>
+      <div
+        className={`max-w-[75%] space-y-1 ${isMe ? "items-end" : "items-start"} flex flex-col`}
+      >
         {isDeleted ? (
           <div className="px-3 py-2 rounded-2xl text-xs text-muted bg-badge border border-card-border">
             Message deleted
@@ -102,7 +106,9 @@ function MessageBubble({
             }
 
             return (
-              <div className={`rounded-2xl overflow-hidden ${isMe ? "rounded-br-sm" : "rounded-bl-sm"}`}>
+              <div
+                className={`rounded-2xl overflow-hidden ${isMe ? "rounded-br-sm" : "rounded-bl-sm"}`}
+              >
                 <Image
                   src={safeUrl}
                   alt="Shared image"
@@ -125,15 +131,23 @@ function MessageBubble({
           </div>
         )}
 
-        <div className={`flex items-center gap-1 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
+        <div
+          className={`flex items-center gap-1 ${isMe ? "flex-row-reverse" : "flex-row"}`}
+        >
           <span className="text-[10px] text-muted">
-            {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            {new Date(msg.createdAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
           </span>
           {msg.editedAt && !isDeleted && (
             <span className="text-[10px] text-muted/80">(edited)</span>
           )}
           {isMe && (
-            <CheckCheck size={12} className={msg.read ? "text-primary" : "text-muted"} />
+            <CheckCheck
+              size={12}
+              className={msg.read ? "text-primary" : "text-muted"}
+            />
           )}
           {showActions && (
             <div className="relative">
@@ -172,6 +186,8 @@ function MessageBubble({
   );
 }
 
+import { useDraft } from "@/hooks/useDraft";
+
 interface ChatThreadProps {
   conversationId: string;
 }
@@ -182,7 +198,11 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
   const {
     conversation,
     messages,
+    loadOlder,
+    hasOlder,
+    loadingOlder,
     isLoading,
+    error: loadError,
     typing,
     presence,
     sendMessage,
@@ -193,9 +213,19 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
     refetch,
   } = useConversation(conversationId);
   const [inputText, setInputText] = useState("");
+  const [sendError, setSendError] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [editingMessage, setEditingMessage] = useState<DirectMessage | null>(null);
+  const [editingMessage, setEditingMessage] = useState<DirectMessage | null>(
+    null,
+  );
+  const draft = useDraft(
+    user?.userId,
+    "message:" + conversationId,
+    inputText,
+    setInputText,
+    !editingMessage,
+  );
   const [actionMessageId, setActionMessageId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -257,6 +287,11 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
   const handleSend = async () => {
     const text = inputText.trim();
     if (!text || isSending || blockedByMe || blockedByOther) return;
+    if (!navigator.onLine) {
+      setSendError("Reconnect to send. Your draft is saved.");
+      return;
+    }
+    setSendError("");
     setIsSending(true);
     try {
       if (editingMessage) {
@@ -266,8 +301,10 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
         await sendMessage(text);
       }
       setInputText("");
+      await draft.clear();
       await sendTyping(false);
     } catch (err) {
+      setSendError("Message was not sent. Your text is still here; try again.");
       console.error("Failed to send message", err);
     } finally {
       setTimeout(() => setIsSending(false), 300);
@@ -300,10 +337,20 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
 
   const handleImageUpload = async (file: File) => {
     if (blockedByMe || blockedByOther) return;
+    if (!navigator.onLine) {
+      setSendError("Reconnect before sending an image.");
+      return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      setSendError("Choose an image smaller than 3 MB.");
+      return;
+    }
+    setSendError("");
     setIsUploading(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("conversationId", conversationId);
       const res = await fetch("/api/messages/uploads", {
         method: "POST",
         body: formData,
@@ -317,6 +364,9 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
       }
       await sendMessage(data.url, "IMAGE");
     } catch (err) {
+      setSendError(
+        "Image was not sent. Choose a PNG, JPEG or WebP under 3 MB and retry.",
+      );
       console.error("Image upload failed", err);
     } finally {
       setIsUploading(false);
@@ -372,17 +422,6 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
     router.push("/contacts");
   };
 
-  const startCall = (mode: "audio" | "video") => {
-    if (!other) return;
-    const helper = conversation?.participants.find((participant) => participant.role === "HELPER");
-    if (!helper) return;
-    const params = new URLSearchParams({ helperId: helper.id, mode });
-    if (conversation?.bountyRef?.id) {
-      params.set("bountyId", conversation.bountyRef.id);
-    }
-    router.push(`/video?${params.toString()}`);
-  };
-
   const other = conversation?.participants.find((p) => p.id !== user?.userId);
   const otherPresence = presence.find((p) => p.userId === other?.id);
   const isTyping = typing.some((t) => t.userId === other?.id && t.isTyping);
@@ -397,7 +436,7 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
   const blockedByOther = conversation?.blockedByOther ?? false;
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full min-h-0 bg-background">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 bg-card border-b border-card-border shadow-sm flex-shrink-0">
         <motion.button
@@ -427,8 +466,12 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
               className="h-9 w-9 rounded-full object-cover ring-2 ring-primary-100"
             />
             <div>
-              <p className="font-bold text-charcoal text-sm leading-tight">{other.name}</p>
-              <p className={`text-xs font-medium ${isTyping ? "text-primary" : "text-secondary-600"}`}>
+              <p className="font-bold text-charcoal text-sm leading-tight">
+                {other.name}
+              </p>
+              <p
+                className={`text-xs font-medium ${isTyping ? "text-primary" : "text-secondary-600"}`}
+              >
                 {presenceLabel}
               </p>
             </div>
@@ -436,32 +479,12 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
         )}
 
         <div className="ml-auto flex items-center gap-2">
-          {other && (
-            <>
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                onClick={() => startCall("audio")}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-badge transition-colors"
-                title="Start audio call"
-                aria-label="Start audio call"
-              >
-                <Phone size={15} className="text-charcoal" />
-              </motion.button>
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                onClick={() => startCall("video")}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-badge transition-colors"
-                title="Start video call"
-                aria-label="Start video call"
-              >
-                <Video size={15} className="text-charcoal" />
-              </motion.button>
-            </>
-          )}
           {conversation?.bountyRef && (
             <div className="flex items-center gap-1 text-xs text-primary bg-primary-50 px-2.5 py-1 rounded-full border border-primary-100">
               <MapPin size={11} />
-              <span className="truncate max-w-[100px]">{conversation.bountyRef.title}</span>
+              <span className="truncate max-w-[100px]">
+                {conversation.bountyRef.title}
+              </span>
             </div>
           )}
           {other && (
@@ -480,7 +503,8 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
                     onClick={handleBlockToggle}
                     className="flex w-full items-center gap-2 px-4 py-3 text-sm hover:bg-subtle"
                   >
-                    <Ban size={14} /> {blockedByMe ? "Unblock user" : "Block user"}
+                    <Ban size={14} />{" "}
+                    {blockedByMe ? "Unblock user" : "Block user"}
                   </button>
                   <button
                     type="button"
@@ -503,6 +527,30 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
         </div>
       </div>
 
+      {loadError && (
+        <div role="alert" className="notice">
+          {loadError}
+          <button onClick={refetch}>Retry</button>
+        </div>
+      )}
+      {sendError && (
+        <p role="alert" className="p-3 text-red-600">
+          {sendError}
+        </p>
+      )}
+      {hasOlder && (
+        <button
+          className="min-h-11 text-primary"
+          disabled={loadingOlder}
+          onClick={() =>
+            loadOlder().catch(() =>
+              setSendError("Could not load older messages. Try again."),
+            )
+          }
+        >
+          Load older messages
+        </button>
+      )}
       {/* Messages */}
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-2.5">
         {isLoading ? (
@@ -524,7 +572,9 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
                   prevSenderId={i > 0 ? messages[i - 1].senderId : undefined}
                   isActionOpen={actionMessageId === msg.id}
                   onToggleActions={() =>
-                    setActionMessageId((current) => (current === msg.id ? null : msg.id))
+                    setActionMessageId((current) =>
+                      current === msg.id ? null : msg.id,
+                    )
                   }
                   onEdit={() => {
                     setEditingMessage(msg);
@@ -578,7 +628,11 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
             disabled={blockedByMe || blockedByOther || isUploading}
             className="w-9 h-9 flex items-center justify-center rounded-full bg-badge text-muted hover:bg-primary-50 hover:text-primary transition-colors flex-shrink-0 disabled:opacity-40"
           >
-            {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={17} />}
+            {isUploading ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Camera size={17} />
+            )}
           </motion.button>
           <input
             ref={fileInputRef}
@@ -589,6 +643,8 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
           />
 
           <input
+            aria-label="Message"
+            aria-busy={isSending}
             ref={inputRef}
             type="text"
             value={inputText}
@@ -602,11 +658,18 @@ export default function ChatThread({ conversationId }: ChatThreadProps) {
 
           <motion.button
             whileTap={{ scale: 0.88 }}
+            aria-label="Send message"
             onClick={handleSend}
-            disabled={!inputText.trim() || isSending || blockedByMe || blockedByOther}
+            disabled={
+              !inputText.trim() || isSending || blockedByMe || blockedByOther
+            }
             className="w-9 h-9 flex items-center justify-center rounded-full bg-primary text-white shadow-primary disabled:opacity-40 disabled:shadow-none flex-shrink-0 transition-opacity"
           >
-            {isSending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+            {isSending ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Send size={16} />
+            )}
           </motion.button>
         </div>
       </div>

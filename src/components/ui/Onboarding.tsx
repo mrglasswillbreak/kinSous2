@@ -2,7 +2,15 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Flame, ChevronRight, ShoppingBag, ChefHat, Shield, MapPin, Star } from "lucide-react";
+import {
+  Flame,
+  ChevronRight,
+  ShoppingBag,
+  ChefHat,
+  Shield,
+  MapPin,
+  Star,
+} from "lucide-react";
 
 interface OnboardingProps {
   onComplete: (role: "SEEKER" | "HELPER") => void;
@@ -30,7 +38,7 @@ const slides = [
   {
     emoji: "🔒",
     title: "Safe & Secure",
-    body: "Funds held in escrow (Stripe for USD, Flutterwave for NGN). Released only when you confirm delivery.",
+    body: "Pay in NGN through Flutterwave. Your helper receives their payout after confirmed delivery.",
     bg: "from-secondary-400 to-secondary-600",
   },
 ];
@@ -45,14 +53,19 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   if (pickingRole) {
     return (
       <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         className="min-h-screen bg-background flex flex-col items-center justify-center px-6 pb-16 pt-8"
       >
         <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center mb-6">
           <Flame size={26} className="text-white" />
         </div>
-        <h2 className="text-2xl font-bold text-charcoal text-center mb-2">How will you use KinSous?</h2>
-        <p className="text-muted text-sm text-center mb-8">You can switch later in Settings.</p>
+        <h2 className="text-2xl font-bold text-charcoal text-center mb-2">
+          How will you use KinSous?
+        </h2>
+        <p className="text-muted text-sm text-center mb-8">
+          You can switch later in Settings.
+        </p>
 
         <div className="w-full max-w-sm space-y-4">
           <motion.button
@@ -64,10 +77,17 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               <ShoppingBag size={28} className="text-primary" />
             </div>
             <div>
-              <p className="font-bold text-charcoal text-lg">I&apos;m a Seeker</p>
-              <p className="text-sm text-muted mt-0.5">I want to post bounties and hire Helpers for food tasks</p>
+              <p className="font-bold text-charcoal text-lg">
+                I&apos;m a Seeker
+              </p>
+              <p className="text-sm text-muted mt-0.5">
+                I want to post bounties and hire Helpers for food tasks
+              </p>
             </div>
-            <ChevronRight size={20} className="text-muted ml-auto flex-shrink-0" />
+            <ChevronRight
+              size={20}
+              className="text-muted ml-auto flex-shrink-0"
+            />
           </motion.button>
 
           <motion.button
@@ -79,17 +99,31 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               <ChefHat size={28} className="text-secondary" />
             </div>
             <div>
-              <p className="font-bold text-charcoal text-lg">I&apos;m a Helper</p>
-              <p className="text-sm text-muted mt-0.5">I want to bid on bounties and earn with my culinary skills</p>
+              <p className="font-bold text-charcoal text-lg">
+                I&apos;m a Helper
+              </p>
+              <p className="text-sm text-muted mt-0.5">
+                I want to bid on bounties and earn with my culinary skills
+              </p>
             </div>
-            <ChevronRight size={20} className="text-muted ml-auto flex-shrink-0" />
+            <ChevronRight
+              size={20}
+              className="text-muted ml-auto flex-shrink-0"
+            />
           </motion.button>
         </div>
 
         <div className="mt-8 flex items-center gap-6 text-xs text-muted">
-          <div className="flex items-center gap-1"><Shield size={12} className="text-secondary-500" /> Secure escrow</div>
-          <div className="flex items-center gap-1"><MapPin size={12} className="text-primary" /> Local Helpers</div>
-          <div className="flex items-center gap-1"><Star size={12} className="text-yellow-400 fill-yellow-400" /> Verified</div>
+          <div className="flex items-center gap-1">
+            <Shield size={12} className="text-secondary-500" /> Order payments
+          </div>
+          <div className="flex items-center gap-1">
+            <MapPin size={12} className="text-primary" /> Local Helpers
+          </div>
+          <div className="flex items-center gap-1">
+            <Star size={12} className="text-yellow-400 fill-yellow-400" />{" "}
+            Community
+          </div>
         </div>
       </motion.div>
     );
@@ -98,7 +132,9 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   return (
     <div className="min-h-screen flex flex-col overflow-hidden">
       {/* Slide area */}
-      <div className={`flex-1 bg-gradient-to-br ${current.bg} flex flex-col items-center justify-center px-8 pb-8 pt-16 relative overflow-hidden`}>
+      <div
+        className={`flex-1 bg-gradient-to-br ${current.bg} flex flex-col items-center justify-center px-8 pb-8 pt-16 relative overflow-hidden`}
+      >
         <motion.div
           className="absolute inset-0 opacity-10"
           animate={{ rotate: [0, 360] }}
@@ -124,8 +160,12 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             >
               {current.emoji}
             </motion.p>
-            <h1 className="text-3xl font-bold text-white mb-3">{current.title}</h1>
-            <p className="text-white/80 text-base leading-relaxed max-w-xs">{current.body}</p>
+            <h1 className="text-3xl font-bold text-white mb-3">
+              {current.title}
+            </h1>
+            <p className="text-white/80 text-base leading-relaxed max-w-xs">
+              {current.body}
+            </p>
           </motion.div>
         </AnimatePresence>
       </div>
@@ -147,7 +187,11 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         <motion.button
           whileTap={{ scale: 0.96 }}
           onClick={() => {
-            if (isLast) { setPickingRole(true); } else { setSlideIdx((i) => i + 1); }
+            if (isLast) {
+              setPickingRole(true);
+            } else {
+              setSlideIdx((i) => i + 1);
+            }
           }}
           className="w-full bg-primary text-white py-4 rounded-3xl font-bold text-base shadow-primary flex items-center justify-center gap-2"
         >

@@ -11,11 +11,38 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const endpoint = typeof body?.endpoint === "string" ? body.endpoint : null;
-    const p256dh = typeof body?.keys?.p256dh === "string" ? body.keys.p256dh : null;
+    const p256dh =
+      typeof body?.keys?.p256dh === "string" ? body.keys.p256dh : null;
     const auth = typeof body?.keys?.auth === "string" ? body.keys.auth : null;
 
-    if (!endpoint || !p256dh || !auth) {
-      return NextResponse.json({ error: "Invalid subscription" }, { status: 400 });
+    let safeEndpoint = false;
+    try {
+      const u = new URL(endpoint || "");
+      safeEndpoint =
+        u.protocol === "https:" &&
+        [
+          ".push.apple.com",
+          ".notify.windows.com",
+          ".push.services.mozilla.com",
+          "fcm.googleapis.com",
+        ].some(
+          (host) =>
+            u.hostname === host ||
+            (host.startsWith(".") && u.hostname.endsWith(host)),
+        );
+    } catch {}
+    if (
+      !safeEndpoint ||
+      !endpoint ||
+      !p256dh ||
+      !auth ||
+      p256dh.length > 200 ||
+      auth.length > 100
+    ) {
+      return NextResponse.json(
+        { error: "Invalid subscription" },
+        { status: 400 },
+      );
     }
 
     await upsertPushSubscription({

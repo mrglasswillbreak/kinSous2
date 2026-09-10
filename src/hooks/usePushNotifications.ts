@@ -1,78 +1,111 @@
 "use client";
-
 import { useCallback, useEffect, useState } from "react";
-
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = atob(base64);
-  return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
-}
-
 export function usePushNotifications() {
-  const [isSupported, setIsSupported] = useState(false);
-  const [permission, setPermission] = useState<NotificationPermission>("default");
-  const [isSubscribed, setIsSubscribed] = useState(false);
-
+  const [isSupported, setSupported] = useState(false),
+    [permission, setPermission] = useState<NotificationPermission>("default"),
+    [isSubscribed, setSubscribed] = useState(false),
+    [error, setError] = useState("");
   useEffect(() => {
-    setIsSupported(typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window);
-    if (typeof Notification !== "undefined") {
-      setPermission(Notification.permission);
-    }
+    const supported =
+      "serviceWorker" in navigator &&
+      "PushManager" in window &&
+      "Notification" in window;
+    setSupported(supported);
+    if (supported) setPermission(Notification.permission);
   }, []);
-
   useEffect(() => {
     if (!isSupported) return;
-    navigator.serviceWorker
-      .register("/sw.js")
-      .then(async () => {
-        const registration = await navigator.serviceWorker.ready;
-        const sub = await registration.pushManager.getSubscription();
-        setIsSubscribed(Boolean(sub));
+    let active = true;
+    navigator.serviceWorker.ready
+      .then(async (reg) => {
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+          const r = await fetch("/api/notifications/subscribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(sub),
+          });
+          if (active) setSubscribed(r.ok);
+        }
       })
       .catch(() => {
-        setIsSupported(false);
+        if (active) setError("Could not check notification settings.");
       });
+    return () => {
+      active = false;
+    };
   }, [isSupported]);
-
   const subscribe = useCallback(async () => {
-    if (!isSupported) return false;
-    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    if (!publicKey) return false;
-
-    const registration = await navigator.serviceWorker.ready;
-    const permissionResult = await Notification.requestPermission();
-    setPermission(permissionResult);
-    if (permissionResult !== "granted") return false;
-
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(publicKey),
-    });
-
-    await fetch("/api/notifications/subscribe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(subscription),
-    });
-    setIsSubscribed(true);
-    return true;
-  }, [isSupported]);
-
-  const unsubscribe = useCallback(async () => {
-    if (!isSupported) return;
-    const registration = await navigator.serviceWorker.ready;
-    const subscription = await registration.pushManager.getSubscription();
-    if (subscription) {
-      await fetch("/api/notifications/subscribe", {
-        method: "DELETE",
+    setError("");
+    try {
+      if (!isSupported)
+        throw Error(
+          "Notifications are not supported in this browser. On iPhone, install KinSous on your Home Screen first.",
+        );
+      const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!key) throw Error("Push notifications are not configured yet.");
+      const result = await Notification.requestPermission();
+      setPermission(result);
+      if (result !== "granted") {
+        setError(
+          "Notifications are disabled. You can change this in your browser settings.",
+        );
+        return false;
+      }
+      const reg = await navigator.serviceWorker.ready;
+      const raw = atob(key.replace(/-/g, "+").replace(/_/g, "/"));
+      const bytes = Uint8Array.from(raw, (c) => c.charCodeAt(0));
+      const sub =
+        (await reg.pushManager.getSubscription()) ||
+        (await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: bytes,
+        }));
+      const response = await fetch("/api/notifications/subscribe", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ endpoint: subscription.endpoint }),
+        body: JSON.stringify(sub),
       });
-      await subscription.unsubscribe();
+      if (!response.ok)
+        throw Error("Could not save notification settings. Please try again.");
+      setSubscribed(true);
+      return true;
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Could not enable notifications",
+      );
+      return false;
     }
-    setIsSubscribed(false);
   }, [isSupported]);
-
-  return { isSupported, permission, isSubscribed, subscribe, unsubscribe };
+  const unsubscribe = useCallback(async () => {
+    setError("");
+    try {
+      if (!isSupported) return;
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        const r = await fetch("/api/notifications/subscribe", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ endpoint: sub.endpoint }),
+        });
+        if (!r.ok)
+          throw Error("Could not disable notifications. Please retry.");
+        await sub.unsubscribe();
+      }
+      setSubscribed(false);
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Could not disable notifications",
+      );
+    }
+  }, [isSupported]);
+  return {
+    isSupported,
+    permission,
+    isSubscribed,
+    subscribe,
+    unsubscribe,
+    error,
+  };
 }

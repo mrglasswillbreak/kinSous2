@@ -1,6 +1,7 @@
 "use client";
+import { logout } from "@/lib/logout";
 
-import Image from "next/image";
+import Image from "@/components/ui/AppImage";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -36,7 +37,12 @@ const navItems: Array<{
   { href: "/", icon: Home, label: "Home" },
   { href: "/bounties", icon: Scroll, label: "Bounties" },
   { href: "/helpers", icon: Users, label: "Helpers" },
-  { href: "/contacts", icon: MessageCircle, label: "Contacts", badge: "messages" },
+  {
+    href: "/messages",
+    icon: MessageCircle,
+    label: "Messages",
+    badge: "messages",
+  },
   { href: "/tracker", icon: Map, label: "Tracker" },
   { href: "/payment", icon: CreditCard, label: "Payments" },
   { href: "/profile", icon: User, label: "Profile" },
@@ -47,7 +53,8 @@ export default function DesktopSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { notifications, unreadCount, markRead, markAllRead, dismiss } = useNotifications();
+  const { notifications, unreadCount, markRead, markAllRead, dismiss } =
+    useNotifications();
   const { totalUnread } = useConversations();
   const { user } = useCurrentUser();
   const { darkMode, toggle } = useTheme();
@@ -59,7 +66,7 @@ export default function DesktopSidebar() {
   const displayContact = user?.email ?? user?.phone ?? "Profile";
 
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await logout();
     router.push("/login");
     router.refresh();
   };
@@ -79,15 +86,21 @@ export default function DesktopSidebar() {
             <Flame size={18} className="text-white" />
           </div>
           <div>
-            <span className="block text-base font-bold leading-tight text-charcoal">KinSous</span>
-            <span className="block text-[11px] font-medium leading-tight text-muted">FolkProvidr</span>
+            <span className="block text-base font-bold leading-tight text-charcoal">
+              KinSous
+            </span>
+            <span className="block text-[11px] font-medium leading-tight text-muted">
+              FolkProvidr
+            </span>
           </div>
         </div>
 
         {/* Nav links */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
           {navItems.map(({ href, icon: Icon, label, badge }) => {
-            const active = pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
+            const active =
+              pathname === href ||
+              (href !== "/" && pathname.startsWith(`${href}/`));
             const showBadge = badge === "messages" && totalUnread > 0;
             return (
               <Link
@@ -102,7 +115,11 @@ export default function DesktopSidebar() {
                 <Icon
                   size={18}
                   strokeWidth={active ? 2.5 : 1.8}
-                  className={active ? "text-primary" : "text-muted group-hover:text-charcoal transition-colors"}
+                  className={
+                    active
+                      ? "text-primary"
+                      : "text-muted group-hover:text-charcoal transition-colors"
+                  }
                 />
                 <span className="flex-1">{label}</span>
                 {showBadge && (
@@ -146,10 +163,16 @@ export default function DesktopSidebar() {
           <button
             type="button"
             onClick={toggle}
-            aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+            aria-label={
+              darkMode ? "Switch to light mode" : "Switch to dark mode"
+            }
             className="flex h-9 w-9 items-center justify-center rounded-xl bg-badge text-charcoal hover:bg-subtle transition-colors"
           >
-            {darkMode ? <Sun size={17} className="text-yellow-400" /> : <Moon size={17} />}
+            {darkMode ? (
+              <Sun size={17} className="text-yellow-400" />
+            ) : (
+              <Moon size={17} />
+            )}
           </button>
 
           <div className="flex-1" />
@@ -179,7 +202,9 @@ export default function DesktopSidebar() {
             className="h-9 w-9 flex-shrink-0 rounded-xl object-cover ring-2 ring-primary-100"
           />
           <div className="min-w-0">
-            <p className="truncate text-sm font-bold text-charcoal">{displayName}</p>
+            <p className="truncate text-sm font-bold text-charcoal">
+              {displayName}
+            </p>
             <p className="truncate text-xs text-muted">{displayContact}</p>
           </div>
         </Link>

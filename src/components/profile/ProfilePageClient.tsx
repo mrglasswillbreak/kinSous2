@@ -16,7 +16,6 @@ import {
   Save,
   Settings,
   ShieldCheck,
-  User,
   X,
 } from "lucide-react";
 import type { Bounty, Profile, UserRole } from "@/types";
@@ -122,15 +121,16 @@ export default function ProfilePageClient({
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const previewAvatar = form.avatarUrl || profile.avatarUrl || fallbackAvatar(profile.id);
+  const previewAvatar =
+    form.avatarUrl || profile.avatarUrl || fallbackAvatar(profile.id);
   const activeBounties = liveBounties.filter(
     (bounty) =>
       bounty.status === "OPEN" ||
       bounty.status === "IN_PROGRESS" ||
-      bounty.status === "INCOMPLETE"
+      bounty.status === "INCOMPLETE",
   ).length;
   const completedBounties = liveBounties.filter(
-    (bounty) => bounty.status === "COMPLETED"
+    (bounty) => bounty.status === "COMPLETED",
   ).length;
 
   const profileCompleteness = useMemo(() => {
@@ -314,11 +314,18 @@ export default function ProfilePageClient({
               {[
                 { label: "Profile complete", value: `${profileCompleteness}%` },
                 { label: "Active bounties", value: String(activeBounties) },
-                { label: "Member since", value: formatJoinedDate(profile.createdAt) },
+                {
+                  label: "Member since",
+                  value: formatJoinedDate(profile.createdAt),
+                },
               ].map((stat) => (
                 <div key={stat.label} className="rounded-2xl bg-subtle p-4">
-                  <p className="text-xl font-bold text-charcoal">{stat.value}</p>
-                  <p className="mt-1 text-xs font-medium text-muted">{stat.label}</p>
+                  <p className="text-xl font-bold text-charcoal">
+                    {stat.value}
+                  </p>
+                  <p className="mt-1 text-xs font-medium text-muted">
+                    {stat.label}
+                  </p>
                 </div>
               ))}
             </div>
@@ -327,7 +334,9 @@ export default function ProfilePageClient({
 
         <aside className="space-y-4">
           <div className="rounded-3xl border border-card-border bg-card p-5 shadow-card">
-            <h2 className="text-base font-bold text-charcoal">Account Snapshot</h2>
+            <h2 className="text-base font-bold text-charcoal">
+              Account Snapshot
+            </h2>
             <div className="mt-4 space-y-3">
               <div className="flex items-center gap-3 text-sm">
                 <Mail size={16} className="text-muted" />
@@ -500,7 +509,11 @@ export default function ProfilePageClient({
             <Field label="Profile picture URL">
               <div className="flex gap-2">
                 <input
-                  value={form.avatarUrl.startsWith("data:image/") ? "" : form.avatarUrl}
+                  value={
+                    form.avatarUrl.startsWith("data:image/")
+                      ? ""
+                      : form.avatarUrl
+                  }
                   onChange={(event) => set("avatarUrl", event.target.value)}
                   className={inputCls}
                   placeholder="https://..."
@@ -577,7 +590,8 @@ export default function ProfilePageClient({
               />
             </div>
             <p className="mt-3 text-sm text-muted">
-              Complete profiles help helpers and seekers trust each other faster.
+              Complete profiles help helpers and seekers trust each other
+              faster.
             </p>
           </div>
 

@@ -1,3 +1,4 @@
+import { sql, usingLocalDb } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { getSession } from "@/lib/auth";
@@ -30,15 +31,28 @@ export async function POST(_req: Request, { params }: RouteContext) {
     if (bounty.seeker_id !== session.userId) {
       return NextResponse.json(
         { error: "Only the bounty poster can complete this bounty" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
-    const completed = await completeBounty({ bountyId: id, seekerId: session.userId });
+    if (!usingLocalDb()) {
+      const result =
+        await sql`SELECT transition_order(${id},${session.userId},'COMPLETED',NULL) AS ok`;
+      if (!result[0]?.ok)
+        return NextResponse.json(
+          { error: "Confirm a delivered, paid order from Orders & payments" },
+          { status: 409 },
+        );
+      return NextResponse.json({ success: true });
+    }
+    const completed = await completeBounty({
+      bountyId: id,
+      seekerId: session.userId,
+    });
     if (!completed) {
       return NextResponse.json(
         { error: "This bounty cannot be completed yet" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -87,7 +101,7 @@ export async function POST(_req: Request, { params }: RouteContext) {
         acceptedBid: completed.acceptedBid,
         conversationId,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (err) {
     console.error("POST /api/bounties/[id]/complete error:", err);

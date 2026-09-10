@@ -1,3 +1,4 @@
+import { publicBounty } from "@/lib/public-data";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { getBounties, createBounty } from "@/lib/db";
@@ -13,8 +14,17 @@ export async function GET(req: NextRequest) {
     const seekerId = searchParams.get("seekerId") ?? undefined;
     const helperId = searchParams.get("helperId") ?? undefined;
 
-    const bounties = await getBounties({ category, status, query, seekerId, helperId });
-    return NextResponse.json({ bounties });
+    const bounties = await getBounties({
+      category,
+      status,
+      query,
+      seekerId,
+      helperId,
+    });
+    const session = await getSession();
+    return NextResponse.json({
+      bounties: bounties.map((b) => publicBounty(b, session?.userId)),
+    });
   } catch (err) {
     console.error("GET /api/bounties error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
@@ -29,17 +39,62 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { title, description, category, budget, currency, address, city, country, tags } = body;
+    const {
+      title,
+      description,
+      category,
+      budget,
+      currency,
+      address,
+      city,
+      country,
+      tags,
+    } = body;
 
     if (!title || !description || !category || !budget || !city) {
       return NextResponse.json(
-        { error: "title, description, category, budget, and city are required" },
-        { status: 400 }
+        {
+          error: "title, description, category, budget, and city are required",
+        },
+        { status: 400 },
       );
     }
 
-    if (Number(budget) <= 0) {
-      return NextResponse.json({ error: "Budget must be greater than 0" }, { status: 400 });
+    if ((currency ?? "NGN") !== "NGN" || (country ?? "Nigeria") !== "Nigeria")
+      return NextResponse.json(
+        { error: "New orders are available in Nigeria, in NGN" },
+        { status: 400 },
+      );
+    if (
+      typeof title !== "string" ||
+      title.trim().length < 10 ||
+      title.length > 160 ||
+      typeof description !== "string" ||
+      description.trim().length < 20 ||
+      description.length > 5000 ||
+      typeof city !== "string" ||
+      ![
+        "GROCERY",
+        "COOKING",
+        "CATERING",
+        "INGREDIENT_SOURCING",
+        "RECIPE_HELP",
+        "OTHER",
+      ].includes(category)
+    )
+      return NextResponse.json(
+        { error: "Check the bounty details" },
+        { status: 400 },
+      );
+    if (
+      !Number.isFinite(Number(budget)) ||
+      Number(budget) <= 0 ||
+      Number(budget) > 10000000
+    ) {
+      return NextResponse.json(
+        { error: "Budget must be greater than 0" },
+        { status: 400 },
+      );
     }
 
     const bounty = await createBounty({

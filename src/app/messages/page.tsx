@@ -2,7 +2,7 @@ import MessagesShell from "@/components/messages/MessagesShell";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Contacts · KinSous",
+  title: "Messages · KinSous",
   description: "Your contacts and active conversations",
 };
 

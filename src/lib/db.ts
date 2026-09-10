@@ -1,11 +1,18 @@
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 import { promises as fs } from "fs";
 import path from "path";
-import { mockBounties, mockHelpers, mockReviews, mockSeekers } from "@/lib/mock-data";
+import {
+  mockBounties,
+  mockHelpers,
+  mockReviews,
+  mockSeekers,
+} from "@/lib/mock-data";
 
 let _client: NeonQueryFunction<false, false> | null = null;
 
 export function usingLocalDb() {
+  if (!process.env.DATABASE_URL && process.env.NODE_ENV === "production")
+    throw new Error("DATABASE_URL is required in production");
   return !process.env.DATABASE_URL;
 }
 
@@ -13,7 +20,7 @@ function getClient(): NeonQueryFunction<false, false> {
   if (!_client) {
     if (!process.env.DATABASE_URL) {
       throw new Error(
-        "DATABASE_URL environment variable is not set. See .env.local.example for setup instructions."
+        "DATABASE_URL environment variable is not set. See .env.local.example for setup instructions.",
       );
     }
     _client = neon(process.env.DATABASE_URL);
@@ -23,9 +30,9 @@ function getClient(): NeonQueryFunction<false, false> {
 
 /** Tagged-template SQL helper (lazy, so imports remain safe at build time). */
 export const sql: NeonQueryFunction<false, false> = new Proxy(
-  (function sqlProxyTarget() {
+  function sqlProxyTarget() {
     // Calls are handled by the Proxy apply trap.
-  }) as unknown as NeonQueryFunction<false, false>,
+  } as unknown as NeonQueryFunction<false, false>,
   {
     apply(_target, _thisArg, args) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -35,7 +42,7 @@ export const sql: NeonQueryFunction<false, false> = new Proxy(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (getClient() as any)[prop];
     },
-  }
+  },
 );
 
 export interface DbUser {
@@ -115,6 +122,7 @@ export interface DbBid {
 }
 
 export interface DbConversationMessage {
+  wasDuplicate?: boolean;
   id: string;
   conversation_id: string;
   sender_id: string;
@@ -251,7 +259,16 @@ export interface CreateBidInput {
 
 interface LocalStore {
   users: DbUser[];
-  bounties: Array<Omit<DbBounty, "seeker_name" | "seeker_avatar_url" | "seeker_city" | "seeker_country" | "bids">>;
+  bounties: Array<
+    Omit<
+      DbBounty,
+      | "seeker_name"
+      | "seeker_avatar_url"
+      | "seeker_city"
+      | "seeker_country"
+      | "bids"
+    >
+  >;
   bids: DbBid[];
   conversations: Array<{
     id: string;
@@ -272,6 +289,7 @@ interface LocalStore {
     edited_at?: string | null;
     deleted_at?: string | null;
     deleted_by?: string | null;
+    client_id?: string | null;
   }>;
   conversation_deletions: Array<{
     conversation_id: string;
@@ -337,21 +355,28 @@ interface LocalStore {
   }>;
 }
 
-const LOCAL_DB_PATH = path.join(process.cwd(), ".kinsous-local-db.json");
+const LOCAL_DB_PATH = path.resolve(
+  process.cwd(),
+  process.env.KINSOUS_LOCAL_DB_PATH || ".kinsous-local-db.json",
+);
 let localStoreCache: LocalStore | null = null;
 
 function uid(prefix: string) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function localProfileToUser(profile: (typeof mockHelpers)[number], passwordHash = ""): DbUser {
+function localProfileToUser(
+  profile: (typeof mockHelpers)[number],
+  passwordHash = "",
+): DbUser {
   return {
     id: profile.id,
     email: profile.id === "seeker-1" ? "chioma@kinsous.com" : null,
     phone: null,
     name: profile.name,
     first_name: profile.firstName ?? profile.name.split(" ")[0] ?? null,
-    last_name: profile.lastName ?? (profile.name.split(" ").slice(1).join(" ") || null),
+    last_name:
+      profile.lastName ?? (profile.name.split(" ").slice(1).join(" ") || null),
     date_of_birth: profile.dateOfBirth ?? null,
     gender: profile.gender ?? null,
     password_hash: passwordHash,
@@ -366,7 +391,7 @@ function localProfileToUser(profile: (typeof mockHelpers)[number], passwordHash 
 }
 
 function localBountyBase(
-  bounty: (typeof mockBounties)[number]
+  bounty: (typeof mockBounties)[number],
 ): LocalStore["bounties"][number] {
   return {
     id: bounty.id,
@@ -387,7 +412,7 @@ function localBountyBase(
 }
 
 function localBidFromAppBid(
-  bid: NonNullable<(typeof mockBounties)[number]["bids"]>[number]
+  bid: NonNullable<(typeof mockBounties)[number]["bids"]>[number],
 ): DbBid {
   const helper = bid.helper;
   return {
@@ -405,7 +430,8 @@ function localBidFromAppBid(
     helper_phone: helper.phone ?? null,
     helper_name: helper.name,
     helper_first_name: helper.firstName ?? helper.name.split(" ")[0] ?? null,
-    helper_last_name: helper.lastName ?? (helper.name.split(" ").slice(1).join(" ") || null),
+    helper_last_name:
+      helper.lastName ?? (helper.name.split(" ").slice(1).join(" ") || null),
     helper_date_of_birth: helper.dateOfBirth ?? null,
     helper_gender: helper.gender ?? null,
     helper_avatar_url: helper.avatarUrl,
@@ -443,7 +469,9 @@ function makeSeedStore(): LocalStore {
     created_at: new Date().toISOString(),
   });
 
-  const bids = mockBounties.flatMap((bounty) => bounty.bids ?? []).map(localBidFromAppBid);
+  const bids = mockBounties
+    .flatMap((bounty) => bounty.bids ?? [])
+    .map(localBidFromAppBid);
   const reviews = mockReviews.map((review) => ({
     id: review.id,
     bounty_id: review.bountyId,
@@ -485,19 +513,32 @@ async function readLocalStore(): Promise<LocalStore> {
     parsed.push_subscriptions ??= [];
     parsed.message_reports ??= [];
     localStoreCache = parsed;
-  } catch {
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     localStoreCache = makeSeedStore();
     await writeLocalStore(localStoreCache);
   }
   return localStoreCache;
 }
 
+let writeQueue: Promise<void> = Promise.resolve();
 async function writeLocalStore(store: LocalStore) {
   localStoreCache = store;
-  await fs.writeFile(LOCAL_DB_PATH, JSON.stringify(store, null, 2));
+  const snapshot = JSON.stringify(store, null, 2);
+  writeQueue = writeQueue
+    .catch(() => {})
+    .then(async () => {
+      const temp = LOCAL_DB_PATH + ".tmp";
+      await fs.writeFile(temp, snapshot);
+      await fs.rename(temp, LOCAL_DB_PATH);
+    });
+  await writeQueue;
 }
 
-function localJoinBounty(store: LocalStore, bounty: LocalStore["bounties"][number]): DbBounty {
+function localJoinBounty(
+  store: LocalStore,
+  bounty: LocalStore["bounties"][number],
+): DbBounty {
   const seeker = store.users.find((user) => user.id === bounty.seeker_id);
   return {
     ...bounty,
@@ -508,8 +549,12 @@ function localJoinBounty(store: LocalStore, bounty: LocalStore["bounties"][numbe
     bids: store.bids
       .filter((bid) => bid.bounty_id === bounty.id)
       .sort((a, b) => {
-        const rank = (status: string) => (status === "ACCEPTED" ? 0 : status === "PENDING" ? 1 : 2);
-        return rank(a.status) - rank(b.status) || new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        const rank = (status: string) =>
+          status === "ACCEPTED" ? 0 : status === "PENDING" ? 1 : 2;
+        return (
+          rank(a.status) - rank(b.status) ||
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
       }),
   };
 }
@@ -538,10 +583,11 @@ function localBidWithHelper(store: LocalStore, bid: DbBid): DbBid {
 
 function localGetAcceptedBid(
   store: LocalStore,
-  bountyId: string
+  bountyId: string,
 ): DbBid | null {
   const acceptedBid = store.bids.find(
-    (candidate) => candidate.bounty_id === bountyId && candidate.status === "ACCEPTED"
+    (candidate) =>
+      candidate.bounty_id === bountyId && candidate.status === "ACCEPTED",
   );
   return acceptedBid ? localBidWithHelper(store, acceptedBid) : null;
 }
@@ -550,25 +596,32 @@ function localWithHelperMetrics(store: LocalStore, user: DbUser): DbUser {
   if (user.role !== "HELPER") return user;
   const completedAcceptedBids = store.bids.filter((bid) => {
     if (bid.helper_id !== user.id || bid.status !== "ACCEPTED") return false;
-    const bounty = store.bounties.find((candidate) => candidate.id === bid.bounty_id);
+    const bounty = store.bounties.find(
+      (candidate) => candidate.id === bid.bounty_id,
+    );
     return bounty?.status === "COMPLETED";
   });
-  const helperReviews = store.reviews.filter((review) => review.target_id === user.id);
+  const helperReviews = store.reviews.filter(
+    (review) => review.target_id === user.id,
+  );
   const totalReviews = helperReviews.length;
   const averageRating = totalReviews
-    ? helperReviews.reduce((sum, review) => sum + Number(review.rating), 0) / totalReviews
+    ? helperReviews.reduce((sum, review) => sum + Number(review.rating), 0) /
+      totalReviews
     : 0;
   const ratingPercentage = averageRating > 0 ? (averageRating / 5) * 100 : 0;
   const totalEarningsNgn = completedAcceptedBids.reduce(
     (sum, bid) => sum + (bid.currency === "NGN" ? Number(bid.amount) : 0),
-    0
+    0,
   );
   const totalEarningsUsd = completedAcceptedBids.reduce(
     (sum, bid) => sum + (bid.currency === "USD" ? Number(bid.amount) : 0),
-    0
+    0,
   );
-  const earningsCurrency = totalEarningsNgn > 0 ? "NGN" : totalEarningsUsd > 0 ? "USD" : "NGN";
-  const totalEarnings = earningsCurrency === "USD" ? totalEarningsUsd : totalEarningsNgn;
+  const earningsCurrency =
+    totalEarningsNgn > 0 ? "NGN" : totalEarningsUsd > 0 ? "USD" : "NGN";
+  const totalEarnings =
+    earningsCurrency === "USD" ? totalEarningsUsd : totalEarningsNgn;
 
   return {
     ...user,
@@ -592,14 +645,16 @@ export async function upsertLocalUser(user: DbUser) {
   return user;
 }
 
-export async function findLocalUserByIdentifier(identifier: string): Promise<DbUser | null> {
+export async function findLocalUserByIdentifier(
+  identifier: string,
+): Promise<DbUser | null> {
   const store = await readLocalStore();
   const normalized = identifier.trim().toLowerCase();
   return (
     store.users.find(
       (user) =>
         user.email?.toLowerCase() === normalized ||
-        user.phone === identifier.trim()
+        user.phone === identifier.trim(),
     ) ?? null
   );
 }
@@ -613,292 +668,7 @@ export async function initDb() {
     return;
   }
 
-  await sql`CREATE EXTENSION IF NOT EXISTS pgcrypto`;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS users (
-      id            TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-      email         TEXT UNIQUE,
-      phone         TEXT,
-      name          TEXT NOT NULL,
-      first_name    TEXT,
-      last_name     TEXT,
-      date_of_birth DATE,
-      gender        TEXT,
-      password_hash TEXT NOT NULL,
-      avatar_url    TEXT,
-      role          TEXT NOT NULL DEFAULT 'SEEKER',
-      bio           TEXT,
-      city          TEXT,
-      country       TEXT,
-      country_code  TEXT,
-      created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
-    )
-  `;
-
-  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT`;
-  await sql`ALTER TABLE users ALTER COLUMN email DROP NOT NULL`;
-  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT`;
-  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT`;
-  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name TEXT`;
-  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name TEXT`;
-  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth DATE`;
-  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS gender TEXT`;
-  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT`;
-  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT`;
-  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'SEEKER'`;
-  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT`;
-  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS city TEXT`;
-  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS country TEXT`;
-  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS country_code TEXT`;
-  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()`;
-  await sql`
-    CREATE UNIQUE INDEX IF NOT EXISTS users_phone_unique_idx
-    ON users (phone)
-    WHERE phone IS NOT NULL
-  `;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS bounties (
-      id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-      title       TEXT NOT NULL,
-      description TEXT NOT NULL,
-      category    TEXT NOT NULL,
-      status      TEXT NOT NULL DEFAULT 'OPEN',
-      budget      NUMERIC NOT NULL,
-      currency    TEXT NOT NULL DEFAULT 'NGN',
-      seeker_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      address     TEXT,
-      city        TEXT,
-      country     TEXT,
-      tags        TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
-      created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-      updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
-    )
-  `;
-
-  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS id TEXT DEFAULT gen_random_uuid()::text`;
-  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS title TEXT`;
-  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS description TEXT`;
-  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS category TEXT`;
-  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'OPEN'`;
-  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS budget NUMERIC`;
-  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'NGN'`;
-  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS seeker_id TEXT`;
-  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS address TEXT`;
-  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS city TEXT`;
-  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS country TEXT`;
-  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT ARRAY[]::TEXT[]`;
-  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()`;
-  await sql`ALTER TABLE bounties ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now()`;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS bids (
-      id                         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-      bounty_id                  TEXT NOT NULL REFERENCES bounties(id) ON DELETE CASCADE,
-      helper_id                  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      amount                     NUMERIC NOT NULL,
-      currency                   TEXT NOT NULL DEFAULT 'NGN',
-      message                    TEXT NOT NULL,
-      estimated_delivery_minutes INTEGER NOT NULL DEFAULT 60,
-      status                     TEXT NOT NULL DEFAULT 'PENDING',
-      created_at                 TIMESTAMPTZ NOT NULL DEFAULT now(),
-      updated_at                 TIMESTAMPTZ NOT NULL DEFAULT now()
-    )
-  `;
-
-  await sql`ALTER TABLE bids ADD COLUMN IF NOT EXISTS id TEXT DEFAULT gen_random_uuid()::text`;
-  await sql`ALTER TABLE bids ADD COLUMN IF NOT EXISTS bounty_id TEXT`;
-  await sql`ALTER TABLE bids ADD COLUMN IF NOT EXISTS helper_id TEXT`;
-  await sql`ALTER TABLE bids ADD COLUMN IF NOT EXISTS amount NUMERIC`;
-  await sql`ALTER TABLE bids ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'NGN'`;
-  await sql`ALTER TABLE bids ADD COLUMN IF NOT EXISTS message TEXT`;
-  await sql`ALTER TABLE bids ADD COLUMN IF NOT EXISTS estimated_delivery_minutes INTEGER DEFAULT 60`;
-  await sql`ALTER TABLE bids ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'PENDING'`;
-  await sql`ALTER TABLE bids ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()`;
-  await sql`ALTER TABLE bids ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now()`;
-
-  await sql`
-    CREATE INDEX IF NOT EXISTS bids_bounty_created_idx
-    ON bids (bounty_id, created_at DESC)
-    WHERE bounty_id IS NOT NULL
-  `;
-
-  await sql`
-    CREATE UNIQUE INDEX IF NOT EXISTS bids_open_helper_unique_idx
-    ON bids (bounty_id, helper_id)
-    WHERE status IN ('PENDING', 'ACCEPTED')
-      AND bounty_id IS NOT NULL
-      AND helper_id IS NOT NULL
-  `;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS conversations (
-      id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-      user_one_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      user_two_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      bounty_id   TEXT REFERENCES bounties(id) ON DELETE SET NULL,
-      created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-      updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
-    )
-  `;
-
-  await sql`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS id TEXT DEFAULT gen_random_uuid()::text`;
-  await sql`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS user_one_id TEXT`;
-  await sql`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS user_two_id TEXT`;
-  await sql`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS bounty_id TEXT`;
-  await sql`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()`;
-  await sql`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now()`;
-
-  await sql`
-    CREATE INDEX IF NOT EXISTS conversations_direct_lookup_idx
-    ON conversations (
-      LEAST(user_one_id, user_two_id),
-      GREATEST(user_one_id, user_two_id),
-      COALESCE(bounty_id, '')
-    )
-    WHERE user_one_id IS NOT NULL
-      AND user_two_id IS NOT NULL
-  `;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS conversation_messages (
-      id              TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-      conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-      sender_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      type            TEXT NOT NULL DEFAULT 'TEXT',
-      content         TEXT NOT NULL,
-      read            BOOLEAN NOT NULL DEFAULT false,
-      created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
-    )
-  `;
-
-  await sql`ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS id TEXT DEFAULT gen_random_uuid()::text`;
-  await sql`ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS conversation_id TEXT`;
-  await sql`ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS sender_id TEXT`;
-  await sql`ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'TEXT'`;
-  await sql`ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS content TEXT`;
-  await sql`ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS read BOOLEAN DEFAULT false`;
-  await sql`ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()`;
-  await sql`ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ`;
-  await sql`ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ`;
-  await sql`ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS deleted_by TEXT`;
-
-  await sql`
-    CREATE INDEX IF NOT EXISTS conversation_messages_conversation_idx
-    ON conversation_messages (conversation_id, created_at)
-  `;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS conversation_deletions (
-      conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-      user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      deleted_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-      PRIMARY KEY (conversation_id, user_id)
-    )
-  `;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS user_blocks (
-      id         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-      blocker_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      blocked_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      UNIQUE (blocker_id, blocked_id)
-    )
-  `;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS notifications (
-      id         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-      user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      type       TEXT NOT NULL,
-      title      TEXT NOT NULL,
-      body       TEXT NOT NULL,
-      avatar_url TEXT,
-      href       TEXT,
-      read       BOOLEAN NOT NULL DEFAULT false,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    )
-  `;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS reviews (
-      id         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-      bounty_id  TEXT NOT NULL REFERENCES bounties(id) ON DELETE CASCADE,
-      author_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      target_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      rating     INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
-      comment    TEXT NOT NULL,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      UNIQUE (bounty_id, author_id)
-    )
-  `;
-
-  await sql`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS id TEXT DEFAULT gen_random_uuid()::text`;
-  await sql`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS bounty_id TEXT`;
-  await sql`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS author_id TEXT`;
-  await sql`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS target_id TEXT`;
-  await sql`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS rating INTEGER`;
-  await sql`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS comment TEXT`;
-  await sql`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()`;
-  await sql`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now()`;
-  await sql`
-    CREATE UNIQUE INDEX IF NOT EXISTS reviews_bounty_author_unique_idx
-    ON reviews (bounty_id, author_id)
-    WHERE bounty_id IS NOT NULL
-      AND author_id IS NOT NULL
-  `;
-  await sql`
-    CREATE INDEX IF NOT EXISTS reviews_target_created_idx
-    ON reviews (target_id, created_at DESC)
-    WHERE target_id IS NOT NULL
-  `;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS user_presence (
-      user_id    TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-      status     TEXT NOT NULL DEFAULT 'OFFLINE',
-      last_seen  TIMESTAMPTZ NOT NULL DEFAULT now(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    )
-  `;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS conversation_typing (
-      conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-      user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      is_typing       BOOLEAN NOT NULL DEFAULT false,
-      updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-      PRIMARY KEY (conversation_id, user_id)
-    )
-  `;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS push_subscriptions (
-      id         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-      user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      endpoint   TEXT NOT NULL,
-      p256dh     TEXT NOT NULL,
-      auth       TEXT NOT NULL,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-      UNIQUE (user_id, endpoint)
-    )
-  `;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS message_reports (
-      id               TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-      conversation_id  TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-      reporter_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      reported_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      message_id       TEXT,
-      reason           TEXT NOT NULL,
-      created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
-    )
-  `;
+  // Run npm run db:migrate before serving database-backed requests.
 }
 
 function normaliseNullable(value?: string | null) {
@@ -947,7 +717,9 @@ async function getBidsForBountyIds(bountyIds: string[]): Promise<DbBid[]> {
   return rows as DbBid[];
 }
 
-async function attachBidsToBounties<T extends DbBounty>(bounties: T[]): Promise<T[]> {
+async function attachBidsToBounties<T extends DbBounty>(
+  bounties: T[],
+): Promise<T[]> {
   const bids = await getBidsForBountyIds(bounties.map((b) => b.id));
   return bounties.map((bounty) => ({
     ...bounty,
@@ -958,7 +730,7 @@ async function attachBidsToBounties<T extends DbBounty>(bounties: T[]): Promise<
 function localConversationToDb(
   store: LocalStore,
   currentUserId: string,
-  conversation: LocalStore["conversations"][number]
+  conversation: LocalStore["conversations"][number],
 ): DbConversation {
   const participants = [conversation.user_one_id, conversation.user_two_id]
     .map((id) => store.users.find((user) => user.id === id))
@@ -966,11 +738,18 @@ function localConversationToDb(
   participants.sort((a) => (a.id === currentUserId ? -1 : 1));
   const messages = store.conversation_messages
     .filter((message) => message.conversation_id === conversation.id)
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    .sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
   const last = messages[0];
-  const sender = last ? store.users.find((user) => user.id === last.sender_id) : null;
+  const sender = last
+    ? store.users.find((user) => user.id === last.sender_id)
+    : null;
   const bounty = conversation.bounty_id
-    ? store.bounties.find((candidate) => candidate.id === conversation.bounty_id)
+    ? store.bounties.find(
+        (candidate) => candidate.id === conversation.bounty_id,
+      )
     : null;
 
   return {
@@ -1000,7 +779,7 @@ function localConversationToDb(
       (message) =>
         message.conversation_id === conversation.id &&
         message.sender_id !== currentUserId &&
-        !message.read
+        !message.read,
     ).length,
     created_at: conversation.created_at,
     updated_at: conversation.updated_at,
@@ -1009,38 +788,44 @@ function localConversationToDb(
 
 async function getLocalConversationRows(
   currentUserId: string,
-  conversationId?: string
+  conversationId?: string,
 ): Promise<DbConversation[]> {
   const store = await readLocalStore();
   const deleted = new Set(
     store.conversation_deletions
       .filter((entry) => entry.user_id === currentUserId)
-      .map((entry) => entry.conversation_id)
+      .map((entry) => entry.conversation_id),
   );
   const blockedByMe = new Set(
     store.user_blocks
       .filter((entry) => entry.blocker_id === currentUserId)
-      .map((entry) => entry.blocked_id)
+      .map((entry) => entry.blocked_id),
   );
   const blockedByOther = new Set(
     store.user_blocks
       .filter((entry) => entry.blocked_id === currentUserId)
-      .map((entry) => entry.blocker_id)
+      .map((entry) => entry.blocker_id),
   );
   return store.conversations
     .filter((conversation) =>
-      conversationId ? conversation.id === conversationId : true
+      conversationId ? conversation.id === conversationId : true,
     )
     .filter((conversation) => !deleted.has(conversation.id))
     .filter(
       (conversation) =>
         conversation.user_one_id === currentUserId ||
-        conversation.user_two_id === currentUserId
+        conversation.user_two_id === currentUserId,
     )
-    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+    .sort(
+      (a, b) =>
+        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+    )
     .map((conversation) => {
       const row = localConversationToDb(store, currentUserId, conversation);
-      const otherId = conversation.user_one_id === currentUserId ? conversation.user_two_id : conversation.user_one_id;
+      const otherId =
+        conversation.user_one_id === currentUserId
+          ? conversation.user_two_id
+          : conversation.user_one_id;
       return {
         ...row,
         blocked_by_me: blockedByMe.has(otherId),
@@ -1051,7 +836,7 @@ async function getLocalConversationRows(
 
 async function getConversationRows(
   currentUserId: string,
-  conversationId?: string
+  conversationId?: string,
 ): Promise<DbConversation[]> {
   await initDb();
   if (usingLocalDb()) {
@@ -1088,8 +873,12 @@ async function getConversationRows(
     FROM user_blocks
     WHERE blocked_id = ${currentUserId}
   `;
-  const blockedByMe = new Set((blockedByMeRows as { blocked_id: string }[]).map((r) => r.blocked_id));
-  const blockedByOther = new Set((blockedByOtherRows as { blocker_id: string }[]).map((r) => r.blocker_id));
+  const blockedByMe = new Set(
+    (blockedByMeRows as { blocked_id: string }[]).map((r) => r.blocked_id),
+  );
+  const blockedByOther = new Set(
+    (blockedByOtherRows as { blocker_id: string }[]).map((r) => r.blocker_id),
+  );
 
   return Promise.all(
     rows.map(async (row) => {
@@ -1147,16 +936,17 @@ async function getConversationRows(
       return {
         ...row,
         participants: participants as DbUser[],
-        last_message: (messages[0] as DbConversationMessage | undefined) ?? null,
+        last_message:
+          (messages[0] as DbConversationMessage | undefined) ?? null,
         unread_count: Number(unreadRows[0]?.count ?? 0),
         blocked_by_me: blockedByMe.has(
-          row.user_one_id === currentUserId ? row.user_two_id : row.user_one_id
+          row.user_one_id === currentUserId ? row.user_two_id : row.user_one_id,
         ),
         blocked_by_other: blockedByOther.has(
-          row.user_one_id === currentUserId ? row.user_two_id : row.user_one_id
+          row.user_one_id === currentUserId ? row.user_two_id : row.user_one_id,
         ),
       } as DbConversation;
-    })
+    }),
   );
 }
 
@@ -1242,7 +1032,10 @@ export async function getHelpers(query?: string): Promise<DbUser[]> {
           .some((value) => String(value).toLowerCase().includes(search));
       })
       .map((user) => localWithHelperMetrics(store, user))
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      )
       .slice(0, 50);
   }
 
@@ -1315,19 +1108,22 @@ export async function getHelpers(query?: string): Promise<DbUser[]> {
   return rows as DbUser[];
 }
 
-export async function getBounties(filters: {
-  category?: string;
-  status?: string;
-  query?: string;
-  seekerId?: string;
-  helperId?: string;
-  limit?: number;
-  includeBids?: boolean;
-} = {}): Promise<DbBounty[]> {
+export async function getBounties(
+  filters: {
+    category?: string;
+    status?: string;
+    query?: string;
+    seekerId?: string;
+    helperId?: string;
+    limit?: number;
+    includeBids?: boolean;
+  } = {},
+): Promise<DbBounty[]> {
   await initDb();
-  const limit = Number.isInteger(filters.limit) && filters.limit && filters.limit > 0
-    ? filters.limit
-    : null;
+  const limit =
+    Number.isInteger(filters.limit) && filters.limit && filters.limit > 0
+      ? filters.limit
+      : null;
   const includeBids = filters.includeBids ?? true;
 
   if (usingLocalDb()) {
@@ -1341,7 +1137,7 @@ export async function getBounties(filters: {
       ? new Set(
           store.bids
             .filter((bid) => bid.helper_id === helperId)
-            .map((bid) => bid.bounty_id)
+            .map((bid) => bid.bounty_id),
         )
       : null;
     const filtered = store.bounties
@@ -1358,7 +1154,10 @@ export async function getBounties(filters: {
           .filter(Boolean)
           .some((value) => String(value).toLowerCase().includes(search));
       })
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      .sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
     const limited = limit ? filtered.slice(0, limit) : filtered;
     const joined = limited.map((bounty) => localJoinBounty(store, bounty));
     if (includeBids) return joined;
@@ -1460,7 +1259,9 @@ export async function getBountyById(id: string): Promise<DbBounty | null> {
   return bounties[0] ?? null;
 }
 
-export async function createBounty(input: CreateBountyInput): Promise<DbBounty> {
+export async function createBounty(
+  input: CreateBountyInput,
+): Promise<DbBounty> {
   await initDb();
   if (usingLocalDb()) {
     const store = await readLocalStore();
@@ -1522,7 +1323,7 @@ export async function createBounty(input: CreateBountyInput): Promise<DbBounty> 
 export async function updateBounty(
   id: string,
   seekerId: string,
-  updates: UpdateBountyInput
+  updates: UpdateBountyInput,
 ): Promise<DbBounty | null> {
   await initDb();
   if (usingLocalDb()) {
@@ -1579,7 +1380,7 @@ export async function deleteBounty(id: string, seekerId: string) {
     const store = await readLocalStore();
     const originalLength = store.bounties.length;
     store.bounties = store.bounties.filter(
-      (bounty) => !(bounty.id === id && bounty.seeker_id === seekerId)
+      (bounty) => !(bounty.id === id && bounty.seeker_id === seekerId),
     );
     if (store.bounties.length === originalLength) return false;
     store.bids = store.bids.filter((bid) => bid.bounty_id !== id);
@@ -1644,20 +1445,29 @@ export async function createBid(input: CreateBidInput): Promise<DbBid | null> {
   await initDb();
   if (usingLocalDb()) {
     const store = await readLocalStore();
-    const bounty = store.bounties.find((candidate) => candidate.id === input.bountyId);
+    const bounty = store.bounties.find(
+      (candidate) => candidate.id === input.bountyId,
+    );
     const helper = store.users.find((user) => user.id === input.helperId);
-    if (!bounty || !helper || helper.role !== "HELPER" || bounty.status !== "OPEN" || bounty.seeker_id === input.helperId) {
+    if (
+      !bounty ||
+      !helper ||
+      helper.role !== "HELPER" ||
+      bounty.status !== "OPEN" ||
+      bounty.seeker_id === input.helperId
+    ) {
       return null;
     }
     const existing = store.bids.find(
       (bid) =>
         bid.bounty_id === input.bountyId &&
         bid.helper_id === input.helperId &&
-        ["PENDING", "ACCEPTED"].includes(bid.status)
+        ["PENDING", "ACCEPTED"].includes(bid.status),
     );
     const now = new Date().toISOString();
     if (existing) {
-      if (existing.status === "ACCEPTED") return localBidWithHelper(store, existing);
+      if (existing.status === "ACCEPTED")
+        return localBidWithHelper(store, existing);
       existing.amount = input.amount;
       existing.currency = bounty.currency;
       existing.message = input.message;
@@ -1701,7 +1511,11 @@ export async function createBid(input: CreateBidInput): Promise<DbBid | null> {
   }
 
   const bounty = await getBountyById(input.bountyId);
-  if (!bounty || bounty.status !== "OPEN" || bounty.seeker_id === input.helperId) {
+  if (
+    !bounty ||
+    bounty.status !== "OPEN" ||
+    bounty.seeker_id === input.helperId
+  ) {
     return null;
   }
 
@@ -1769,14 +1583,26 @@ export async function acceptBid(input: {
   await initDb();
   if (usingLocalDb()) {
     const store = await readLocalStore();
-    const bounty = store.bounties.find((candidate) => candidate.id === input.bountyId);
+    const bounty = store.bounties.find(
+      (candidate) => candidate.id === input.bountyId,
+    );
     const bid = store.bids.find((candidate) => candidate.id === input.bidId);
-    if (!bounty || bounty.seeker_id !== input.seekerId || bounty.status !== "OPEN") return null;
-    if (!bid || bid.bounty_id !== input.bountyId || bid.status !== "PENDING") return null;
+    if (
+      !bounty ||
+      bounty.seeker_id !== input.seekerId ||
+      bounty.status !== "OPEN"
+    )
+      return null;
+    if (!bid || bid.bounty_id !== input.bountyId || bid.status !== "PENDING")
+      return null;
     const now = new Date().toISOString();
     store.bids.forEach((candidate) => {
-      if (candidate.bounty_id === input.bountyId && candidate.status === "PENDING") {
-        candidate.status = candidate.id === input.bidId ? "ACCEPTED" : "REJECTED";
+      if (
+        candidate.bounty_id === input.bountyId &&
+        candidate.status === "PENDING"
+      ) {
+        candidate.status =
+          candidate.id === input.bidId ? "ACCEPTED" : "REJECTED";
         candidate.updated_at = now;
       }
     });
@@ -1786,39 +1612,9 @@ export async function acceptBid(input: {
     return localBidWithHelper(store, bid);
   }
 
-  const bounty = await getBountyById(input.bountyId);
-  if (!bounty || bounty.seeker_id !== input.seekerId || bounty.status !== "OPEN") {
-    return null;
-  }
-
-  const bid = await getBidById(input.bidId);
-  if (!bid || bid.bounty_id !== input.bountyId || bid.status !== "PENDING") {
-    return null;
-  }
-
-  await sql`
-    UPDATE bids
-    SET status = 'REJECTED', updated_at = now()
-    WHERE bounty_id = ${input.bountyId}
-      AND id != ${input.bidId}
-      AND status = 'PENDING'
-  `;
-
-  await sql`
-    UPDATE bids
-    SET status = 'ACCEPTED', updated_at = now()
-    WHERE id = ${input.bidId}
-      AND bounty_id = ${input.bountyId}
-  `;
-
-  await sql`
-    UPDATE bounties
-    SET status = 'IN_PROGRESS', updated_at = now()
-    WHERE id = ${input.bountyId}
-      AND seeker_id = ${input.seekerId}
-  `;
-
-  return getBidById(input.bidId);
+  const rows =
+    await sql`SELECT accept_order(${input.bountyId}, ${input.bidId}, ${input.seekerId}) AS id`;
+  return rows[0]?.id ? getBidById(rows[0].id) : null;
 }
 
 export async function completeBounty(input: {
@@ -1828,11 +1624,15 @@ export async function completeBounty(input: {
   await initDb();
   if (usingLocalDb()) {
     const store = await readLocalStore();
-    const bounty = store.bounties.find((candidate) => candidate.id === input.bountyId);
+    const bounty = store.bounties.find(
+      (candidate) => candidate.id === input.bountyId,
+    );
     if (
       !bounty ||
       bounty.seeker_id !== input.seekerId ||
-      !["IN_PROGRESS", "AWAITING_APPROVAL", "INCOMPLETE"].includes(bounty.status)
+      !["IN_PROGRESS", "AWAITING_APPROVAL", "INCOMPLETE"].includes(
+        bounty.status,
+      )
     ) {
       return null;
     }
@@ -1840,7 +1640,7 @@ export async function completeBounty(input: {
     const acceptedBid = store.bids.find(
       (candidate) =>
         candidate.bounty_id === input.bountyId &&
-        candidate.status === "ACCEPTED"
+        candidate.status === "ACCEPTED",
     );
     if (!acceptedBid) {
       return null;
@@ -1906,13 +1706,20 @@ export async function cancelBounty(input: {
   await initDb();
   if (usingLocalDb()) {
     const store = await readLocalStore();
-    const bounty = store.bounties.find((candidate) => candidate.id === input.bountyId);
-    if (!bounty || bounty.seeker_id !== input.seekerId || bounty.status !== "OPEN") {
+    const bounty = store.bounties.find(
+      (candidate) => candidate.id === input.bountyId,
+    );
+    if (
+      !bounty ||
+      bounty.seeker_id !== input.seekerId ||
+      bounty.status !== "OPEN"
+    ) {
       return null;
     }
     const acceptedBid = store.bids.find(
       (candidate) =>
-        candidate.bounty_id === input.bountyId && candidate.status === "ACCEPTED"
+        candidate.bounty_id === input.bountyId &&
+        candidate.status === "ACCEPTED",
     );
     if (acceptedBid) return null;
 
@@ -1923,11 +1730,14 @@ export async function cancelBounty(input: {
       new Set(
         store.bids
           .filter((candidate) => candidate.bounty_id === input.bountyId)
-          .map((candidate) => candidate.helper_id)
-      )
+          .map((candidate) => candidate.helper_id),
+      ),
     );
     store.bids.forEach((candidate) => {
-      if (candidate.bounty_id === input.bountyId && candidate.status === "PENDING") {
+      if (
+        candidate.bounty_id === input.bountyId &&
+        candidate.status === "PENDING"
+      ) {
         candidate.status = "WITHDRAWN";
         candidate.updated_at = now;
       }
@@ -1937,7 +1747,11 @@ export async function cancelBounty(input: {
   }
 
   const bounty = await getBountyById(input.bountyId);
-  if (!bounty || bounty.seeker_id !== input.seekerId || bounty.status !== "OPEN") {
+  if (
+    !bounty ||
+    bounty.seeker_id !== input.seekerId ||
+    bounty.status !== "OPEN"
+  ) {
     return null;
   }
   const acceptedBidRows = await sql`
@@ -1985,7 +1799,9 @@ export async function markBountyIncomplete(input: {
   await initDb();
   if (usingLocalDb()) {
     const store = await readLocalStore();
-    const bounty = store.bounties.find((candidate) => candidate.id === input.bountyId);
+    const bounty = store.bounties.find(
+      (candidate) => candidate.id === input.bountyId,
+    );
     if (
       !bounty ||
       bounty.seeker_id !== input.seekerId ||
@@ -2041,14 +1857,14 @@ export async function markBountyIncomplete(input: {
 
 export async function getReviewByBountyAndAuthor(
   bountyId: string,
-  authorId: string
+  authorId: string,
 ): Promise<DbReview | null> {
   await initDb();
   if (usingLocalDb()) {
     const store = await readLocalStore();
     const review = store.reviews.find(
       (candidate) =>
-        candidate.bounty_id === bountyId && candidate.author_id === authorId
+        candidate.bounty_id === bountyId && candidate.author_id === authorId,
     );
     if (!review) return null;
     const author = store.users.find((candidate) => candidate.id === authorId);
@@ -2093,7 +1909,8 @@ export async function createOrUpdateBountyReview(input: {
     const now = new Date().toISOString();
     const existing = store.reviews.find(
       (candidate) =>
-        candidate.bounty_id === input.bountyId && candidate.author_id === input.authorId
+        candidate.bounty_id === input.bountyId &&
+        candidate.author_id === input.authorId,
     );
     if (existing) {
       existing.target_id = input.targetId;
@@ -2140,7 +1957,7 @@ export async function createOrUpdateBountyReview(input: {
 
 export async function listHelperInteractionHistory(
   helperId: string,
-  limit = 25
+  limit = 25,
 ): Promise<DbHelperInteractionHistoryRow[]> {
   await initDb();
   if (usingLocalDb()) {
@@ -2148,13 +1965,15 @@ export async function listHelperInteractionHistory(
     return store.bids
       .filter((bid) => bid.helper_id === helperId && bid.status === "ACCEPTED")
       .map((bid) => {
-        const bounty = store.bounties.find((candidate) => candidate.id === bid.bounty_id);
+        const bounty = store.bounties.find(
+          (candidate) => candidate.id === bid.bounty_id,
+        );
         if (!bounty) return null;
         const review = store.reviews.find(
           (candidate) =>
             candidate.bounty_id === bid.bounty_id &&
             candidate.target_id === helperId &&
-            candidate.author_id === bounty.seeker_id
+            candidate.author_id === bounty.seeker_id,
         );
         return {
           bounty_id: bounty.id,
@@ -2174,7 +1993,8 @@ export async function listHelperInteractionHistory(
       .filter((row): row is DbHelperInteractionHistoryRow => Boolean(row))
       .sort(
         (a, b) =>
-          new Date(b.interacted_at).getTime() - new Date(a.interacted_at).getTime()
+          new Date(b.interacted_at).getTime() -
+          new Date(a.interacted_at).getTime(),
       )
       .slice(0, limit);
   }
@@ -2215,13 +2035,15 @@ export async function canContactAcceptedBidder(input: {
   await initDb();
   if (usingLocalDb()) {
     const store = await readLocalStore();
-    const bounty = store.bounties.find((candidate) => candidate.id === input.bountyId);
+    const bounty = store.bounties.find(
+      (candidate) => candidate.id === input.bountyId,
+    );
     if (!bounty || bounty.seeker_id !== input.seekerId) return false;
     return store.bids.some(
       (bid) =>
         bid.bounty_id === input.bountyId &&
         bid.helper_id === input.helperId &&
-        bid.status === "ACCEPTED"
+        bid.status === "ACCEPTED",
     );
   }
 
@@ -2241,37 +2063,14 @@ export async function canContactAcceptedBidder(input: {
 }
 
 export async function getConversationsForUser(
-  userId: string
+  userId: string,
 ): Promise<DbConversation[]> {
-  const rows = await getConversationRows(userId);
-  const latestByPair = new Map<string, DbConversation>();
-
-  for (const row of rows) {
-    const key =
-      row.user_one_id < row.user_two_id
-        ? `${row.user_one_id}:${row.user_two_id}`
-        : `${row.user_two_id}:${row.user_one_id}`;
-    const existing = latestByPair.get(key);
-    if (!existing) {
-      latestByPair.set(key, { ...row });
-      continue;
-    }
-    const unreadCount = existing.unread_count + row.unread_count;
-    if (new Date(row.updated_at).getTime() > new Date(existing.updated_at).getTime()) {
-      latestByPair.set(key, { ...row, unread_count: unreadCount });
-      continue;
-    }
-    existing.unread_count = unreadCount;
-  }
-
-  return Array.from(latestByPair.values()).sort(
-    (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-  );
+  return getConversationRows(userId);
 }
 
 export async function getConversationForUser(
   conversationId: string,
-  userId: string
+  userId: string,
 ): Promise<DbConversation | null> {
   const rows = await getConversationRows(userId, conversationId);
   return rows[0] ?? null;
@@ -2293,16 +2092,20 @@ export async function getOrCreateDirectConversation(input: {
       .filter(
         (conversation) =>
           conversation.user_one_id === userOneId &&
-          conversation.user_two_id === userTwoId
+          conversation.user_two_id === userTwoId &&
+          (conversation.bounty_id ?? null) === (input.bountyId ?? null),
       )
-      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
+      .sort(
+        (a, b) =>
+          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+      )[0];
     if (existing) return existing.id;
     const now = new Date().toISOString();
     const conversation = {
       id: uid("conv"),
       user_one_id: userOneId,
       user_two_id: userTwoId,
-      bounty_id: null,
+      bounty_id: input.bountyId ?? null,
       created_at: now,
       updated_at: now,
     };
@@ -2315,47 +2118,45 @@ export async function getOrCreateDirectConversation(input: {
     input.userId < input.otherUserId
       ? [input.userId, input.otherUserId]
       : [input.otherUserId, input.userId];
-  const rows = await sql`
-    WITH pair_lock AS (
-      SELECT pg_advisory_xact_lock(hashtext(${userOneId}), hashtext(${userTwoId}))
-    ),
-    existing AS (
-      SELECT id
-      FROM conversations
-      WHERE user_one_id = ${userOneId}
-        AND user_two_id = ${userTwoId}
-      ORDER BY updated_at DESC
-      LIMIT 1
-    ),
-    inserted AS (
-      INSERT INTO conversations (user_one_id, user_two_id, bounty_id)
-      SELECT ${userOneId}, ${userTwoId}, NULL
-      WHERE NOT EXISTS (SELECT 1 FROM existing)
-      RETURNING id
-    )
-    SELECT id FROM inserted
-    UNION ALL
-    SELECT id FROM existing
-    LIMIT 1
-  `;
+  const rows =
+    await sql`SELECT direct_conversation(${userOneId},${userTwoId},${input.bountyId ?? null}) AS id`;
 
   return rows[0].id;
 }
 
 export async function listMessagesForConversation(
   conversationId: string,
-  userId: string
+  userId: string,
+  before?: string,
 ): Promise<DbConversationMessage[]> {
   await initDb();
   if (usingLocalDb()) {
     const store = await readLocalStore();
     const conversation = await getConversationForUser(conversationId, userId);
     if (!conversation) return [];
+    const cursor = before
+      ? store.conversation_messages.find(
+          (m) => m.id === before && m.conversation_id === conversationId,
+        )
+      : null;
     return store.conversation_messages
-      .filter((message) => message.conversation_id === conversationId)
-      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      .filter(
+        (message) =>
+          message.conversation_id === conversationId &&
+          (!cursor ||
+            message.created_at < cursor.created_at ||
+            (message.created_at === cursor.created_at &&
+              message.id < cursor.id)),
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      )
+      .slice(-50)
       .map((message) => {
-        const sender = store.users.find((user) => user.id === message.sender_id);
+        const sender = store.users.find(
+          (user) => user.id === message.sender_id,
+        );
         return {
           ...message,
           sender_name: sender?.name ?? "KinSous",
@@ -2388,15 +2189,16 @@ export async function listMessagesForConversation(
     FROM conversation_messages m
     JOIN users u ON u.id = m.sender_id
     WHERE m.conversation_id = ${conversationId}
-    ORDER BY m.created_at ASC
+      AND (${before ?? null}::text IS NULL OR (m.created_at,m.id) < (SELECT created_at,id FROM conversation_messages WHERE id=${before ?? null} AND conversation_id=${conversationId}))
+    ORDER BY m.created_at DESC, m.id DESC
   `;
 
-  return rows as DbConversationMessage[];
+  return (rows as DbConversationMessage[]).reverse();
 }
 
 export async function markConversationRead(
   conversationId: string,
-  userId: string
+  userId: string,
 ) {
   await initDb();
   if (usingLocalDb()) {
@@ -2404,7 +2206,10 @@ export async function markConversationRead(
     const conversation = await getConversationForUser(conversationId, userId);
     if (!conversation) return;
     store.conversation_messages.forEach((message) => {
-      if (message.conversation_id === conversationId && message.sender_id !== userId) {
+      if (
+        message.conversation_id === conversationId &&
+        message.sender_id !== userId
+      ) {
         message.read = true;
       }
     });
@@ -2428,6 +2233,7 @@ export async function sendConversationMessage(input: {
   senderId: string;
   type: "TEXT" | "IMAGE" | "SYSTEM";
   content: string;
+  clientId?: string;
 }): Promise<DbConversationMessage | null> {
   await initDb();
   if (usingLocalDb()) {
@@ -2435,20 +2241,45 @@ export async function sendConversationMessage(input: {
     const conversation = store.conversations.find(
       (candidate) =>
         candidate.id === input.conversationId &&
-        (candidate.user_one_id === input.senderId || candidate.user_two_id === input.senderId)
+        (candidate.user_one_id === input.senderId ||
+          candidate.user_two_id === input.senderId),
     );
     if (!conversation) return null;
     const otherId =
-      conversation.user_one_id === input.senderId ? conversation.user_two_id : conversation.user_one_id;
+      conversation.user_one_id === input.senderId
+        ? conversation.user_two_id
+        : conversation.user_one_id;
     const blocked = store.user_blocks.some(
       (entry) =>
         (entry.blocker_id === input.senderId && entry.blocked_id === otherId) ||
-        (entry.blocker_id === otherId && entry.blocked_id === input.senderId)
+        (entry.blocker_id === otherId && entry.blocked_id === input.senderId),
     );
     if (blocked) return null;
+    const previous = input.clientId
+      ? store.conversation_messages.find(
+          (m) =>
+            m.sender_id === input.senderId && m.client_id === input.clientId,
+        )
+      : null;
+    if (previous) {
+      if (
+        previous.conversation_id !== input.conversationId ||
+        previous.content !== input.content ||
+        previous.type !== input.type
+      )
+        return null;
+      const sender = store.users.find((u) => u.id === input.senderId);
+      return {
+        ...previous,
+        sender_name: sender?.name ?? "KinSous",
+        sender_avatar_url: sender?.avatar_url ?? null,
+        wasDuplicate: true,
+      };
+    }
     const now = new Date().toISOString();
     const message = {
       id: uid("msg"),
+      client_id: input.clientId,
       conversation_id: input.conversationId,
       sender_id: input.senderId,
       type: input.type,
@@ -2472,7 +2303,7 @@ export async function sendConversationMessage(input: {
 
   const conversation = await getConversationForUser(
     input.conversationId,
-    input.senderId
+    input.senderId,
   );
   if (!conversation) return null;
   if (conversation.blocked_by_me || conversation.blocked_by_other) return null;
@@ -2483,16 +2314,17 @@ export async function sendConversationMessage(input: {
       sender_id,
       type,
       content,
-      read
+      read, client_id
     )
     VALUES (
       ${input.conversationId},
       ${input.senderId},
       ${input.type},
       ${input.content},
-      ${input.type === "SYSTEM"}
+      ${input.type === "SYSTEM"}, ${input.clientId ?? null}
     )
-    RETURNING id
+    ON CONFLICT (sender_id,client_id) WHERE client_id IS NOT NULL DO UPDATE SET client_id=EXCLUDED.client_id
+    RETURNING id, (xmax <> 0) AS duplicate
   `;
 
   await sql`
@@ -2521,7 +2353,15 @@ export async function sendConversationMessage(input: {
     LIMIT 1
   `;
 
-  return (messages[0] as DbConversationMessage | undefined) ?? null;
+  const message = messages[0] as DbConversationMessage | undefined;
+  if (
+    !message ||
+    message.conversation_id !== input.conversationId ||
+    message.content !== input.content ||
+    message.type !== input.type
+  )
+    return null;
+  return { ...message, wasDuplicate: Boolean(rows[0].duplicate) };
 }
 
 export async function updateConversationMessage(input: {
@@ -2537,7 +2377,7 @@ export async function updateConversationMessage(input: {
       (candidate) =>
         candidate.id === input.messageId &&
         candidate.conversation_id === input.conversationId &&
-        candidate.sender_id === input.userId
+        candidate.sender_id === input.userId,
     );
     if (!message || message.deleted_at) return null;
     const now = new Date().toISOString();
@@ -2556,7 +2396,10 @@ export async function updateConversationMessage(input: {
     };
   }
 
-  const conversation = await getConversationForUser(input.conversationId, input.userId);
+  const conversation = await getConversationForUser(
+    input.conversationId,
+    input.userId,
+  );
   if (!conversation) return null;
 
   const rows = await sql`
@@ -2606,7 +2449,7 @@ export async function deleteConversationMessage(input: {
       (candidate) =>
         candidate.id === input.messageId &&
         candidate.conversation_id === input.conversationId &&
-        candidate.sender_id === input.userId
+        candidate.sender_id === input.userId,
     );
     if (!message || message.deleted_at) return null;
     const now = new Date().toISOString();
@@ -2625,7 +2468,10 @@ export async function deleteConversationMessage(input: {
     };
   }
 
-  const conversation = await getConversationForUser(input.conversationId, input.userId);
+  const conversation = await getConversationForUser(
+    input.conversationId,
+    input.userId,
+  );
   if (!conversation) return null;
 
   const rows = await sql`
@@ -2665,13 +2511,14 @@ export async function deleteConversationMessage(input: {
 
 export async function deleteConversationForUser(
   conversationId: string,
-  userId: string
+  userId: string,
 ) {
   await initDb();
   if (usingLocalDb()) {
     const store = await readLocalStore();
     const existing = store.conversation_deletions.find(
-      (entry) => entry.conversation_id === conversationId && entry.user_id === userId
+      (entry) =>
+        entry.conversation_id === conversationId && entry.user_id === userId,
     );
     if (!existing) {
       store.conversation_deletions.push({
@@ -2697,7 +2544,8 @@ export async function blockUser(blockerId: string, blockedId: string) {
   if (usingLocalDb()) {
     const store = await readLocalStore();
     const exists = store.user_blocks.some(
-      (entry) => entry.blocker_id === blockerId && entry.blocked_id === blockedId
+      (entry) =>
+        entry.blocker_id === blockerId && entry.blocked_id === blockedId,
     );
     if (!exists) {
       store.user_blocks.push({
@@ -2723,7 +2571,8 @@ export async function unblockUser(blockerId: string, blockedId: string) {
   if (usingLocalDb()) {
     const store = await readLocalStore();
     store.user_blocks = store.user_blocks.filter(
-      (entry) => !(entry.blocker_id === blockerId && entry.blocked_id === blockedId)
+      (entry) =>
+        !(entry.blocker_id === blockerId && entry.blocked_id === blockedId),
     );
     await writeLocalStore(store);
     return;
@@ -2741,10 +2590,12 @@ export async function getBlockStatus(userId: string, otherUserId: string) {
   if (usingLocalDb()) {
     const store = await readLocalStore();
     const blockedByMe = store.user_blocks.some(
-      (entry) => entry.blocker_id === userId && entry.blocked_id === otherUserId
+      (entry) =>
+        entry.blocker_id === userId && entry.blocked_id === otherUserId,
     );
     const blockedByOther = store.user_blocks.some(
-      (entry) => entry.blocker_id === otherUserId && entry.blocked_id === userId
+      (entry) =>
+        entry.blocker_id === otherUserId && entry.blocked_id === userId,
     );
     return { blockedByMe, blockedByOther };
   }
@@ -2756,10 +2607,10 @@ export async function getBlockStatus(userId: string, otherUserId: string) {
        OR (blocker_id = ${otherUserId} AND blocked_id = ${userId})
   `) as { blocker_id: string; blocked_id: string }[];
   const blockedByMe = rows.some(
-    (row) => row.blocker_id === userId && row.blocked_id === otherUserId
+    (row) => row.blocker_id === userId && row.blocked_id === otherUserId,
   );
   const blockedByOther = rows.some(
-    (row) => row.blocker_id === otherUserId && row.blocked_id === userId
+    (row) => row.blocker_id === otherUserId && row.blocked_id === userId,
   );
   return { blockedByMe, blockedByOther };
 }
@@ -2805,18 +2656,22 @@ export async function reportConversationMessage(input: {
   `;
 }
 
-export async function listConversationIdsForUser(userId: string): Promise<string[]> {
+export async function listConversationIdsForUser(
+  userId: string,
+): Promise<string[]> {
   await initDb();
   if (usingLocalDb()) {
     const store = await readLocalStore();
     const deleted = new Set(
       store.conversation_deletions
         .filter((entry) => entry.user_id === userId)
-        .map((entry) => entry.conversation_id)
+        .map((entry) => entry.conversation_id),
     );
     return store.conversations
-      .filter((conversation) =>
-        conversation.user_one_id === userId || conversation.user_two_id === userId
+      .filter(
+        (conversation) =>
+          conversation.user_one_id === userId ||
+          conversation.user_two_id === userId,
       )
       .filter((conversation) => !deleted.has(conversation.id))
       .map((conversation) => conversation.id);
@@ -2892,13 +2747,18 @@ export async function createNotification(input: {
   return rows[0] as DbNotification;
 }
 
-export async function listNotificationsForUser(userId: string): Promise<DbNotification[]> {
+export async function listNotificationsForUser(
+  userId: string,
+): Promise<DbNotification[]> {
   await initDb();
   if (usingLocalDb()) {
     const store = await readLocalStore();
     return store.notifications
       .filter((notification) => notification.user_id === userId)
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      .sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
   }
 
   const rows = await sql`
@@ -2920,12 +2780,15 @@ export async function listNotificationsForUser(userId: string): Promise<DbNotifi
   return rows as DbNotification[];
 }
 
-export async function markNotificationRead(userId: string, notificationId: string) {
+export async function markNotificationRead(
+  userId: string,
+  notificationId: string,
+) {
   await initDb();
   if (usingLocalDb()) {
     const store = await readLocalStore();
     const notification = store.notifications.find(
-      (entry) => entry.id === notificationId && entry.user_id === userId
+      (entry) => entry.id === notificationId && entry.user_id === userId,
     );
     if (notification) {
       notification.read = true;
@@ -2947,7 +2810,7 @@ export async function markAllNotificationsRead(userId: string) {
   if (usingLocalDb()) {
     const store = await readLocalStore();
     store.notifications = store.notifications.map((entry) =>
-      entry.user_id === userId ? { ...entry, read: true } : entry
+      entry.user_id === userId ? { ...entry, read: true } : entry,
     );
     await writeLocalStore(store);
     return;
@@ -2960,12 +2823,15 @@ export async function markAllNotificationsRead(userId: string) {
   `;
 }
 
-export async function dismissNotification(userId: string, notificationId: string) {
+export async function dismissNotification(
+  userId: string,
+  notificationId: string,
+) {
   await initDb();
   if (usingLocalDb()) {
     const store = await readLocalStore();
     store.notifications = store.notifications.filter(
-      (entry) => !(entry.id === notificationId && entry.user_id === userId)
+      (entry) => !(entry.id === notificationId && entry.user_id === userId),
     );
     await writeLocalStore(store);
     return;
@@ -2986,7 +2852,9 @@ export async function upsertUserPresence(input: {
   if (usingLocalDb()) {
     const store = await readLocalStore();
     const now = new Date().toISOString();
-    const existing = store.user_presence.find((entry) => entry.user_id === input.userId);
+    const existing = store.user_presence.find(
+      (entry) => entry.user_id === input.userId,
+    );
     if (existing) {
       existing.status = input.status;
       existing.last_seen = now;
@@ -3021,12 +2889,16 @@ export async function upsertUserPresence(input: {
   return rows[0] as DbUserPresence;
 }
 
-export async function getPresenceForUsers(userIds: string[]): Promise<DbUserPresence[]> {
+export async function getPresenceForUsers(
+  userIds: string[],
+): Promise<DbUserPresence[]> {
   await initDb();
   if (userIds.length === 0) return [];
   if (usingLocalDb()) {
     const store = await readLocalStore();
-    return store.user_presence.filter((entry) => userIds.includes(entry.user_id));
+    return store.user_presence.filter((entry) =>
+      userIds.includes(entry.user_id),
+    );
   }
 
   const rows = await sql`
@@ -3052,7 +2924,8 @@ export async function upsertConversationTyping(input: {
     const now = new Date().toISOString();
     const existing = store.conversation_typing.find(
       (entry) =>
-        entry.conversation_id === input.conversationId && entry.user_id === input.userId
+        entry.conversation_id === input.conversationId &&
+        entry.user_id === input.userId,
     );
     if (existing) {
       existing.is_typing = input.isTyping;
@@ -3086,7 +2959,9 @@ export async function upsertConversationTyping(input: {
   return rows[0] as DbConversationTyping;
 }
 
-export async function listTypingForConversation(conversationId: string): Promise<DbConversationTyping[]> {
+export async function listTypingForConversation(
+  conversationId: string,
+): Promise<DbConversationTyping[]> {
   await initDb();
   const cutoff = new Date(Date.now() - 1000 * 8).toISOString();
   if (usingLocalDb()) {
@@ -3095,7 +2970,7 @@ export async function listTypingForConversation(conversationId: string): Promise
       (entry) =>
         entry.conversation_id === conversationId &&
         entry.is_typing &&
-        entry.updated_at >= cutoff
+        entry.updated_at >= cutoff,
     );
   }
 
@@ -3124,9 +2999,10 @@ export async function upsertPushSubscription(input: {
     const store = await readLocalStore();
     const now = new Date().toISOString();
     const existing = store.push_subscriptions.find(
-      (entry) => entry.user_id === input.userId && entry.endpoint === input.endpoint
+      (entry) => entry.endpoint === input.endpoint,
     );
     if (existing) {
+      existing.user_id = input.userId;
       existing.p256dh = input.p256dh;
       existing.auth = input.auth;
       existing.updated_at = now;
@@ -3160,8 +3036,8 @@ export async function upsertPushSubscription(input: {
       ${input.p256dh},
       ${input.auth}
     )
-    ON CONFLICT (user_id, endpoint) DO UPDATE
-      SET p256dh = EXCLUDED.p256dh,
+    ON CONFLICT (endpoint) DO UPDATE
+      SET user_id = EXCLUDED.user_id, p256dh = EXCLUDED.p256dh,
           auth = EXCLUDED.auth,
           updated_at = now()
     RETURNING
@@ -3181,7 +3057,7 @@ export async function deletePushSubscription(userId: string, endpoint: string) {
   if (usingLocalDb()) {
     const store = await readLocalStore();
     store.push_subscriptions = store.push_subscriptions.filter(
-      (entry) => !(entry.user_id === userId && entry.endpoint === endpoint)
+      (entry) => !(entry.user_id === userId && entry.endpoint === endpoint),
     );
     await writeLocalStore(store);
     return;
@@ -3194,7 +3070,9 @@ export async function deletePushSubscription(userId: string, endpoint: string) {
   `;
 }
 
-export async function listPushSubscriptions(userId: string): Promise<DbPushSubscription[]> {
+export async function listPushSubscriptions(
+  userId: string,
+): Promise<DbPushSubscription[]> {
   await initDb();
   if (usingLocalDb()) {
     const store = await readLocalStore();

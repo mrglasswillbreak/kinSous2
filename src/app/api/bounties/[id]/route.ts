@@ -1,3 +1,4 @@
+import { publicBounty } from "@/lib/public-data";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { deleteBounty, getBountyById, updateBounty } from "@/lib/db";
@@ -15,7 +16,8 @@ export async function GET(_req: NextRequest, { params }: Props) {
     if (!bounty) {
       return NextResponse.json({ error: "Bounty not found" }, { status: 404 });
     }
-    return NextResponse.json({ bounty });
+    const session = await getSession();
+    return NextResponse.json({ bounty: publicBounty(bounty, session?.userId) });
   } catch (err) {
     console.error("GET /api/bounties/[id] error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
@@ -38,7 +40,7 @@ const ALLOWED_STATUSES = new Set([
   "INCOMPLETE",
   "CANCELLED",
 ]);
-const ALLOWED_CURRENCIES = new Set(["NGN", "USD"]);
+const ALLOWED_CURRENCIES = new Set(["NGN"]);
 
 export async function PATCH(req: NextRequest, { params }: Props) {
   try {
@@ -56,7 +58,17 @@ export async function PATCH(req: NextRequest, { params }: Props) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    if (existing.status !== "OPEN")
+      return NextResponse.json(
+        { error: "Only open bounties can be edited" },
+        { status: 409 },
+      );
     const body = await req.json();
+    if (body.status !== undefined)
+      return NextResponse.json(
+        { error: "Use order actions to change status" },
+        { status: 400 },
+      );
     const updates: {
       title?: string;
       description?: string;
@@ -72,18 +84,29 @@ export async function PATCH(req: NextRequest, { params }: Props) {
 
     if (body.title !== undefined) {
       const title = String(body.title).trim();
-      if (!title) return NextResponse.json({ error: "title cannot be empty" }, { status: 400 });
+      if (!title)
+        return NextResponse.json(
+          { error: "title cannot be empty" },
+          { status: 400 },
+        );
       updates.title = title;
     }
     if (body.description !== undefined) {
       const description = String(body.description).trim();
-      if (!description) return NextResponse.json({ error: "description cannot be empty" }, { status: 400 });
+      if (!description)
+        return NextResponse.json(
+          { error: "description cannot be empty" },
+          { status: 400 },
+        );
       updates.description = description;
     }
     if (body.category !== undefined) {
       const category = String(body.category);
       if (!ALLOWED_CATEGORIES.has(category)) {
-        return NextResponse.json({ error: "Invalid category" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid category" },
+          { status: 400 },
+        );
       }
       updates.category = category;
     }
@@ -97,14 +120,20 @@ export async function PATCH(req: NextRequest, { params }: Props) {
     if (body.budget !== undefined) {
       const budget = Number(body.budget);
       if (!Number.isFinite(budget) || budget <= 0) {
-        return NextResponse.json({ error: "Budget must be greater than 0" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Budget must be greater than 0" },
+          { status: 400 },
+        );
       }
       updates.budget = budget;
     }
     if (body.currency !== undefined) {
       const currency = String(body.currency);
       if (!ALLOWED_CURRENCIES.has(currency)) {
-        return NextResponse.json({ error: "Invalid currency" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid currency" },
+          { status: 400 },
+        );
       }
       updates.currency = currency;
     }
@@ -113,7 +142,11 @@ export async function PATCH(req: NextRequest, { params }: Props) {
     }
     if (body.city !== undefined) {
       const city = String(body.city).trim();
-      if (!city) return NextResponse.json({ error: "city cannot be empty" }, { status: 400 });
+      if (!city)
+        return NextResponse.json(
+          { error: "city cannot be empty" },
+          { status: 400 },
+        );
       updates.city = city;
     }
     if (body.country !== undefined) {
@@ -121,7 +154,10 @@ export async function PATCH(req: NextRequest, { params }: Props) {
     }
     if (body.tags !== undefined) {
       if (!Array.isArray(body.tags)) {
-        return NextResponse.json({ error: "tags must be an array" }, { status: 400 });
+        return NextResponse.json(
+          { error: "tags must be an array" },
+          { status: 400 },
+        );
       }
       updates.tags = (body.tags as unknown[])
         .map((t: unknown) => String(t).trim())
@@ -129,7 +165,10 @@ export async function PATCH(req: NextRequest, { params }: Props) {
     }
 
     if (Object.keys(updates).length === 0) {
-      return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
+      return NextResponse.json(
+        { error: "No valid fields to update" },
+        { status: 400 },
+      );
     }
 
     const bounty = await updateBounty(id, session.userId, updates);

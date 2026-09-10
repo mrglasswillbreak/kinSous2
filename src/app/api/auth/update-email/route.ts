@@ -1,7 +1,8 @@
+import { sendAccountLink } from "@/lib/email";
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { initDb, sql } from "@/lib/db";
-import { getSession, setSessionCookie } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
     if (!password || !newEmail) {
       return NextResponse.json(
         { error: "Password and new email are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
     if (!EMAIL_REGEX.test(normalised)) {
       return NextResponse.json(
         { error: "Please enter a valid email address" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
     if (!valid) {
       return NextResponse.json(
         { error: "Password is incorrect" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -54,25 +55,15 @@ export async function POST(req: NextRequest) {
     if (existing.length > 0) {
       return NextResponse.json(
         { error: "This email is already in use" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
-    await sql`
-      UPDATE users SET email = ${normalised} WHERE id = ${session.userId}
-    `;
-
-    // Refresh session with updated email
-    await setSessionCookie({
-      userId: session.userId,
-      email: normalised,
-      phone: user.phone ?? session.phone ?? null,
-      name: user.name,
-      role: user.role,
-      exp: Date.now() + 1000 * 60 * 60 * 24 * 30,
+    await sendAccountLink(session.userId, normalised, "EMAIL");
+    return NextResponse.json({
+      success: true,
+      message: "Check your new email address for a verification link.",
     });
-
-    return NextResponse.json({ success: true, email: normalised });
   } catch (err) {
     console.error("Update email error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

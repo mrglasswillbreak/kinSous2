@@ -1,12 +1,25 @@
 "use client";
 
-import Image from "next/image";
+import Image from "@/components/ui/AppImage";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Clock, ChevronDown, DollarSign, Users, Tag, ArrowRight } from "lucide-react";
+import {
+  MapPin,
+  Clock,
+  ChevronDown,
+  DollarSign,
+  Users,
+  Tag,
+  ArrowRight,
+} from "lucide-react";
 import Link from "next/link";
 import type { Bounty } from "@/types";
-import { timeAgo, formatCurrency, categoryLabels, categoryColors } from "@/lib/mock-data";
+import {
+  timeAgo,
+  formatCurrency,
+  categoryLabels,
+  categoryColors,
+} from "@/lib/mock-data";
 import BidSection from "./BidSection";
 
 interface BountyCardProps {
@@ -52,7 +65,8 @@ export default function BountyCard({ bounty, onChanged }: BountyCardProps) {
       <div className="p-4 space-y-3">
         <div className="flex items-start gap-3">
           <Image
-            src={bounty.seeker.avatarUrl} alt={bounty.seeker.name}
+            src={bounty.seeker.avatarUrl}
+            alt={bounty.seeker.name}
             width={40}
             height={40}
             unoptimized={bounty.seeker.avatarUrl.startsWith("data:")}
@@ -60,26 +74,41 @@ export default function BountyCard({ bounty, onChanged }: BountyCardProps) {
           />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-charcoal text-sm">{bounty.seeker.name}</span>
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${categoryColors[bounty.category]}`}>
+              <span className="font-semibold text-charcoal text-sm">
+                {bounty.seeker.name}
+              </span>
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full font-medium ${categoryColors[bounty.category]}`}
+              >
                 {categoryLabels[bounty.category]}
               </span>
             </div>
             <div className="flex items-center gap-3 mt-1 text-muted text-xs">
-              <span className="flex items-center gap-1"><MapPin size={11} />{bounty.location.city}, {bounty.location.country}</span>
-              <span className="flex items-center gap-1"><Clock size={11} />{timeAgo(bounty.createdAt)}</span>
+              <span className="flex items-center gap-1">
+                <MapPin size={11} />
+                {bounty.location.city}, {bounty.location.country}
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock size={11} />
+                {timeAgo(bounty.createdAt)}
+              </span>
             </div>
           </div>
           <motion.div
-            animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}
+            animate={{ rotate: expanded ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
             className="text-muted flex-shrink-0 mt-1"
           >
             <ChevronDown size={18} />
           </motion.div>
         </div>
 
-        <h3 className="font-bold text-charcoal text-base leading-snug">{bounty.title}</h3>
-        <p className="text-muted text-sm leading-relaxed line-clamp-2">{bounty.description}</p>
+        <h3 className="font-bold text-charcoal text-base leading-snug">
+          {bounty.title}
+        </h3>
+        <p className="text-muted text-sm leading-relaxed line-clamp-2">
+          {bounty.description}
+        </p>
 
         <div className="flex items-center justify-between pt-1">
           <div className="flex items-center gap-1.5">
@@ -93,10 +122,13 @@ export default function BountyCard({ bounty, onChanged }: BountyCardProps) {
           <div className="flex items-center gap-3 text-xs text-muted">
             {bounty.bids && bounty.bids.length > 0 && (
               <span className="flex items-center gap-1">
-                <Users size={12} />{bounty.bids.length} bid{bounty.bids.length !== 1 ? "s" : ""}
+                <Users size={12} />
+                {bounty.bids.length} bid{bounty.bids.length !== 1 ? "s" : ""}
               </span>
             )}
-            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[bounty.status]}`}>
+            <span
+              className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[bounty.status]}`}
+            >
               {bounty.status.replace("_", " ")}
             </span>
           </div>
@@ -115,29 +147,45 @@ export default function BountyCard({ bounty, onChanged }: BountyCardProps) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-4 pb-4 space-y-4 border-t border-card-border pt-4">
-              <p className="text-sm text-charcoal leading-relaxed">{bounty.description}</p>
+              <p className="text-sm text-charcoal leading-relaxed">
+                {bounty.description}
+              </p>
 
               {bounty.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {bounty.tags.map((tag) => (
-                    <span key={tag} className="flex items-center gap-1 text-xs bg-badge text-muted px-2.5 py-1 rounded-full">
-                      <Tag size={10} />{tag}
+                    <span
+                      key={tag}
+                      className="flex items-center gap-1 text-xs bg-badge text-muted px-2.5 py-1 rounded-full"
+                    >
+                      <Tag size={10} />
+                      {tag}
                     </span>
                   ))}
                 </div>
               )}
 
               <div className="flex items-start gap-2 bg-subtle rounded-2xl p-3">
-                <MapPin size={16} className="text-primary mt-0.5 flex-shrink-0" />
+                <MapPin
+                  size={16}
+                  className="text-primary mt-0.5 flex-shrink-0"
+                />
                 <div>
-                  <p className="text-sm font-medium text-charcoal">{bounty.location.address}</p>
-                  <p className="text-xs text-muted">{bounty.location.city}, {bounty.location.country}</p>
+                  <p className="text-sm font-medium text-charcoal">
+                    {bounty.location.address}
+                  </p>
+                  <p className="text-xs text-muted">
+                    {bounty.location.city}, {bounty.location.country}
+                  </p>
                 </div>
               </div>
 
               <BidSection bounty={bounty} onChanged={onChanged} />
 
-              <Link href={`/bounties/${bounty.id}`} onClick={(e) => e.stopPropagation()}>
+              <Link
+                href={`/bounties/${bounty.id}`}
+                onClick={(e) => e.stopPropagation()}
+              >
                 <motion.div
                   whileTap={{ scale: 0.97 }}
                   className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-primary border border-primary-200 bg-primary-50 hover:bg-primary-100 transition-colors"

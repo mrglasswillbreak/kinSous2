@@ -1,3 +1,4 @@
+import { publicUser } from "@/lib/public-data";
 import { unstable_cache } from "next/cache";
 import { getBounties, getHelpers } from "@/lib/db";
 import { dbBountyToAppBounty, dbUserToProfile } from "@/lib/mappers";
@@ -15,16 +16,16 @@ const getCachedRecentBounties = unstable_cache(
     return bounties.map(dbBountyToAppBounty);
   },
   ["home-recent-bounties"],
-  { revalidate: HOME_PAGE_REVALIDATE_SECONDS, tags: [CACHE_TAGS.bounties] }
+  { revalidate: HOME_PAGE_REVALIDATE_SECONDS, tags: [CACHE_TAGS.bounties] },
 );
 
 const getCachedTopHelpers = unstable_cache(
   async () => {
     const helpers = await getHelpers();
-    return helpers.slice(0, 5).map(dbUserToProfile);
+    return helpers.slice(0, 5).map((u) => dbUserToProfile(publicUser(u)));
   },
   ["home-top-helpers"],
-  { revalidate: HOME_PAGE_REVALIDATE_SECONDS, tags: [CACHE_TAGS.helpers] }
+  { revalidate: HOME_PAGE_REVALIDATE_SECONDS, tags: [CACHE_TAGS.helpers] },
 );
 
 export async function getHomePageData() {

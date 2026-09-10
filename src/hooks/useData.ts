@@ -3,16 +3,16 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Bounty, BountyCategory, Profile, Bid } from "@/types";
 import { SEARCH_DEBOUNCE_MS } from "@/lib/constants";
-import { dbBidToAppBid, dbBountyToAppBounty, dbUserToProfile } from "@/lib/mappers";
+import {
+  dbBidToAppBid,
+  dbBountyToAppBounty,
+  dbUserToProfile,
+} from "@/lib/mappers";
 
-async function fetchJson<T>(url: string): Promise<T | null> {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    return (await res.json()) as T;
-  } catch {
-    return null;
-  }
+async function fetchJson<T>(url: string, signal?: AbortSignal): Promise<T> {
+  const res = await fetch(url, { signal });
+  if (!res.ok) throw new Error("Could not load data. Please retry.");
+  return (await res.json()) as T;
 }
 
 // ── useBounties ───────────────────────────────────────────────────────────────
@@ -29,11 +29,15 @@ export function useBounties(filter?: BountiesFilter) {
   const [error, setError] = useState<Error | null>(null);
   const fetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const controllerRef = useRef<AbortController | null>(null);
   const category = filter?.category;
   const query = filter?.query;
   const status = filter?.status;
 
   const refetch = useCallback(() => {
+    controllerRef.current?.abort();
+    const controller = new AbortController();
+    controllerRef.current = controller;
     if (fetchTimerRef.current) {
       clearTimeout(fetchTimerRef.current);
       fetchTimerRef.current = null;
@@ -45,22 +49,39 @@ export function useBounties(filter?: BountiesFilter) {
       if (category && category !== "ALL") params.set("category", category);
       if (status) params.set("status", status);
       if (query) params.set("q", query);
-      fetchJson<{ bounties?: unknown[] }>(`/api/bounties?${params.toString()}`)
+      fetchJson<{ bounties?: unknown[] }>(
+        `/api/bounties?${params.toString()}`,
+        controller.signal,
+      )
         .then((payload) => {
-          const results = (payload?.bounties ?? []).map((b) => dbBountyToAppBounty(b as never));
+          if (controller.signal.aborted) return;
+          const results = (payload?.bounties ?? []).map((b) =>
+            dbBountyToAppBounty(b as never),
+          );
           setData(results);
         })
         .catch((err) => {
-          setError(err instanceof Error ? err : new Error("Failed to load bounties"));
+          if (controller.signal.aborted) return;
+          setError(
+            err instanceof Error ? err : new Error("Failed to load bounties"),
+          );
         })
         .finally(() => {
+          if (controller.signal.aborted) return;
           setIsLoading(false);
           fetchTimerRef.current = null;
         });
     }, SEARCH_DEBOUNCE_MS);
   }, [category, query, status]);
 
-  useEffect(() => { refetch(); }, [refetch]);
+  useEffect(() => {
+    refetch();
+    window.addEventListener("kinsous:refresh", refetch);
+    return () => {
+      window.removeEventListener("kinsous:refresh", refetch);
+      controllerRef.current?.abort();
+    };
+  }, [refetch]);
   useEffect(() => {
     return () => {
       if (fetchTimerRef.current) {
@@ -90,29 +111,45 @@ export function useHelpers(filter?: HelpersFilter) {
   const country = filter?.country;
 
   useEffect(() => {
+    const controller = new AbortController();
+    setError(null);
     setIsLoading(true);
     const timer = setTimeout(() => {
       const params = new URLSearchParams();
       if (query) params.set("q", query);
-      fetchJson<{ helpers?: unknown[] }>(`/api/helpers?${params.toString()}`)
+      fetchJson<{ helpers?: unknown[] }>(
+        `/api/helpers?${params.toString()}`,
+        controller.signal,
+      )
         .then((payload) => {
-          let results = (payload?.helpers ?? []).map((u) => dbUserToProfile(u as never));
+          if (controller.signal.aborted) return;
+          let results = (payload?.helpers ?? []).map((u) =>
+            dbUserToProfile(u as never),
+          );
           if (minChefScore) {
             results = results.filter((h) => (h.chefScore ?? 0) >= minChefScore);
           }
           if (country) {
             results = results.filter(
-              (h) => h.location.country.toLowerCase() === country.toLowerCase()
+              (h) => h.location.country.toLowerCase() === country.toLowerCase(),
             );
           }
           setData(results);
         })
         .catch((err) => {
-          setError(err instanceof Error ? err : new Error("Failed to load helpers"));
+          if (controller.signal.aborted) return;
+          setError(
+            err instanceof Error ? err : new Error("Failed to load helpers"),
+          );
         })
-        .finally(() => setIsLoading(false));
+        .finally(() => {
+          if (!controller.signal.aborted) setIsLoading(false);
+        });
     }, SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [query, minChefScore, country]);
 
   return { data, isLoading, error };
@@ -129,10 +166,13 @@ export function useProfile(id: string) {
     const timer = setTimeout(() => {
       fetchJson<{ helpers?: unknown[] }>("/api/helpers")
         .then((payload) => {
-          const profiles = (payload?.helpers ?? []).map((u) => dbUserToProfile(u as never));
+          const profiles = (payload?.helpers ?? []).map((u) =>
+            dbUserToProfile(u as never),
+          );
           const found = profiles.find((h) => h.id === id) ?? null;
           setData(found);
         })
+        .catch(() => setData(null))
         .finally(() => setIsLoading(false));
     }, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
@@ -159,11 +199,14 @@ export function usePlaceBid() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/bounties/${encodeURIComponent(params.bountyId)}/bids`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(params),
-      });
+      const res = await fetch(
+        `/api/bounties/${encodeURIComponent(params.bountyId)}/bids`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(params),
+        },
+      );
       const payload = await res.json().catch(() => null);
       if (!res.ok) {
         throw new Error(payload?.error ?? "Failed to place bid");
