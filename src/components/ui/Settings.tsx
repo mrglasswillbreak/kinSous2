@@ -613,7 +613,7 @@ export default function Settings() {
               <SectionItem
                 icon={<CreditCard size={16} className="text-muted" />}
                 label="Your orders and payments"
-                sublabel="Flutterwave ? NGN"
+                sublabel="Flutterwave - NGN"
                 onClick={() => router.push("/payment")}
               />
             </div>

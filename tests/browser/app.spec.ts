@@ -50,7 +50,7 @@ test("sign in, navigation, theme, drafts, public privacy and offline shell", asy
   await expect(dialog).toBeHidden();
   await page.goto("/settings");
   await expect(
-    page.getByText("Chioma Nwosu", { exact: true }).first(),
+    page.getByRole("main").getByText("Chioma Nwosu", { exact: true }).first(),
   ).toBeVisible({ timeout: 30000 });
   await page.getByLabel("Appearance", { exact: true }).selectOption("dark");
   await expect(page.locator("html")).toHaveClass(/dark/);
