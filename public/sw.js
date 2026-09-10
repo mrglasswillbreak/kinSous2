@@ -1,4 +1,4 @@
-const CACHE = "kinsous-public-f7b1dcfc1205";
+const CACHE = "kinsous-public-f7e1232247e3";
 const ASSETS = ["/offline.html", "/android-chrome-192x192.png", "/android-chrome-512x512.png", "/favicon-32x32.png"];
 self.addEventListener("install", event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS))));
 self.addEventListener("activate", event => event.waitUntil(Promise.all([caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith("kinsous-public-") && key !== CACHE).map(key => caches.delete(key)))), self.clients.claim()])));

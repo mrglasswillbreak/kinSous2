@@ -4,6 +4,23 @@ import { matchesPayment } from "../src/lib/payment-validation";
 import { createToken, verifyToken } from "../src/lib/auth";
 import { publicUser, publicBounty } from "../src/lib/public-data";
 import type { DbUser, DbBounty } from "../src/lib/db";
+import { logDatabaseFailure } from "../src/lib/service-diagnostics";
+
+test("database diagnostics omit credentials and raw error messages", () => {
+  const logs: string[] = [];
+  const previous = console.error;
+  console.error = (value: string) => logs.push(value);
+  try {
+    logDatabaseFailure("rate_limit", { code: "42P01", message: "private connection string", query: "private query" });
+    logDatabaseFailure("health", { code: "private connection string" });
+    assert.deepEqual(logs.map(value => JSON.parse(value)), [
+      { event: "database_operation_failed", operation: "rate_limit", code: "42P01" },
+      { event: "database_operation_failed", operation: "health", code: "UNKNOWN" },
+    ]);
+  } finally {
+    console.error = previous;
+  }
+});
 test("payment verification rejects wrong amount, currency, reference and non-success", () => {
   const payment = {
     status: "successful",

@@ -464,6 +464,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
     fetch("/api/auth/seed", { method: "POST" }).catch(() => {});
   }, []);
 
@@ -940,7 +941,7 @@ export default function LoginPage() {
           </AnimatePresence>
         </div>
 
-        <motion.div
+        {process.env.NODE_ENV !== "production" && <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
@@ -976,7 +977,7 @@ export default function LoginPage() {
               Use helper
             </button>
           </div>
-        </motion.div>
+        </motion.div>}
 
         <p className="mt-6 text-center text-xs text-muted">
           KinSous | FolkProvidr | v0.1.0

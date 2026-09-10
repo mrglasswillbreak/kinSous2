@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { COOKIE_NAME } from "@/lib/auth-constants";
+import { logDatabaseFailure } from "@/lib/service-diagnostics";
 async function validSession(request: NextRequest) {
   const token = request.cookies.get(COOKIE_NAME)?.value;
   if (!token) return false;
@@ -63,6 +64,8 @@ export async function middleware(request: NextRequest) {
       path,
     );
   if (assets) return NextResponse.next();
+  if (path === "/api/auth/seed" && process.env.NODE_ENV === "production")
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   const machine =
     path === "/api/payments/webhook" || path === "/api/jobs/reconcile";
   const mutating = !["GET", "HEAD", "OPTIONS"].includes(request.method);
@@ -100,7 +103,8 @@ export async function middleware(request: NextRequest) {
             { error: "Too many requests. Try again later." },
             { status: 429, headers: { "Retry-After": "900" } },
           );
-      } catch {
+      } catch (error) {
+        logDatabaseFailure("rate_limit", error);
         return NextResponse.json(
           { error: "Service temporarily unavailable" },
           { status: 503 },
